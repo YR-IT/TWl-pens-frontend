@@ -180,6 +180,13 @@ class CategoryIn(BaseModel):
     order: int = 0
 
 
+class StudioPostIn(BaseModel):
+    image: str  # /api/files/... or absolute URL
+    caption: Optional[str] = Field(default="", max_length=280)
+    link: Optional[str] = Field(default=None, max_length=500)  # Instagram permalink
+    order: int = 0
+
+
 class ProductOut(ProductIn):
     id: str
     created_at: str
@@ -236,6 +243,7 @@ async def startup():
     await db.wishlists.create_index("user_id", unique=True)
     await db.wishlists.create_index("share_token", unique=True, sparse=True)
     await db.categories.create_index("name", unique=True)
+    await db.studio_posts.create_index("id", unique=True)
 
     # Seed admin
     if ADMIN_EMAIL and ADMIN_PASSWORD:
@@ -265,6 +273,23 @@ async def startup():
             for i, c in enumerate(default_cats)
         ])
         logger.info("Seeded default categories")
+
+    # Seed studio posts if empty
+    if await db.studio_posts.count_documents({}) == 0:
+        studio_seeds = [
+            ("https://images.unsplash.com/photo-1583912372642-8b0adbb1a53a?crop=entropy&cs=srgb&fm=jpg&q=85&w=800", "New nibs, Turin edition · 001–012", "https://instagram.com/thewlpens"),
+            ("https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=800", "First ink of the season · Midnight Olive", "https://instagram.com/thewlpens"),
+            ("https://images.unsplash.com/photo-1517971071642-34a2d3ecc9cd?crop=entropy&cs=srgb&fm=jpg&q=85&w=800", "Studio afternoon · dragon roller in gold", "https://instagram.com/thewlpens"),
+            ("https://images.unsplash.com/photo-1519638399535-1b036603ac77?crop=entropy&cs=srgb&fm=jpg&q=85&w=800", "Wedding order · six pens, six names", "https://instagram.com/thewlpens"),
+            ("https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?crop=entropy&cs=srgb&fm=jpg&q=85&w=800", "Aurora Limited No. 001 · 300 pieces", "https://instagram.com/thewlpens"),
+            ("https://images.unsplash.com/photo-1617177435596-1c9e30d6d608?crop=entropy&cs=srgb&fm=jpg&q=85&w=800", "Espresso leather journals restocked", "https://instagram.com/thewlpens"),
+        ]
+        now = datetime.now(timezone.utc).isoformat()
+        await db.studio_posts.insert_many([
+            {"id": str(uuid.uuid4()), "image": img, "caption": cap, "link": lnk, "order": i, "created_at": now}
+            for i, (img, cap, lnk) in enumerate(studio_seeds)
+        ])
+        logger.info("Seeded default studio posts")
 
     # Backfill engravable flag on existing products (idempotent)
     await db.products.update_many(
@@ -840,6 +865,39 @@ async def delete_category(cat_id: str, _admin=Depends(admin_only)):
     if in_use:
         raise HTTPException(409, f"Category is in use by {in_use} product(s). Reassign or delete them first.")
     await db.categories.delete_one({"id": cat_id})
+    return {"ok": True}
+
+
+# ---------------- Studio feed (Instagram-style) ----------------
+@api.get("/studio-posts")
+async def list_studio_posts(limit: int = 12):
+    docs = await db.studio_posts.find({}, {"_id": 0}).sort([("order", 1), ("created_at", -1)]).to_list(limit)
+    return docs
+
+
+@api.post("/admin/studio-posts")
+async def create_studio_post(body: StudioPostIn, _admin=Depends(admin_only)):
+    doc = body.model_dump()
+    doc["id"] = str(uuid.uuid4())
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    await db.studio_posts.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@api.put("/admin/studio-posts/{post_id}")
+async def update_studio_post(post_id: str, body: StudioPostIn, _admin=Depends(admin_only)):
+    r = await db.studio_posts.update_one({"id": post_id}, {"$set": body.model_dump()})
+    if not r.matched_count:
+        raise HTTPException(404, "Post not found")
+    return await db.studio_posts.find_one({"id": post_id}, {"_id": 0})
+
+
+@api.delete("/admin/studio-posts/{post_id}")
+async def delete_studio_post(post_id: str, _admin=Depends(admin_only)):
+    r = await db.studio_posts.delete_one({"id": post_id})
+    if not r.deleted_count:
+        raise HTTPException(404, "Post not found")
     return {"ok": True}
 
 

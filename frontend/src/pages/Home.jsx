@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Instagram } from "lucide-react";
 import { motion } from "framer-motion";
-import { api } from "../lib/api";
+import { api, fileUrl } from "../lib/api";
 import { useCategories } from "../lib/categories";
 import { SITE } from "../lib/site";
 import ProductCard from "../components/ProductCard";
@@ -13,10 +13,12 @@ const EDITORIAL_2 = "https://images.unsplash.com/photo-1473186505569-9c61870c11f
 
 export default function Home() {
   const [featured, setFeatured] = useState([]);
+  const [studio, setStudio] = useState([]);
   const cats = useCategories();
 
   useEffect(() => {
     api.get("/products", { params: { featured: true, limit: 6 } }).then((r) => setFeatured(r.data));
+    api.get("/studio-posts", { params: { limit: 6 } }).then((r) => setStudio(r.data));
   }, []);
 
   return (
@@ -128,6 +130,56 @@ export default function Home() {
         </motion.div>
       </section>
 
+      {/* Studio feed — instagram-style grid */}
+      <section className="border-t border-[#E6E0D6] bg-[#F3EFEA]/60">
+        <div className="max-w-[1600px] mx-auto px-6 lg:px-12 py-20">
+          <div className="flex items-end justify-between border-b border-[#E6E0D6] pb-8 mb-10">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">03 / FROM THE STUDIO</p>
+              <h2 className="font-serif text-3xl lg:text-5xl text-[#1C1815] mt-2">New arrivals, live from the desk.</h2>
+              <p className="mt-2 text-sm text-[#6E685E] max-w-lg">Fresh nib videos, first inks of the season, and the odd wedding order — straight from our Panchkula studio.</p>
+            </div>
+            <a href="https://instagram.com/thewlpens" target="_blank" rel="noopener noreferrer" className="hidden sm:inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-[#3D4838] hover:text-[#1C1815] border-b border-[#3D4838] pb-1" data-testid="instagram-follow-link">
+              <Instagram size={14}/> @thewlpens
+            </a>
+          </div>
+          {studio.length === 0 ? (
+            <p className="text-[#6E685E] text-sm">The studio feed is coming to life…</p>
+          ) : (
+            <motion.div
+              className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4"
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true, margin: "-50px" }}
+              variants={{ hidden: {}, show: { transition: { staggerChildren: 0.06 } } }}
+              data-testid="studio-grid"
+            >
+              {studio.slice(0, 6).map((post, i) => (
+                <motion.a
+                  key={post.id}
+                  href={post.link || "https://instagram.com/thewlpens"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  variants={{ hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 0.9, 0.3, 1] } } }}
+                  whileHover={{ y: -3 }}
+                  className="group relative block aspect-square overflow-hidden bg-[#F3EFEA]"
+                  data-testid={`studio-tile-${i}`}
+                >
+                  <img src={fileUrl(post.image)} alt={post.caption || `Studio post ${i + 1}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.06]"/>
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#1C1815]/70 opacity-0 group-hover:opacity-100 transition-opacity"/>
+                  <div className="absolute inset-x-4 bottom-4 text-[#FAF8F5] opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-75">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-[#B8860B] flex items-center gap-1.5">
+                      <Instagram size={12}/> @thewlpens
+                    </p>
+                    <p className="font-serif italic text-base sm:text-lg leading-tight mt-1 line-clamp-2">{post.caption || "See on Instagram"}</p>
+                  </div>
+                </motion.a>
+              ))}
+            </motion.div>
+          )}
+        </div>
+      </section>
+
       {/* Editorial spread */}
       <section className="bg-[#1C1815] text-[#FAF8F5]">
         <div className="max-w-[1600px] mx-auto px-6 lg:px-12 py-24 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -136,7 +188,7 @@ export default function Home() {
             <img src={EDITORIAL_2} alt="Nib detail" className="aspect-[3/4] object-cover mt-12"/>
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]" data-testid="craft-eyebrow">03 / CRAFT &amp; ENGRAVING</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]" data-testid="craft-eyebrow">04 / CRAFT &amp; ENGRAVING</p>
             <h2 className="font-serif text-4xl lg:text-5xl mt-3 leading-[1.1]">
               Every nib is hand-tuned,<br/>every barrel is<br/><em className="text-[#B8860B]">signed.</em>
             </h2>

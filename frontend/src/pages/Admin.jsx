@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Package, ShoppingBag, Users, DollarSign, Truck, Upload, Trash2, Edit3, Plus, X, Tag } from "lucide-react";
+import { Package, ShoppingBag, Users, DollarSign, Truck, Upload, Trash2, Edit3, Plus, X, Tag, Instagram } from "lucide-react";
 import { api, fileUrl } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { money } from "../lib/format";
@@ -26,7 +26,7 @@ export default function Admin() {
             <h1 className="font-serif text-3xl lg:text-4xl text-[#1C1815] mt-2">Admin dashboard</h1>
           </div>
           <div className="flex gap-2 flex-wrap">
-            {["dashboard", "products", "categories", "orders"].map((t) => (
+            {["dashboard", "products", "categories", "studio", "orders"].map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -43,6 +43,7 @@ export default function Admin() {
           {tab === "dashboard" && <Dashboard/>}
           {tab === "products" && <ProductsTab/>}
           {tab === "categories" && <CategoriesTab/>}
+          {tab === "studio" && <StudioTab/>}
           {tab === "orders" && <OrdersTab/>}
         </div>
       </div>
@@ -464,6 +465,154 @@ function CategoriesTab() {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+function StudioTab() {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null); // null | "new" | post
+
+  const load = () => {
+    setLoading(true);
+    api.get("/studio-posts", { params: { limit: 100 } }).then((r) => setPosts(r.data)).finally(() => setLoading(false));
+  };
+  useEffect(load, []);
+
+  const del = async (id) => {
+    if (!window.confirm("Delete this studio post?")) return;
+    await api.delete(`/admin/studio-posts/${id}`);
+    toast.success("Post removed");
+    load();
+  };
+
+  return (
+    <div data-testid="studio-tab">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="font-serif text-2xl text-[#1C1815]">Studio feed</h2>
+          <p className="text-xs text-[#6E685E] mt-1">6 most recent tiles are shown on the home page under "From the studio".</p>
+        </div>
+        <button onClick={() => setEditing("new")} className="inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-5 py-3 text-xs uppercase tracking-[0.2em] hover:bg-[#3D4838]" data-testid="add-studio-btn">
+          <Plus size={14}/> New tile
+        </button>
+      </div>
+      {loading ? (
+        <p className="text-[#6E685E]">Loading…</p>
+      ) : posts.length === 0 ? (
+        <div className="border border-dashed border-[#E6E0D6] p-16 text-center" data-testid="no-studio-posts">
+          <Instagram size={26} className="mx-auto text-[#B8860B]"/>
+          <p className="mt-4 font-serif italic text-xl text-[#6E685E]">No tiles yet — add the first one.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" data-testid="studio-posts-grid">
+          {posts.map((p) => (
+            <div key={p.id} className="group relative aspect-square bg-[#F3EFEA] overflow-hidden" data-testid={`studio-row-${p.id}`}>
+              <img src={fileUrl(p.image)} alt="" className="w-full h-full object-cover"/>
+              <div className="absolute inset-0 bg-[#1C1815]/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
+                <div className="flex justify-end gap-1">
+                  <button onClick={() => setEditing(p)} className="bg-[#FAF8F5] text-[#1C1815] w-8 h-8 grid place-items-center" data-testid={`edit-studio-${p.id}`}><Edit3 size={14}/></button>
+                  <button onClick={() => del(p.id)} className="bg-[#1C1815] text-[#FAF8F5] w-8 h-8 grid place-items-center" data-testid={`delete-studio-${p.id}`}><Trash2 size={14}/></button>
+                </div>
+                <p className="text-[#FAF8F5] font-serif italic text-sm line-clamp-2">{p.caption || "—"}</p>
+              </div>
+              <span className="absolute top-2 left-2 bg-[#FAF8F5]/90 backdrop-blur text-[10px] uppercase tracking-[0.15em] px-2 py-0.5" data-testid={`studio-order-${p.id}`}>#{p.order}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {editing && (
+        <StudioForm
+          post={editing === "new" ? null : editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); load(); }}
+          fallbackOrder={posts.length}
+        />
+      )}
+    </div>
+  );
+}
+
+function StudioForm({ post, onClose, onSaved, fallbackOrder }) {
+  const [form, setForm] = useState(post || { image: "", caption: "", link: "", order: fallbackOrder });
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const set = (k, v) => setForm({ ...form, [k]: v });
+
+  const upload = async (file) => {
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await api.post("/admin/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      set("image", r.data.url);
+      toast.success("Image uploaded");
+    } catch (err) {
+      toast.error("Upload failed: " + (err.response?.data?.detail || err.message));
+    } finally { setUploading(false); }
+  };
+
+  const save = async () => {
+    if (!form.image) { toast.error("Please upload an image first"); return; }
+    setSaving(true);
+    const payload = { image: form.image, caption: form.caption || "", link: form.link || null, order: parseInt(form.order) || 0 };
+    try {
+      if (post) await api.put(`/admin/studio-posts/${post.id}`, payload);
+      else await api.post("/admin/studio-posts", payload);
+      toast.success(post ? "Tile updated" : "Tile added");
+      onSaved();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Save failed");
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-10 px-4 bg-[#1C1815]/50" onClick={onClose}>
+      <div className="bg-[#FAF8F5] w-full max-w-xl p-6 lg:p-10" onClick={(e) => e.stopPropagation()} data-testid="studio-form-modal">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">{post ? "EDIT" : "NEW"}</p>
+            <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Studio tile</h2>
+          </div>
+          <button onClick={onClose} data-testid="close-studio-form"><X size={22}/></button>
+        </div>
+
+        <div className="space-y-5">
+          <div>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Image</span>
+            <div className="mt-2 grid grid-cols-2 gap-4">
+              <div className="aspect-square bg-[#F3EFEA]" data-testid="sf-image-preview">
+                {form.image && <img src={fileUrl(form.image)} alt="" className="w-full h-full object-cover"/>}
+              </div>
+              <label className="aspect-square border border-dashed border-[#3D4838] flex flex-col items-center justify-center text-[#3D4838] cursor-pointer hover:bg-[#F3EFEA]" data-testid="sf-upload">
+                <Upload size={20}/>
+                <span className="text-[10px] uppercase tracking-[0.15em] mt-2">{uploading ? "Uploading…" : "Upload image"}</span>
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}/>
+              </label>
+            </div>
+          </div>
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Caption (optional)</span>
+            <input value={form.caption || ""} onChange={(e) => set("caption", e.target.value)} maxLength={280} placeholder="New nibs, Turin edition · 001–012" className="mt-2 w-full bg-transparent border-b border-[#E6E0D6] py-2.5 outline-none focus:border-[#3D4838]" data-testid="sf-caption"/>
+          </label>
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Instagram permalink (optional)</span>
+            <input value={form.link || ""} onChange={(e) => set("link", e.target.value)} placeholder="https://instagram.com/p/..." className="mt-2 w-full bg-transparent border-b border-[#E6E0D6] py-2.5 outline-none focus:border-[#3D4838]" data-testid="sf-link"/>
+          </label>
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Order (lower = shown first)</span>
+            <input type="number" value={form.order} onChange={(e) => set("order", e.target.value)} className="mt-2 w-32 bg-transparent border-b border-[#E6E0D6] py-2.5 outline-none focus:border-[#3D4838]" data-testid="sf-order"/>
+          </label>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-[#E6E0D6]">
+            <button onClick={onClose} className="px-5 py-3 text-xs uppercase tracking-[0.2em] border border-[#E6E0D6] hover:border-[#3D4838]" data-testid="sf-cancel">Cancel</button>
+            <button onClick={save} disabled={saving || !form.image} className="px-6 py-3 text-xs uppercase tracking-[0.2em] bg-[#1C1815] text-[#FAF8F5] hover:bg-[#3D4838] disabled:bg-[#6E685E]" data-testid="sf-save">
+              {saving ? "Saving…" : "Save tile"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
