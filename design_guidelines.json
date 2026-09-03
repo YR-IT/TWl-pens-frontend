@@ -1,0 +1,87 @@
+{
+  "project_title": "Atelier Ink & Steel — Luxury Scandinavian Pen Store",
+  "design_archetype": "Warm Editorial Luxury meets Scandinavian Minimalism",
+  "theme": {
+    "mode": "Light Editorial Warmth with Dark Mode Toggle Support",
+    "background_primary": "#FAF8F5",
+    "background_secondary": "#F3EFEA",
+    "background_card": "#FFFFFF",
+    "background_dark_accent": "#1C1815",
+    "text_primary": "#1C1815",
+    "text_muted": "#6E685E",
+    "text_light": "#FAF8F5",
+    "border_subtle": "#E6E0D6",
+    "accent_primary": "#3D4838",
+    "accent_hover": "#2B3327",
+    "accent_warm_gold": "#B8860B",
+    "accent_ink_blue": "#1E293B",
+    "forbidden_colors": ["#7351B7", "#1B93A4", "pure black #000000 gradients"]
+  },
+  "typography": {
+    "headings": {
+      "font_family": "'Cormorant Garamond', 'Playfair Display', Georgia, serif",
+      "h1_hero": "text-4xl sm:text-5xl lg:text-6xl font-serif tracking-tight leading-[1.1]",
+      "h2_section": "text-2xl sm:text-3xl lg:text-4xl font-serif tracking-tight leading-snug",
+      "h3_card": "text-xl sm:text-2xl font-serif leading-snug",
+      "h4_label": "text-base sm:text-lg font-medium font-serif"
+    },
+    "body": {
+      "font_family": "'Manrope', 'Plus Jakarta Sans', -apple-system, sans-serif",
+      "main": "text-base leading-relaxed text-[#1C1815]/90",
+      "small": "text-sm text-[#6E685E] leading-normal",
+      "overline": "text-xs uppercase tracking-[0.25em] font-semibold text-[#6E685E]"
+    },
+    "forbidden_fonts": ["Inter for headings", "Space Grotesk"]
+  },
+  "layout_and_spacing": {
+    "hero_section": "Asymmetrical Swiss layout with left editorial typography block (span 7) and right off-grid multi-depth image cluster (span 5). Max heading text-6xl.",
+    "catalog_grid": "3-column responsive grid (grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8) with elevated filter drawer / sticky filter bar",
+    "admin_dashboard": "High Density Grid (MODE B) with tight gaps (gap-4 to gap-6), strict table structures, status badges, and quick modal edit triggers",
+    "spacing_scale": "Tailwind standard with generous padding (p-6 to p-12 for containers, py-16 to py-24 for page sections)",
+    "container_borders": "All bordered containers MUST include internal padding (p-6 or p-8) to prevent text collision with crisp 1px borders (#E6E0D6)"
+  },
+  "visual_enhancers": {
+    "textures": "Subtle paper noise background overlay with opacity 0.03 for organic warmth",
+    "surface_style": "Tactile Scandinavian cardless and subtle card styles with border-[#E6E0D6] and soft drop shadow shadow-[0_4px_20px_rgba(28,24,21,0.04)]",
+    "glassmorphism": "Header navigation bar using bg-[#FAF8F5]/85 backdrop-blur-md border-b border-[#E6E0D6] z-50",
+    "hero_overlay": "Gradient text overlays on photography using max opacity bg-gradient-to-t from-[#1C1815]/60 via-[#1C1815]/20 to-transparent (never flat heavy overlays)"
+  },
+  "navigation_and_header": {
+    "header": "Fixed top bar with brand mark 'ATELIER INK & STEEL', key links (Fountain Pens, Rollerball, Ballpoint, Inks, Limited Editions, About, Admin), search modal trigger, user account button, cart drawer button with item badge.",
+    "mobile_nav": "Slide-out editorial menu panel with oversized category links and smooth motion transitions"
+  },
+  "key_features_to_implement": {
+    "home_page": "Hero statement, Craftsmanship Spotlight, Curated Categories (7 types), Featured Products with hover preview, Brand Story editorial block, Customer reviews / testimonials slider.",
+    "product_catalog": "Full search bar, multi-category filters, brand filter, price range slider, sort dropdown (Price low-high, high-low, newest), view toggles (Grid/List).",
+    "product_detail": "Multi-image thumbnail gallery, interactive nib size selection (Fine, Medium, Broad, Italic), ink color pairing recommendation, technical specs accordion, custom engraving text box, add to cart with animation.",
+    "cart_and_checkout": "Slide-over cart drawer with mini item preview, shipping calculator, promo code field, and multi-step guest/user checkout supporting Stripe payment element mock.",
+    "user_account": "Order history timeline, tracking number link, saved shipping address manager, wishlist collection.",
+    "admin_panel": "Data-dense control center for uploading product details and photos, updating stock levels, managing order statuses (Processing, Shipped, Delivered), and updating shipment tracking numbers."
+  },
+  "image_urls": {
+    "hero_fountain_pen": "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w8NjAzMzV8MHwxfHNlYXJjaHwyfHxmb3VudGFpbiUyMHBlbiUyMGhhbmR3cml0aW5nJTIwZGVza3xlbnwwfHx8fDE3ODg0MzYyMjl8MA&ixlib=rb-4.1.0&q=85",
+    "editorial_desk": "https://images.unsplash.com/photo-1617177435596-1c9e30d6d608?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwyfHxub3RlYm9vayUyMHN0YXRpb25lcnxlbnwwfHx8fDE3ODU2MTgxMTZ8MA&ixlib=rb-4.1.0&q=85",
+    "fountain_nib_detail": "https://images.unsplash.com/photo-1473186505569-9c61870c11f9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w8NjAzMzV8MHwxfHNlYXJjaHwzfHxmb3VudGFpbiUyMHBlbiUyMGhhbmR3cml0aW5nJTIwZGVza3xlbnwwfHx8fDE3ODg0MzYyMjl8MA&ixlib=rb-4.1.0&q=85",
+    "writing_journal": "https://images.unsplash.com/photo-1517971071642-34a2d3ecc9cd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w8NjAzMzV8MHwxfHNlYXJjaHw0fHxmb3VudGFpbiUyMHBlbiUyMGhhbmR3cml0aW5nJTIwZGVza3xlbnwwfHx8fDE3ODg0MzYyMjl8MA&ixlib=rb-4.1.0&q=85",
+    "inkwell_and_books": "https://images.unsplash.com/photo-1780171865622-f6391f2f7397?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxNzV8MHwxfHNlYXJjaHw0fHxsdXh1cnklMjBmb3VudGFpbiUyMHBlbiUyMHdyaXRpbmclMjBqb3VybmFsJTIwZGFyayUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzg4NDM2MjIwfDA&ixlib=rb-4.1.0&q=85",
+    "minimal_notebook": "https://images.unsplash.com/photo-1582319193453-d841c7a5e586?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwxfHxub3RlYm9vayUyMHN0YXRpb25lcnklMjBtaW5pbWFsJTIwZGVza3xlbnwwfHx8fDE3ODU2MTgxMTZ8MA&ixlib=rb-4.1.0&q=85"
+  },
+  "testing_instructions": {
+    "data_testid_requirement": "EVERY interactive element (buttons, links, form inputs, filter checkboxes, order actions, admin upload buttons, shipment tracking status buttons) MUST have a unique data-testid in kebab-case format.",
+    "example_test_ids": [
+      "data-testid='header-nav-brand'",
+      "data-testid='category-filter-fountain-pens'",
+      "data-testid='product-card-add-to-cart-btn'",
+      "data-testid='admin-upload-product-submit'",
+      "data-testid='admin-update-shipment-status-btn'",
+      "data-testid='checkout-stripe-payment-form'"
+    ]
+  },
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "Do not use dark colors as heavy gradients or Inter font for main headings.",
+    "Never use pure transparent backgrounds on sticky elements or dropdown menus.",
+    "Ensure all buttons have explicit hover and active states (e.g. hover:bg-[#2B3327] hover:text-[#FAF8F5]).",
+    "Keep max hero heading size to text-6xl (avoid text-8xl slop).",
+    "Always use kebab-case role-based data-testid attributes on all key interactive elements."
+  ]
+}
