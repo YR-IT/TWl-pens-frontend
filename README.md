@@ -132,7 +132,7 @@ Open **http://localhost:3000**. First visit plays the WL Pens splash intro (only
 
 Go to `http://localhost:3000/login` and use the credentials from your `backend/.env`:
 
-- **Email**: `admin@wlpens.in`   (or whatever you set)
+- **Email**: `admin@atelier.pens`   (or whatever you set)
 - **Password**: `Admin@123456`   (change this in production)
 
 You'll land on `/admin` with four tabs:
