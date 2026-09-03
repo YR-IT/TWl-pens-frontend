@@ -49,6 +49,7 @@ export default function Splash() {
                 transition={{ duration: 0.9, ease: [0.22, 0.9, 0.3, 1], delay: 0.25 }}
                 className="font-serif text-6xl sm:text-7xl lg:text-[110px] leading-none tracking-tight text-[#1C1815] flex items-baseline gap-2 sm:gap-3"
               >
+                <span className="italic font-normal text-[#6E685E] text-3xl sm:text-4xl lg:text-5xl">The</span>
                 <span className="text-[#B8860B] font-semibold">WL</span>
                 <span>Pens</span>
               </motion.h1>

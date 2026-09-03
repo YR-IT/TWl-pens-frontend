@@ -38,7 +38,7 @@ EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 INTEGRATION_PROXY_URL = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip().rstrip("/") or "https://integrations.emergentagent.com"
 STORAGE_URL = f"{INTEGRATION_PROXY_URL}/objstore/api/v1/storage"
 APP_NAME = os.environ.get("APP_NAME", "atelier-pens")
-WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "+919999999999")
+WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "+919351996272")
 
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
@@ -553,7 +553,7 @@ def _price_of(p: dict) -> float:
 def _build_whatsapp_url(order: dict) -> str:
     lines = []
     lines.append(f"*New order · {order['id']}*")
-    lines.append(f"WL Pens · {datetime.now(timezone.utc).strftime('%d %b %Y')}")
+    lines.append(f"The WL Pens · {datetime.now(timezone.utc).strftime('%d %b %Y')}")
     lines.append("")
     lines.append("*Items*")
     for it in order["items"]:
@@ -635,7 +635,7 @@ async def place_order(body: OrderPlaceBody, user=Depends(current_user_optional))
 @api.get("/site/config")
 async def site_config():
     return {
-        "brand": "WL Pens",
+        "brand": "The WL Pens",
         "whatsapp_number": WHATSAPP_NUMBER,
         "address": {
             "line1": "Chandi Mandir",

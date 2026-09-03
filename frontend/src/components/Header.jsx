@@ -26,7 +26,8 @@ export default function Header() {
         <button className="lg:hidden text-[#1C1815]" onClick={() => setMobile(!mobile)} data-testid="mobile-menu-toggle">
           {mobile ? <X size={22}/> : <Menu size={22}/>}
         </button>
-        <Link to="/" className="font-serif text-xl lg:text-2xl tracking-[0.15em] text-[#1C1815] flex items-center gap-1" data-testid="header-nav-brand">
+        <Link to="/" className="font-serif text-xl lg:text-2xl tracking-[0.15em] text-[#1C1815] flex items-center gap-1.5" data-testid="header-nav-brand">
+          <span className="text-[#6E685E] italic font-normal text-sm sm:text-base">The</span>
           <span className="text-[#B8860B] font-semibold">WL</span>
           <span>PENS</span>
         </Link>
