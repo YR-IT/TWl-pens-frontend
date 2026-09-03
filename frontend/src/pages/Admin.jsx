@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Package, ShoppingBag, Users, DollarSign, Truck, Upload, Trash2, Edit3, Plus, X } from "lucide-react";
+import { Package, ShoppingBag, Users, DollarSign, Truck, Upload, Trash2, Edit3, Plus, X, Tag } from "lucide-react";
 import { api, fileUrl } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { money } from "../lib/format";
+import { useCategories, refreshCategories } from "../lib/categories";
 import { toast } from "sonner";
 
-const CATEGORIES = ["Fountain Pens", "Rollerball", "Ballpoint", "Mechanical Pencils", "Inks", "Accessories", "Limited Editions"];
 const SHIPMENT_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"];
 
 export default function Admin() {
@@ -25,8 +25,8 @@ export default function Admin() {
             <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">ATELIER · INTERNAL</p>
             <h1 className="font-serif text-3xl lg:text-4xl text-[#1C1815] mt-2">Admin dashboard</h1>
           </div>
-          <div className="flex gap-2">
-            {["dashboard", "products", "orders"].map((t) => (
+          <div className="flex gap-2 flex-wrap">
+            {["dashboard", "products", "categories", "orders"].map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -42,6 +42,7 @@ export default function Admin() {
         <div className="mt-8">
           {tab === "dashboard" && <Dashboard/>}
           {tab === "products" && <ProductsTab/>}
+          {tab === "categories" && <CategoriesTab/>}
           {tab === "orders" && <OrdersTab/>}
         </div>
       </div>
@@ -156,18 +157,29 @@ function ProductsTab() {
 }
 
 function ProductForm({ product, onClose, onSaved }) {
+  const cats = useCategories();
   const [form, setForm] = useState(product ? {
     ...product,
     features: product.features?.join("\n") || "",
     specs: Object.entries(product.specs || {}).map(([k, v]) => `${k}: ${v}`).join("\n"),
     images: product.images || [],
+    engravable: !!product.engravable,
+    engraving_max_length: product.engraving_max_length ?? 20,
   } : {
-    name: "", brand: "", category: CATEGORIES[0], price: "", discount_price: "",
+    name: "", brand: "", category: cats[0]?.name || "",
+    price: "", discount_price: "",
     description: "", features: "", specs: "", images: [], stock: 10, featured: false,
+    engravable: true, engraving_max_length: 20,
   });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setForm({ ...form, [k]: v });
+
+  // If no category assigned (new product) and cats loaded later, default it
+  useEffect(() => {
+    if (!product && !form.category && cats.length) set("category", cats[0].name);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cats.length]);
 
   const upload = async (file) => {
     setUploading(true);
@@ -186,6 +198,25 @@ function ProductForm({ product, onClose, onSaved }) {
 
   const removeImage = (i) => set("images", form.images.filter((_, idx) => idx !== i));
 
+  const moveImage = (from, to) => {
+    if (to < 0 || to >= form.images.length || from === to) return;
+    const next = [...form.images];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    set("images", next);
+  };
+
+  const onDragStart = (i) => (e) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(i));
+  };
+  const onDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; };
+  const onDrop = (i) => (e) => {
+    e.preventDefault();
+    const from = parseInt(e.dataTransfer.getData("text/plain"));
+    if (!Number.isNaN(from)) moveImage(from, i);
+  };
+
   const save = async () => {
     setSaving(true);
     const payload = {
@@ -202,6 +233,8 @@ function ProductForm({ product, onClose, onSaved }) {
       images: form.images,
       stock: parseInt(form.stock) || 0,
       featured: !!form.featured,
+      engravable: !!form.engravable,
+      engraving_max_length: parseInt(form.engraving_max_length) || 20,
     };
     try {
       if (product) await api.put(`/admin/products/${product.id}`, payload);
@@ -235,7 +268,7 @@ function ProductForm({ product, onClose, onSaved }) {
             <label className="block">
               <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Category</span>
               <select value={form.category} onChange={(e) => set("category", e.target.value)} className="mt-2 w-full bg-transparent border-b border-[#E6E0D6] py-2.5 outline-none focus:border-[#3D4838]" data-testid="pf-category">
-                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                {cats.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
               </select>
             </label>
             <Fld label="Stock" type="number" value={form.stock} onChange={(v) => set("stock", v)} testid="pf-stock"/>
@@ -258,12 +291,30 @@ function ProductForm({ product, onClose, onSaved }) {
           </label>
 
           <div>
-            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Images</span>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Images · drag to reorder · first is the cover</span>
+              <span className="text-[10px] text-[#6E685E]">{form.images.length} uploaded</span>
+            </div>
             <div className="mt-2 grid grid-cols-3 sm:grid-cols-4 gap-3">
               {form.images.map((img, i) => (
-                <div key={i} className="relative aspect-square bg-[#F3EFEA]" data-testid={`pf-image-${i}`}>
-                  <img src={fileUrl(img)} alt="" className="w-full h-full object-cover"/>
-                  <button type="button" onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-[#1C1815] text-[#FAF8F5] w-6 h-6 grid place-items-center" data-testid={`pf-remove-image-${i}`}><X size={12}/></button>
+                <div
+                  key={img + i}
+                  draggable
+                  onDragStart={onDragStart(i)}
+                  onDragOver={onDragOver}
+                  onDrop={onDrop(i)}
+                  className="relative aspect-square bg-[#F3EFEA] cursor-grab active:cursor-grabbing border border-transparent hover:border-[#3D4838]"
+                  data-testid={`pf-image-${i}`}
+                >
+                  <img src={fileUrl(img)} alt="" className="w-full h-full object-cover pointer-events-none"/>
+                  {i === 0 && (
+                    <span className="absolute bottom-1 left-1 bg-[#1C1815] text-[#FAF8F5] px-2 py-0.5 text-[9px] uppercase tracking-[0.15em]" data-testid={`pf-cover-badge-${i}`}>Cover</span>
+                  )}
+                  <div className="absolute top-1 right-1 flex gap-1">
+                    <button type="button" onClick={() => moveImage(i, i - 1)} disabled={i === 0} className="bg-[#FAF8F5]/90 w-6 h-6 grid place-items-center disabled:opacity-30" data-testid={`pf-image-up-${i}`} title="Move earlier">‹</button>
+                    <button type="button" onClick={() => moveImage(i, i + 1)} disabled={i === form.images.length - 1} className="bg-[#FAF8F5]/90 w-6 h-6 grid place-items-center disabled:opacity-30" data-testid={`pf-image-down-${i}`} title="Move later">›</button>
+                    <button type="button" onClick={() => removeImage(i)} className="bg-[#1C1815] text-[#FAF8F5] w-6 h-6 grid place-items-center" data-testid={`pf-remove-image-${i}`}><X size={12}/></button>
+                  </div>
                 </div>
               ))}
               <label className="aspect-square border border-dashed border-[#3D4838] flex flex-col items-center justify-center text-[#3D4838] cursor-pointer hover:bg-[#F3EFEA]" data-testid="pf-upload-image">
@@ -278,6 +329,19 @@ function ProductForm({ product, onClose, onSaved }) {
             <input type="checkbox" checked={form.featured} onChange={(e) => set("featured", e.target.checked)} data-testid="pf-featured"/>
             Feature on homepage
           </label>
+
+          <div className="border-t border-[#E6E0D6] pt-5">
+            <label className="flex items-center gap-3 text-sm text-[#1C1815]">
+              <input type="checkbox" checked={form.engravable} onChange={(e) => set("engravable", e.target.checked)} data-testid="pf-engravable"/>
+              Allow engraving on this product
+            </label>
+            {form.engravable && (
+              <label className="block mt-3">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Max engraving length (1–60)</span>
+                <input type="number" min="1" max="60" value={form.engraving_max_length} onChange={(e) => set("engraving_max_length", e.target.value)} className="mt-2 w-32 bg-transparent border-b border-[#E6E0D6] py-2 text-[#1C1815] outline-none focus:border-[#3D4838]" data-testid="pf-engraving-max"/>
+              </label>
+            )}
+          </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-[#E6E0D6]">
             <button onClick={onClose} className="px-5 py-3 text-xs uppercase tracking-[0.2em] border border-[#E6E0D6] hover:border-[#3D4838]" data-testid="pf-cancel">Cancel</button>
@@ -297,6 +361,110 @@ function Fld({ label, type = "text", value, onChange, testid }) {
       <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">{label}</span>
       <input type={type} value={value ?? ""} onChange={(e) => onChange(e.target.value)} className="mt-2 w-full bg-transparent border-b border-[#E6E0D6] py-2.5 text-[#1C1815] outline-none focus:border-[#3D4838]" data-testid={testid}/>
     </label>
+  );
+}
+
+function CategoriesTab() {
+  const cats = useCategories();
+  const [busy, setBusy] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [editing, setEditing] = useState(null); // {id, name, order}
+
+  const reload = async () => { await refreshCategories(); };
+
+  const create = async (e) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+    setBusy(true);
+    try {
+      await api.post("/admin/categories", { name: newName.trim(), order: cats.length });
+      toast.success("Category created");
+      setNewName("");
+      await reload();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Create failed");
+    } finally { setBusy(false); }
+  };
+
+  const save = async () => {
+    if (!editing.name.trim()) return;
+    try {
+      await api.put(`/admin/categories/${editing.id}`, { name: editing.name.trim(), order: parseInt(editing.order) || 0 });
+      toast.success("Category updated");
+      setEditing(null);
+      await reload();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Update failed");
+    }
+  };
+
+  const del = async (c) => {
+    if (!window.confirm(`Delete category "${c.name}"? Products in it will need reassignment.`)) return;
+    try {
+      await api.delete(`/admin/categories/${c.id}`);
+      toast.success("Category deleted");
+      await reload();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Delete failed");
+    }
+  };
+
+  return (
+    <div data-testid="categories-tab">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="font-serif text-2xl text-[#1C1815]">Categories</h2>
+      </div>
+
+      <form onSubmit={create} className="border border-[#E6E0D6] bg-white p-5 flex flex-wrap items-end gap-3 mb-6" data-testid="new-category-form">
+        <label className="flex-1 min-w-[200px]">
+          <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">New category</span>
+          <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. Wooden Pens" className="mt-2 w-full bg-transparent border-b border-[#E6E0D6] py-2.5 outline-none focus:border-[#3D4838]" data-testid="new-category-name"/>
+        </label>
+        <button disabled={busy || !newName.trim()} className="bg-[#1C1815] text-[#FAF8F5] px-5 py-3 text-xs uppercase tracking-[0.2em] hover:bg-[#3D4838] disabled:bg-[#6E685E] inline-flex items-center gap-2" data-testid="create-category-btn">
+          <Plus size={14}/> Add category
+        </button>
+      </form>
+
+      {cats.length === 0 ? (
+        <p className="text-[#6E685E]" data-testid="no-categories">No categories yet.</p>
+      ) : (
+        <ul className="border border-[#E6E0D6] bg-white divide-y divide-[#E6E0D6]" data-testid="categories-list">
+          {cats.map((c) => (
+            <li key={c.id} className="flex items-center justify-between gap-3 px-5 py-4" data-testid={`category-row-${c.id}`}>
+              {editing?.id === c.id ? (
+                <>
+                  <div className="flex-1 flex flex-wrap items-center gap-3">
+                    <input value={editing.name} onChange={(e) => setEditing({...editing, name: e.target.value})} className="flex-1 min-w-[160px] bg-transparent border-b border-[#3D4838] py-2 outline-none" data-testid={`edit-cat-name-${c.id}`}/>
+                    <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">
+                      Order
+                      <input type="number" value={editing.order} onChange={(e) => setEditing({...editing, order: e.target.value})} className="w-16 bg-transparent border-b border-[#E6E0D6] py-1 outline-none text-[#1C1815]" data-testid={`edit-cat-order-${c.id}`}/>
+                    </label>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={save} className="text-xs uppercase tracking-[0.15em] bg-[#1C1815] text-[#FAF8F5] px-4 py-2 hover:bg-[#3D4838]" data-testid={`save-cat-${c.id}`}>Save</button>
+                    <button onClick={() => setEditing(null)} className="text-xs uppercase tracking-[0.15em] border border-[#E6E0D6] px-4 py-2 hover:border-[#3D4838]" data-testid={`cancel-cat-${c.id}`}>Cancel</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-4 flex-1">
+                    <Tag size={14} className="text-[#B8860B]"/>
+                    <div>
+                      <p className="font-serif text-lg text-[#1C1815]" data-testid={`cat-name-${c.id}`}>{c.name}</p>
+                      <p className="text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">Order · {c.order}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => setEditing({ id: c.id, name: c.name, order: c.order })} className="p-2 hover:bg-[#F3EFEA]" data-testid={`edit-cat-${c.id}`}><Edit3 size={14}/></button>
+                    <button onClick={() => del(c)} className="p-2 hover:bg-[#F3EFEA] text-red-700" data-testid={`delete-cat-${c.id}`}><Trash2 size={14}/></button>
+                  </div>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -349,7 +517,12 @@ function OrdersTab() {
               <div>
                 <h4 className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] mb-2">Items</h4>
                 <ul className="text-sm space-y-1">
-                  {o.items.map((it, i) => <li key={i}>{it.quantity}× {it.name} · {money(it.unit_price)}</li>)}
+                  {o.items.map((it, i) => (
+                    <li key={i}>
+                      {it.quantity}× {it.name} · {money(it.unit_price)}
+                      {it.engraving && <span className="text-[#B8860B] italic"> · engraved "{it.engraving}"</span>}
+                    </li>
+                  ))}
                 </ul>
                 <h4 className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] mt-4 mb-2">Ship to</h4>
                 <p className="text-sm text-[#1C1815]">

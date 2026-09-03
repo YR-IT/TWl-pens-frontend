@@ -1,0 +1,38 @@
+{
+  "summary": "Iteration 2 testing of three new features: SearchModal, Wishlist Vault, and Rich Product Gallery (PDP zoom/lightbox + admin drag-reorder). Backend: 9/9 new wishlist pytest tests passed (auth guard, toggle add/remove, unknown product 404, GET ordering, share idempotent, public shared endpoint, unknown-token 404, empty-wishlist 400). Regression: original 18 backend tests still green. Frontend: SearchModal opens via header icon, debounced query 'dragon' returned 1 result (Silver Dragon Roller) after ~500ms, recent-search chip persisted in localStorage after result click, clear-recent-btn removed it. Wishlist heart toggle on /shop card added item, header wishlist-count badge showed 1, /wishlist page displayed item, share-wishlist-btn generated a share token; /wishlist/shared/{token} loaded publicly with owner name and product grid (no auth). PDP: main-image + open-lightbox-btn functional; lightbox opens and closes via ESC. Admin: uploaded 2nd image, arrow button (pf-image-down-0) swapped tile order (verified by comparing img.src), pf-cover-badge-0 now on the newly-first tile, pf-save persisted and product list shows the new cover thumbnail (green square) for the first product.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/wishlist/share", "issue": "Empty-wishlist 400 is only returned when the wishlist doc does not exist. If a user toggles a product then untoggles it, the doc remains with product_ids=[] and /wishlist/share still returns a share_token. Spec expectation ('empty wishlist → 400') is only partially met. Consider `if not doc or not doc.get('product_ids'): raise HTTPException(400,...)`."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "SearchModal", "issue": "Pressing Enter in the search input commits query to recent searches AND triggers navigation to /shop?q=..., but the SearchModal remains mounted/visible over the new route, intercepting subsequent clicks on the header. Clicking a result card (instead of Enter) correctly closes the modal. Minor UX issue.", "selector": "[data-testid=search-input]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_wishlist.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/wishlist_results.xml"
+  ],
+  "action_items": [
+    "(Optional/minor) Close SearchModal in the Enter-key handler after committing the query and navigating, so the modal doesn't stay on top of the destination page.",
+    "(Optional/minor) In POST /api/wishlist/share, also 400 when doc exists but product_ids is empty."
+  ],
+  "critical_code_review_comments": [
+    "server.py now ~830 lines — again crossing the 700-line split threshold; wishlist routes are a natural router to extract.",
+    "GET /api/wishlist/shared/{token} returns owner_name derived from users.name and falls back to 'Someone' — good; but note it never checks whether the wishlist is empty. Public URL for empty wishlists is currently 200 with count:0 (acceptable, but ensure this is intentional given /share now can mint tokens for empty lists).",
+    "WishlistToggle Pydantic model relies on product_id string; consider validating with min_length to reject empty strings early with 422 rather than 404."
+  ],
+  "updated_files": ["/app/backend/tests/test_wishlist.py"],
+  "success_rate": {"backend": "100% (9/9 new + 18/18 regression)", "frontend": "100% of primary flows; 1 minor Enter-key UX quirk in SearchModal"},
+  "test_credentials": "admin@atelier.pens / Admin@123456 (seeded). Fresh customers registered per-test via /api/auth/register.",
+  "seed_data_creation": "Created TEST_* customer accounts and toggled Silver Dragon Roller into their wishlists; admin edit test swapped image order on the Monteverde Invincia Deluxe product and saved (cover is now the uploaded green PNG). Main agent may want to re-upload original cover image if desired.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "New pytest file at /app/backend/tests/test_wishlist.py — 9 tests, all pass. Frontend testids present and consistent with spec. Note the Enter-key SearchModal quirk observed; use result-click instead of Enter when scripting search flow. To register a customer quickly, POST /api/auth/register then set localStorage.atelier_token before navigating (WishlistProvider auto-loads on mount). To reach admin, same trick. The green square on Monteverde Invincia is expected residual state from this iteration's admin drag-reorder test.",
+  "rca of the issue": "SearchModal Enter-key quirk: onKeyDown handler calls commit() + navigate() but never invokes onClose(); result-card onClick path in the same component does call onClose(), which is why clicking a result works cleanly. Fix is a one-liner in SearchModal.jsx keydown handler."
+}

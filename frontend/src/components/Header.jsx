@@ -1,53 +1,60 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ShoppingBag, User, Menu, Search, X } from "lucide-react";
+import { ShoppingBag, User, Menu, Search, X, Heart } from "lucide-react";
 import { useCart } from "../lib/cart";
 import { useAuth } from "../lib/auth";
+import { useWishlist } from "../lib/wishlist";
+import { useCategories } from "../lib/categories";
+import { SITE } from "../lib/site";
 import { useState } from "react";
-
-const NAV = [
-  { label: "Fountain", to: "/shop?category=Fountain%20Pens" },
-  { label: "Rollerball", to: "/shop?category=Rollerball" },
-  { label: "Ballpoint", to: "/shop?category=Ballpoint" },
-  { label: "Pencils", to: "/shop?category=Mechanical%20Pencils" },
-  { label: "Inks", to: "/shop?category=Inks" },
-  { label: "Accessories", to: "/shop?category=Accessories" },
-  { label: "Limited", to: "/shop?category=Limited%20Editions" },
-];
+import SearchModal from "./SearchModal";
 
 export default function Header() {
   const { count, setOpen } = useCart();
   const { user, logout } = useAuth();
+  const { count: wcount } = useWishlist();
+  const cats = useCategories();
   const nav = useNavigate();
   const [mobile, setMobile] = useState(false);
+  const [search, setSearch] = useState(false);
+
+  const navCats = cats.slice(0, 7);
 
   return (
+    <>
     <header className="fixed top-0 left-0 right-0 z-40 bg-[#FAF8F5]/85 backdrop-blur-md border-b border-[#E6E0D6]">
       <div className="max-w-[1600px] mx-auto px-6 lg:px-12 h-[76px] flex items-center justify-between">
         <button className="lg:hidden text-[#1C1815]" onClick={() => setMobile(!mobile)} data-testid="mobile-menu-toggle">
           {mobile ? <X size={22}/> : <Menu size={22}/>}
         </button>
-        <Link to="/" className="font-serif text-xl lg:text-2xl tracking-wider text-[#1C1815]" data-testid="header-nav-brand">
-          ATELIER <span className="text-[#B8860B]">ink</span> &amp; STEEL
+        <Link to="/" className="font-serif text-xl lg:text-2xl tracking-[0.15em] text-[#1C1815] flex items-center gap-1" data-testid="header-nav-brand">
+          <span className="text-[#B8860B] font-semibold">WL</span>
+          <span>PENS</span>
         </Link>
-        <nav className="hidden lg:flex items-center gap-7">
-          {NAV.map((n) => (
-            <Link key={n.to} to={n.to} className="text-xs uppercase tracking-[0.2em] text-[#6E685E] hover:text-[#1C1815] transition-colors" data-testid={`nav-${n.label.toLowerCase()}`}>
-              {n.label}
+        <nav className="hidden lg:flex items-center gap-6">
+          {navCats.map((c) => (
+            <Link key={c.id} to={`/shop?category=${encodeURIComponent(c.name)}`} className="text-xs uppercase tracking-[0.2em] text-[#6E685E] hover:text-[#1C1815] transition-colors" data-testid={`nav-${c.name.toLowerCase().replaceAll(' ', '-')}`}>
+              {c.name.split(" ")[0]}
             </Link>
           ))}
         </nav>
         <div className="flex items-center gap-4">
-          <button onClick={() => nav("/shop")} className="hidden sm:flex text-[#6E685E] hover:text-[#1C1815]" data-testid="search-btn">
+          <button onClick={() => setSearch(true)} className="text-[#6E685E] hover:text-[#1C1815]" data-testid="open-search-btn" aria-label="Open search">
             <Search size={18}/>
           </button>
           {user ? (
-            <div className="flex items-center gap-3">
+            <>
+              <Link to="/wishlist" className="relative text-[#6E685E] hover:text-[#B8860B]" data-testid="wishlist-link" aria-label="Wishlist">
+                <Heart size={18}/>
+                {wcount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-[#B8860B] text-[#FAF8F5] text-[10px] font-medium w-5 h-5 rounded-full flex items-center justify-center" data-testid="wishlist-count">{wcount}</span>
+                )}
+              </Link>
               {user.role === "admin" && (
                 <Link to="/admin" className="hidden sm:inline text-xs uppercase tracking-[0.15em] text-[#3D4838] hover:text-[#1C1815]" data-testid="admin-link">Admin</Link>
               )}
               <Link to="/account" className="text-[#6E685E] hover:text-[#1C1815]" data-testid="account-link"><User size={18}/></Link>
-              <button onClick={logout} className="text-xs uppercase tracking-[0.15em] text-[#6E685E] hover:text-[#1C1815]" data-testid="logout-btn">Sign out</button>
-            </div>
+              <button onClick={logout} className="hidden sm:inline text-xs uppercase tracking-[0.15em] text-[#6E685E] hover:text-[#1C1815]" data-testid="logout-btn">Sign out</button>
+            </>
           ) : (
             <Link to="/login" className="text-xs uppercase tracking-[0.15em] text-[#6E685E] hover:text-[#1C1815]" data-testid="login-link">Sign in</Link>
           )}
@@ -62,9 +69,10 @@ export default function Header() {
       {mobile && (
         <div className="lg:hidden border-t border-[#E6E0D6] bg-[#FAF8F5]">
           <div className="px-6 py-6 flex flex-col gap-4">
-            {NAV.map((n) => (
-              <Link key={n.to} to={n.to} onClick={() => setMobile(false)} className="text-lg font-serif text-[#1C1815]" data-testid={`mobile-nav-${n.label.toLowerCase()}`}>{n.label}</Link>
+            {cats.map((c) => (
+              <Link key={c.id} to={`/shop?category=${encodeURIComponent(c.name)}`} onClick={() => setMobile(false)} className="text-lg font-serif text-[#1C1815]" data-testid={`mobile-nav-${c.name.toLowerCase().replaceAll(' ', '-')}`}>{c.name}</Link>
             ))}
+            {user && <Link to="/wishlist" onClick={() => setMobile(false)} className="text-lg font-serif text-[#B8860B]" data-testid="mobile-wishlist-link">Wishlist</Link>}
             {user?.role === "admin" && (
               <Link to="/admin" onClick={() => setMobile(false)} className="text-lg font-serif text-[#3D4838]" data-testid="mobile-admin-link">Admin dashboard</Link>
             )}
@@ -72,5 +80,7 @@ export default function Header() {
         </div>
       )}
     </header>
+    <SearchModal open={search} onClose={() => setSearch(false)}/>
+    </>
   );
 }

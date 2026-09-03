@@ -67,7 +67,10 @@ export default function Account() {
                   <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
                     <ul className="text-sm text-[#1C1815]/90 space-y-1">
                       {o.items.map((it, i) => (
-                        <li key={i}>{it.quantity}× {it.name}</li>
+                        <li key={i}>
+                          {it.quantity}× {it.name}
+                          {it.engraving && <span className="text-[#B8860B] italic"> · engraved "{it.engraving}"</span>}
+                        </li>
                       ))}
                     </ul>
                     <span className="font-serif text-2xl text-[#1C1815]">{money(o.total)}</span>

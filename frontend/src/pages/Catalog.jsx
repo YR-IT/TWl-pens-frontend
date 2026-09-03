@@ -80,7 +80,7 @@ export default function Catalog() {
           </div>
 
           <div>
-            <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4">Price · up to ${priceMax.toFixed(0)}</h3>
+            <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4">Price · up to Rs {priceMax.toLocaleString("en-IN")}</h3>
             <input
               type="range"
               min={facets.price_min}
@@ -91,8 +91,8 @@ export default function Catalog() {
               data-testid="filter-price-range"
             />
             <div className="flex justify-between text-[10px] text-[#6E685E] mt-2">
-              <span>${facets.price_min.toFixed(0)}</span>
-              <span>${facets.price_max.toFixed(0)}</span>
+              <span>Rs {facets.price_min.toLocaleString("en-IN")}</span>
+              <span>Rs {facets.price_max.toLocaleString("en-IN")}</span>
             </div>
           </div>
         </aside>

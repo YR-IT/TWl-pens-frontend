@@ -1,6 +1,6 @@
 """
 Atelier Ink & Steel — Luxury Pen E-commerce Backend
-FastAPI + MongoDB (Motor) + JWT auth + Emergent Object Storage + Stripe Checkout
+FastAPI + MongoDB (Motor) + JWT auth + Emergent Object Storage + WhatsApp order handoff
 """
 import os
 import uuid
@@ -38,6 +38,7 @@ EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
 INTEGRATION_PROXY_URL = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip().rstrip("/") or "https://integrations.emergentagent.com"
 STORAGE_URL = f"{INTEGRATION_PROXY_URL}/objstore/api/v1/storage"
 APP_NAME = os.environ.get("APP_NAME", "atelier-pens")
+WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "+919999999999")
 
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
@@ -161,7 +162,7 @@ class LoginBody(BaseModel):
 class ProductIn(BaseModel):
     name: str
     brand: str
-    category: str  # Fountain Pens, Rollerball, Ballpoint, Mechanical Pencils, Inks, Accessories, Limited Editions
+    category: str  # dynamic — validated against categories collection
     price: float = Field(gt=0)
     discount_price: Optional[float] = Field(default=None, ge=0)
     description: str
@@ -170,6 +171,13 @@ class ProductIn(BaseModel):
     images: List[str] = Field(default_factory=list)  # URLs (from storage or external)
     stock: int = Field(default=10, ge=0)
     featured: bool = False
+    engravable: bool = False
+    engraving_max_length: int = Field(default=20, ge=1, le=60)
+
+
+class CategoryIn(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    order: int = 0
 
 
 class ProductOut(ProductIn):
@@ -180,6 +188,7 @@ class ProductOut(ProductIn):
 class CartItemIn(BaseModel):
     product_id: str
     quantity: int = Field(ge=1, le=50)
+    engraving: Optional[str] = Field(default=None, max_length=60)
 
 
 class ShippingAddress(BaseModel):
@@ -206,6 +215,16 @@ class ShipmentUpdate(BaseModel):
     carrier: Optional[str] = None
 
 
+class WishlistToggle(BaseModel):
+    product_id: str
+
+
+class OrderPlaceBody(BaseModel):
+    items: List[CartItemIn]
+    shipping: ShippingAddress
+    note: Optional[str] = Field(default=None, max_length=500)
+
+
 # ---------------- Startup ----------------
 @app.on_event("startup")
 async def startup():
@@ -214,8 +233,9 @@ async def startup():
     await db.users.create_index("id", unique=True)
     await db.products.create_index("id", unique=True)
     await db.orders.create_index("id", unique=True)
-    await db.orders.create_index("session_id")
-    await db.payment_transactions.create_index("session_id", unique=True)
+    await db.wishlists.create_index("user_id", unique=True)
+    await db.wishlists.create_index("share_token", unique=True, sparse=True)
+    await db.categories.create_index("name", unique=True)
 
     # Seed admin
     if ADMIN_EMAIL and ADMIN_PASSWORD:
@@ -235,6 +255,22 @@ async def startup():
     if await db.products.count_documents({}) == 0:
         await _seed_products()
         logger.info("Seeded starter product catalog")
+
+    # Seed categories if empty
+    if await db.categories.count_documents({}) == 0:
+        default_cats = ["Fountain Pens", "Rollerball", "Ballpoint", "Mechanical Pencils", "Inks", "Accessories", "Limited Editions"]
+        now = datetime.now(timezone.utc).isoformat()
+        await db.categories.insert_many([
+            {"id": str(uuid.uuid4()), "name": c, "order": i, "created_at": now}
+            for i, c in enumerate(default_cats)
+        ])
+        logger.info("Seeded default categories")
+
+    # Backfill engravable flag on existing products (idempotent)
+    await db.products.update_many(
+        {"engravable": {"$exists": False}},
+        {"$set": {"engravable": True, "engraving_max_length": 20}},
+    )
 
     # Init storage (non-blocking)
     init_storage()
@@ -335,6 +371,10 @@ async def _seed_products():
         },
     ]
     now = datetime.now(timezone.utc).isoformat()
+    # Mark most items engravable by default
+    for s in seeds:
+        s.setdefault("engravable", True if s.get("category") not in ("Inks",) else False)
+        s.setdefault("engraving_max_length", 20)
     docs = [{"id": str(uuid.uuid4()), "created_at": now, **s} for s in seeds]
     await db.products.insert_many(docs)
 
@@ -502,20 +542,47 @@ async def download_file(path: str):
     return Response(content=data, media_type=ctype)
 
 
-# ---------------- Orders & Payments ----------------
-# Using emergentintegrations.payments.stripe.checkout
-from emergentintegrations.payments.stripe.checkout import (  # noqa: E402
-    StripeCheckout,
-    CheckoutSessionRequest,
-)
+# ---------------- Orders & WhatsApp Handoff ----------------
+import urllib.parse  # noqa: E402
 
 
 def _price_of(p: dict) -> float:
     return float(p["discount_price"]) if p.get("discount_price") else float(p["price"])
 
 
-@api.post("/checkout/session")
-async def create_checkout(body: CheckoutBody, user=Depends(current_user_optional)):
+def _build_whatsapp_url(order: dict) -> str:
+    lines = []
+    lines.append(f"*New order · {order['id']}*")
+    lines.append(f"WL Pens · {datetime.now(timezone.utc).strftime('%d %b %Y')}")
+    lines.append("")
+    lines.append("*Items*")
+    for it in order["items"]:
+        line = f"• {it['quantity']} × {it['name']} — Rs {it['unit_price']:,.0f}"
+        if it.get("engraving"):
+            line += f"  ↳ engraved: \"{it['engraving']}\""
+        lines.append(line)
+    lines.append("")
+    lines.append(f"*Total · Rs {order['total']:,.0f}*")
+    lines.append("")
+    lines.append("*Ship to*")
+    s = order["shipping"]
+    lines.append(f"{s['full_name']} · {s['phone']}")
+    lines.append(s["email"])
+    addr = ", ".join(x for x in [s["line1"], s.get("line2"), s["city"], s["state"], s["postal_code"], s["country"]] if x)
+    lines.append(addr)
+    if order.get("note"):
+        lines.append("")
+        lines.append(f"*Note* — {order['note']}")
+    lines.append("")
+    lines.append("_Please confirm this order and share the payment link._")
+    text = "\n".join(lines)
+    # wa.me expects digits only in the phone
+    phone_digits = "".join(ch for ch in WHATSAPP_NUMBER if ch.isdigit())
+    return f"https://wa.me/{phone_digits}?text={urllib.parse.quote(text)}"
+
+
+@api.post("/orders")
+async def place_order(body: OrderPlaceBody, user=Depends(current_user_optional)):
     # Resolve authoritative prices from DB — never trust client
     ids = [i.product_id for i in body.items]
     prods_cursor = db.products.find({"id": {"$in": ids}}, {"_id": 0})
@@ -535,120 +602,47 @@ async def create_checkout(body: CheckoutBody, user=Depends(current_user_optional
             "name": p["name"],
             "unit_price": unit,
             "quantity": it.quantity,
+            "engraving": (it.engraving or "").strip() or None,
             "image": p["images"][0] if p.get("images") else None,
         })
     total = round(total, 2)
-
-    order_id = f"AT-{uuid.uuid4().hex[:8].upper()}"
-    origin = body.origin_url.rstrip("/")
-    success_url = f"{origin}/checkout/success?session_id={{CHECKOUT_SESSION_ID}}"
-    cancel_url = f"{origin}/cart"
-
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=f"{origin}/api/webhook/stripe")
-    session = await stripe_checkout.create_checkout_session(CheckoutSessionRequest(
-        amount=float(total),
-        currency="usd",
-        success_url=success_url,
-        cancel_url=cancel_url,
-        metadata={
-            "order_id": order_id,
-            "user_id": user["id"] if user else "",
-            "customer_email": body.shipping.email,
-        },
-    ))
-
+    order_id = f"WL-{uuid.uuid4().hex[:8].upper()}"
     now = datetime.now(timezone.utc).isoformat()
-    await db.orders.insert_one({
+    order_doc = {
         "id": order_id,
-        "session_id": session.session_id,
         "user_id": user["id"] if user else None,
         "items": order_items,
         "shipping": body.shipping.model_dump(),
+        "note": (body.note or "").strip() or None,
         "total": total,
-        "currency": "usd",
-        "payment_status": "pending",
-        "order_status": "pending",  # pending -> paid -> processing -> shipped -> delivered
+        "currency": "INR",
+        "payment_status": "pending_whatsapp",  # payment handled outside via WhatsApp handoff
+        "order_status": "pending_confirmation",
         "shipment": {"status": "pending", "tracking_number": None, "carrier": None},
         "created_at": now,
         "updated_at": now,
-    })
-    await db.payment_transactions.insert_one({
-        "session_id": session.session_id,
-        "order_id": order_id,
-        "amount": total,
-        "currency": "usd",
-        "status": "initiated",
-        "payment_status": "pending",
-        "created_at": now,
-        "updated_at": now,
-    })
-    return {"checkout_url": session.url, "session_id": session.session_id, "order_id": order_id, "total": total}
-
-
-@api.get("/payments/status/{session_id}")
-async def payment_status(session_id: str):
-    tx = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
-    if not tx:
-        raise HTTPException(404, "Transaction not found")
-    if tx["payment_status"] != "paid":
-        try:
-            stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url="https://example.com/api/webhook/stripe")
-            s = await stripe_checkout.get_checkout_status(session_id)
-            if s.payment_status == "paid" or s.status == "complete":
-                now = datetime.now(timezone.utc).isoformat()
-                await db.payment_transactions.update_one(
-                    {"session_id": session_id, "payment_status": {"$ne": "paid"}},
-                    {"$set": {"status": "completed", "payment_status": "paid", "updated_at": now}},
-                )
-                order = await db.orders.find_one({"session_id": session_id})
-                if order and order["payment_status"] != "paid":
-                    await db.orders.update_one(
-                        {"session_id": session_id, "payment_status": {"$ne": "paid"}},
-                        {"$set": {"payment_status": "paid", "order_status": "processing", "shipment.status": "processing", "updated_at": now}},
-                    )
-                    # decrement stock
-                    for it in order["items"]:
-                        await db.products.update_one({"id": it["product_id"]}, {"$inc": {"stock": -it["quantity"]}})
-                tx = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
-        except Exception as e:
-            logger.warning(f"Stripe poll failed: {e}")
-    order = await db.orders.find_one({"session_id": session_id}, {"_id": 0})
-    return {
-        "session_id": session_id,
-        "status": tx["status"],
-        "payment_status": tx["payment_status"],
-        "order": order,
     }
+    await db.orders.insert_one(order_doc)
+    # Decrement stock immediately (admin can reverse on cancel)
+    for it in order_items:
+        await db.products.update_one({"id": it["product_id"]}, {"$inc": {"stock": -it["quantity"]}})
+
+    order_doc.pop("_id", None)
+    order_doc["whatsapp_url"] = _build_whatsapp_url(order_doc)
+    return order_doc
 
 
-from fastapi import Request  # noqa: E402
-
-
-@api.post("/webhook/stripe")
-async def stripe_webhook_impl(request: Request):
-    body_bytes = await request.body()
-    sig = request.headers.get("Stripe-Signature", "")
-    try:
-        stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url="https://example.com/api/webhook/stripe")
-        result = await stripe_checkout.handle_webhook(body_bytes, sig)
-    except Exception as e:
-        logger.warning(f"Webhook processing failed: {e}")
-        raise HTTPException(400, "Invalid webhook")
-    now = datetime.now(timezone.utc).isoformat()
-    if result.session_id and (result.payment_status or "").lower() in ("paid", "complete"):
-        await db.payment_transactions.update_one(
-            {"session_id": result.session_id, "payment_status": {"$ne": "paid"}},
-            {"$set": {"status": "completed", "payment_status": "paid", "updated_at": now}},
-        )
-        order = await db.orders.find_one({"session_id": result.session_id})
-        if order and order["payment_status"] != "paid":
-            await db.orders.update_one(
-                {"session_id": result.session_id, "payment_status": {"$ne": "paid"}},
-                {"$set": {"payment_status": "paid", "order_status": "processing", "shipment.status": "processing", "updated_at": now}},
-            )
-            for it in order["items"]:
-                await db.products.update_one({"id": it["product_id"]}, {"$inc": {"stock": -it["quantity"]}})
-    return {"ok": True}
+@api.get("/site/config")
+async def site_config():
+    return {
+        "brand": "WL Pens",
+        "whatsapp_number": WHATSAPP_NUMBER,
+        "address": {
+            "line1": "Chandi Mandir",
+            "line2": "Panchkula, Haryana — 134107",
+            "country": "India",
+        },
+    }
 
 
 # ---------------- Order routes ----------------
@@ -715,6 +709,139 @@ async def admin_stats(_admin=Depends(admin_only)):
 @api.get("/")
 async def root():
     return {"service": "atelier-ink-steel", "status": "ok"}
+
+
+# ---------------- Wishlist ----------------
+def _short_token() -> str:
+    return uuid.uuid4().hex[:12]
+
+
+@api.get("/wishlist")
+async def my_wishlist(user=Depends(current_user)):
+    doc = await db.wishlists.find_one({"user_id": user["id"]}, {"_id": 0})
+    product_ids = doc["product_ids"] if doc else []
+    products = []
+    if product_ids:
+        cursor = db.products.find({"id": {"$in": product_ids}}, {"_id": 0})
+        products = await cursor.to_list(500)
+        # keep original order (most recent first)
+        products.sort(key=lambda p: product_ids.index(p["id"]))
+    return {
+        "product_ids": product_ids,
+        "products": products,
+        "share_token": doc.get("share_token") if doc else None,
+    }
+
+
+@api.post("/wishlist/toggle")
+async def toggle_wishlist(body: WishlistToggle, user=Depends(current_user)):
+    # Ensure product exists
+    p = await db.products.find_one({"id": body.product_id}, {"_id": 0, "id": 1})
+    if not p:
+        raise HTTPException(404, "Product not found")
+    now = datetime.now(timezone.utc).isoformat()
+    doc = await db.wishlists.find_one({"user_id": user["id"]})
+    if not doc:
+        await db.wishlists.insert_one({
+            "user_id": user["id"],
+            "product_ids": [body.product_id],
+            "share_token": None,
+            "created_at": now,
+            "updated_at": now,
+        })
+        return {"added": True, "product_ids": [body.product_id]}
+    ids = doc.get("product_ids", [])
+    if body.product_id in ids:
+        ids = [x for x in ids if x != body.product_id]
+        added = False
+    else:
+        ids = [body.product_id, *ids]  # newest first
+        added = True
+    await db.wishlists.update_one(
+        {"user_id": user["id"]},
+        {"$set": {"product_ids": ids, "updated_at": now}},
+    )
+    return {"added": added, "product_ids": ids}
+
+
+@api.post("/wishlist/share")
+async def share_wishlist(user=Depends(current_user)):
+    doc = await db.wishlists.find_one({"user_id": user["id"]})
+    if not doc or not doc.get("product_ids"):
+        raise HTTPException(400, "Wishlist is empty")
+    token = doc.get("share_token") or _short_token()
+    await db.wishlists.update_one(
+        {"user_id": user["id"]},
+        {"$set": {"share_token": token, "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"share_token": token}
+
+
+@api.get("/wishlist/shared/{token}")
+async def get_shared_wishlist(token: str):
+    doc = await db.wishlists.find_one({"share_token": token}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Wishlist not found")
+    ids = doc.get("product_ids", [])
+    products = []
+    if ids:
+        cursor = db.products.find({"id": {"$in": ids}}, {"_id": 0})
+        products = await cursor.to_list(500)
+        products.sort(key=lambda p: ids.index(p["id"]))
+    owner = await db.users.find_one({"id": doc["user_id"]}, {"_id": 0, "name": 1, "email": 1})
+    return {
+        "owner_name": (owner or {}).get("name") or "Someone",
+        "products": products,
+        "count": len(products),
+    }
+
+
+# ---------------- Categories ----------------
+@api.get("/categories")
+async def list_categories():
+    cats = await db.categories.find({}, {"_id": 0}).sort("order", 1).to_list(200)
+    return cats
+
+
+@api.post("/admin/categories")
+async def create_category(body: CategoryIn, _admin=Depends(admin_only)):
+    name = body.name.strip()
+    if await db.categories.find_one({"name": name}):
+        raise HTTPException(409, "Category already exists")
+    doc = {"id": str(uuid.uuid4()), "name": name, "order": body.order, "created_at": datetime.now(timezone.utc).isoformat()}
+    await db.categories.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@api.put("/admin/categories/{cat_id}")
+async def update_category(cat_id: str, body: CategoryIn, _admin=Depends(admin_only)):
+    old = await db.categories.find_one({"id": cat_id})
+    if not old:
+        raise HTTPException(404, "Category not found")
+    new_name = body.name.strip()
+    # Uniqueness (allow same doc)
+    dup = await db.categories.find_one({"name": new_name, "id": {"$ne": cat_id}})
+    if dup:
+        raise HTTPException(409, "Another category has this name")
+    await db.categories.update_one({"id": cat_id}, {"$set": {"name": new_name, "order": body.order}})
+    # Cascade rename on products
+    if new_name != old["name"]:
+        await db.products.update_many({"category": old["name"]}, {"$set": {"category": new_name}})
+    return await db.categories.find_one({"id": cat_id}, {"_id": 0})
+
+
+@api.delete("/admin/categories/{cat_id}")
+async def delete_category(cat_id: str, _admin=Depends(admin_only)):
+    cat = await db.categories.find_one({"id": cat_id})
+    if not cat:
+        raise HTTPException(404, "Category not found")
+    in_use = await db.products.count_documents({"category": cat["name"]})
+    if in_use:
+        raise HTTPException(409, f"Category is in use by {in_use} product(s). Reassign or delete them first.")
+    await db.categories.delete_one({"id": cat_id})
+    return {"ok": True}
+
 
 
 # ---------------- Wire it up ----------------

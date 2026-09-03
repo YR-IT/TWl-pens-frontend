@@ -5,7 +5,7 @@ import { fileUrl } from "../lib/api";
 import { money } from "../lib/format";
 
 export default function CartDrawer() {
-  const { items, open, setOpen, setQty, remove, total } = useCart();
+  const { items, open, setOpen, setQty, remove, total, rowKey } = useCart();
   const nav = useNavigate();
   if (!open) return null;
 
@@ -37,30 +37,38 @@ export default function CartDrawer() {
             </div>
           ) : (
             <div className="space-y-6">
-              {items.map((it) => (
-                <div key={it.id} className="flex gap-4 border-b border-[#E6E0D6] pb-6" data-testid={`cart-item-${it.id}`}>
-                  <div className="w-20 h-24 bg-[#F3EFEA] overflow-hidden flex-shrink-0">
-                    {it.image && <img src={fileUrl(it.image)} alt={it.name} className="w-full h-full object-cover"/>}
-                  </div>
-                  <div className="flex-1 flex flex-col justify-between">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">{it.brand}</p>
-                      <h3 className="font-serif text-lg text-[#1C1815] leading-tight">{it.name}</h3>
+              {items.map((it) => {
+                const key = rowKey(it.id, it.engraving);
+                return (
+                  <div key={key} className="flex gap-4 border-b border-[#E6E0D6] pb-6" data-testid={`cart-item-${it.id}`}>
+                    <div className="w-20 h-24 bg-[#F3EFEA] overflow-hidden flex-shrink-0">
+                      {it.image && <img src={fileUrl(it.image)} alt={it.name} className="w-full h-full object-cover"/>}
                     </div>
-                    <div className="flex items-center justify-between mt-2">
-                      <div className="flex items-center gap-2 border border-[#E6E0D6]">
-                        <button onClick={() => setQty(it.id, it.quantity - 1)} className="w-7 h-7 grid place-items-center hover:bg-[#F3EFEA]" data-testid={`decrease-${it.id}`}><Minus size={12}/></button>
-                        <span className="w-6 text-center text-sm" data-testid={`qty-${it.id}`}>{it.quantity}</span>
-                        <button onClick={() => setQty(it.id, it.quantity + 1)} className="w-7 h-7 grid place-items-center hover:bg-[#F3EFEA]" data-testid={`increase-${it.id}`}><Plus size={12}/></button>
+                    <div className="flex-1 flex flex-col justify-between">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">{it.brand}</p>
+                        <h3 className="font-serif text-lg text-[#1C1815] leading-tight">{it.name}</h3>
+                        {it.engraving && (
+                          <p className="mt-1 text-[11px] uppercase tracking-[0.15em] text-[#B8860B]" data-testid={`cart-engraving-${it.id}`}>
+                            Engraved · "{it.engraving}"
+                          </p>
+                        )}
                       </div>
-                      <span className="font-medium text-[#1C1815]">{money(it.price * it.quantity)}</span>
+                      <div className="flex items-center justify-between mt-2">
+                        <div className="flex items-center gap-2 border border-[#E6E0D6]">
+                          <button onClick={() => setQty(key, it.quantity - 1)} className="w-7 h-7 grid place-items-center hover:bg-[#F3EFEA]" data-testid={`decrease-${it.id}`}><Minus size={12}/></button>
+                          <span className="w-6 text-center text-sm" data-testid={`qty-${it.id}`}>{it.quantity}</span>
+                          <button onClick={() => setQty(key, it.quantity + 1)} className="w-7 h-7 grid place-items-center hover:bg-[#F3EFEA]" data-testid={`increase-${it.id}`}><Plus size={12}/></button>
+                        </div>
+                        <span className="font-medium text-[#1C1815]">{money(it.price * it.quantity)}</span>
+                      </div>
                     </div>
+                    <button onClick={() => remove(key)} className="text-[#6E685E] hover:text-[#1C1815] self-start" data-testid={`remove-${it.id}`}>
+                      <X size={16}/>
+                    </button>
                   </div>
-                  <button onClick={() => remove(it.id)} className="text-[#6E685E] hover:text-[#1C1815] self-start" data-testid={`remove-${it.id}`}>
-                    <X size={16}/>
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

@@ -1,0 +1,29 @@
+{
+  "summary": "Iteration 3 testing focused on the WL Pens rebrand, dynamic Categories CRUD, product-level Engraving, and the wishlist/share empty-list regression. Backend: created /app/backend/tests/test_iteration3.py with 12 pytest cases across 4 groups (Categories, EngravingProducts, CheckoutEngraving, WishlistShareEmptyRegression) — all 12 passed on first run in 4.7s. Verified: default 7 categories returned sorted by order; admin category create/rename with cascade to products/409 duplicate/403 non-admin/delete-unused-succeeds/delete-used-Rollerball returns 409; every seeded non-Inks product has engravable=true, max=20; admin POST/PUT persists engravable + engraving_max_length; POST /api/checkout/session stores per-item engraving on the order (verified via /api/admin/orders); POST /api/wishlist/share now returns 400 when a user toggles a product on then off (regression from iteration 2 fixed). Frontend (Playwright, desktop 1920x1080): Header brand renders 'WL PENS' (data-testid=header-nav-brand), Footer address contains 'Chandi Mandir', 'Panchkula, Haryana — 134107' in data-testid=footer-address. SearchModal: Enter key with query 'dragon' NOW closes the modal AND persists the term to recent chips on reopen (iteration 2 quirk fixed). PDP engraving-section shows for Monteverde Invincia Deluxe with counter (16/20); the input enforces max=20 client-side via slice; add-to-cart drawer displays 'ENGRAVED · \"FOR ADA\"' under the product name via data-testid=cart-engraving-{id}. Admin > Categories tab: created 'TEST Wooden Pens {n}', renamed via edit-cat-{id}+save-cat-{id}, delete-cat-{id} on used Rollerball returned 409 (toast 'Category is in use…', category preserved), delete-cat-{id} on the fresh category succeeded. Admin > Products form has pf-engravable checkbox (defaults true) with pf-engraving-max number input conditionally rendered.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iteration3.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/test_wishlist.py",
+    "/app/test_reports/pytest/iteration3_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is now 903 lines — well past the 700-line split threshold. Auth, products, categories, orders/payments, and wishlist are all natural APIRouter modules; the checkout+webhook block alone is ~180 lines and is the highest churn area.",
+    "Backfill migration at startup (`update_many engravable`) is fine but should be one-shot / feature-flagged; every cold-start currently re-runs the query.",
+    "PUT /api/admin/categories does not validate that new_name != empty after strip beyond Pydantic min_length=1; a name of '   ' would strip to '' and slip past — consider re-validating post-strip.",
+    "DELETE /api/admin/categories/{id} counts products via count_documents (good), but the error message ('… Reassign or delete them first.') doesn't return the list of blockers. Minor UX affordance for admin.",
+    "CategoriesTab in Admin.jsx uses window.confirm() — inconsistent with the rest of the app which uses sonner toasts and modal dialogs; consider a small confirm-modal for parity.",
+    "useCategories() hook stores cats in a module-level `cache` + array of listeners — this is a mini pub/sub reimplementation; a swr/react-query dependency or a simple Context provider would be less error-prone as more consumers are added.",
+    "ProductDetail.jsx engraving slice(0, max) works but the counter shows engraving.length / max — if max changes on a product after user typed, no re-truncation happens (unlikely in practice)."
+  ],
+  "updated_files": ["/app/backend/tests/test_iteration3.py"],
+  "success_rate": {"backend": "100% (12/12 iteration-3 tests, prior 18+9 regression already green in earlier iterations)", "frontend": "100% of iteration-3 flows verified"},
+  "test_credentials": "admin@atelier.pens / Admin@123456 (unchanged despite rebrand). Note: /app/memory/test_credentials.md still says 'Atelier Ink & Steel' — worth updating to 'WL Pens' but functionally correct.",
+  "seed_data_creation": "A single ephemeral 'TEST Wooden Pens {rand}' category was created and deleted within the Playwright run. test_iteration3.py fixtures create-and-delete their own TEST_* categories and products. One order (AT-*) was created during checkout engraving test — remains in DB with payment_status=pending (Stripe redirect not completed). No cleanup needed for orders.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "New pytest suite at /app/backend/tests/test_iteration3.py — 12 tests, all pass. For frontend: header search open button testid is 'open-search-btn', cart open button testid is 'open-cart-btn' but note that add-to-cart auto-opens the drawer so clicking open-cart-btn afterwards will be intercepted by the drawer overlay — read the drawer state instead. Admin new-product button testid is 'add-product-btn'. Categories default order: Fountain Pens, Rollerball, Ballpoint, Mechanical Pencils, Inks, Accessories, Limited Editions. Update /app/memory/test_credentials.md brand name to 'WL Pens' when convenient.",
+  "rca of the issue": "N/A — no defects observed in iteration 3 scope. Iteration 2 quirks (SearchModal Enter not closing; wishlist share returning token for emptied doc) are both resolved and verified."
+}
