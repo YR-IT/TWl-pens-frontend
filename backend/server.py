@@ -1,6 +1,6 @@
 """
-Atelier Ink & Steel — Luxury Pen E-commerce Backend
-FastAPI + MongoDB (Motor) + JWT auth + Emergent Object Storage + WhatsApp order handoff
+WL Pens — Luxury Pen E-commerce Backend
+FastAPI + MongoDB (Motor) + JWT auth + Supabase Storage + WhatsApp order handoff
 """
 import os
 import uuid
@@ -34,10 +34,10 @@ JWT_EXPIRE_MINUTES = int(os.environ.get("JWT_EXPIRE_MINUTES", "10080"))
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "").lower()
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY", "sk_test_emergent")
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
-INTEGRATION_PROXY_URL = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip().rstrip("/") or "https://integrations.emergentagent.com"
-STORAGE_URL = f"{INTEGRATION_PROXY_URL}/objstore/api/v1/storage"
-APP_NAME = os.environ.get("APP_NAME", "atelier-pens")
+SUPABASE_URL = (os.environ.get("SUPABASE_URL") or "").strip().rstrip("/")
+SUPABASE_KEY = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_KEY") or "").strip()
+SUPABASE_BUCKET = (os.environ.get("SUPABASE_BUCKET") or "wlpens").strip()
+APP_NAME = os.environ.get("APP_NAME", "wl-pens")
 WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "+919351996272")
 
 client = AsyncIOMotorClient(MONGO_URL)
@@ -47,53 +47,92 @@ app = FastAPI(title="Atelier Ink & Steel API")
 api = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
 
-# ---------------- Emergent Object Storage adapter ----------------
-_storage_key: Optional[str] = None
+# ---------------- Supabase Storage adapter ----------------
+_supabase_initialized = False
 
 
-def init_storage() -> Optional[str]:
-    global _storage_key
-    if _storage_key:
-        return _storage_key
-    if not EMERGENT_LLM_KEY:
-        logger.warning("EMERGENT_LLM_KEY missing — object storage disabled")
-        return None
+def _supabase_headers(content_type: Optional[str] = None) -> dict:
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+    }
+    if content_type:
+        headers["Content-Type"] = content_type
+    return headers
+
+
+def get_supabase_public_url(path: str) -> str:
+    cleaned_path = path.lstrip("/")
+    return f"{SUPABASE_URL}/storage/v1/object/public/{SUPABASE_BUCKET}/{cleaned_path}"
+
+
+def init_storage() -> bool:
+    global _supabase_initialized
+    if _supabase_initialized:
+        return True
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        logger.warning("SUPABASE_URL or SUPABASE_KEY missing — Supabase storage disabled")
+        return False
     try:
-        r = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_LLM_KEY}, timeout=30)
-        r.raise_for_status()
-        _storage_key = r.json()["storage_key"]
-        logger.info("Emergent object storage initialized")
-        return _storage_key
+        url = f"{SUPABASE_URL}/storage/v1/bucket/{SUPABASE_BUCKET}"
+        r = requests.get(url, headers=_supabase_headers(), timeout=15)
+        if r.status_code == 404:
+            create_url = f"{SUPABASE_URL}/storage/v1/bucket"
+            cr = requests.post(
+                create_url,
+                headers=_supabase_headers("application/json"),
+                json={"id": SUPABASE_BUCKET, "name": SUPABASE_BUCKET, "public": True},
+                timeout=15,
+            )
+            if cr.status_code in (200, 201):
+                logger.info(f"Supabase bucket '{SUPABASE_BUCKET}' created (public=True)")
+            else:
+                logger.warning(f"Could not auto-create Supabase bucket: {cr.text}")
+        elif r.status_code == 200:
+            logger.info(f"Supabase bucket '{SUPABASE_BUCKET}' verified")
+        else:
+            logger.warning(f"Supabase bucket check returned {r.status_code}: {r.text}")
+        _supabase_initialized = True
+        return True
     except Exception as e:
-        logger.error(f"Storage init failed: {e}")
-        return None
+        logger.error(f"Supabase storage init error: {e}")
+        return False
 
 
 def put_object(path: str, data: bytes, content_type: str) -> dict:
-    key = init_storage()
-    if not key:
-        raise HTTPException(503, "Object storage unavailable")
-    r = requests.put(
-        f"{STORAGE_URL}/objects/{path}",
-        headers={"X-Storage-Key": key, "Content-Type": content_type},
-        data=data,
-        timeout=120,
-    )
-    r.raise_for_status()
-    return r.json()
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        raise HTTPException(503, "Supabase storage is not configured (SUPABASE_URL / SUPABASE_KEY missing)")
+    init_storage()
+    cleaned_path = path.lstrip("/")
+    upload_url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{cleaned_path}"
+    headers = _supabase_headers(content_type)
+    headers["x-upsert"] = "true"
+    r = requests.post(upload_url, headers=headers, data=data, timeout=120)
+    if r.status_code not in (200, 201):
+        logger.error(f"Supabase upload failed: {r.status_code} {r.text}")
+        raise HTTPException(r.status_code if r.status_code < 500 else 502, f"Supabase upload failed: {r.text}")
+    public_url = get_supabase_public_url(cleaned_path)
+    return {
+        "path": cleaned_path,
+        "url": public_url,
+        "bucket": SUPABASE_BUCKET,
+    }
 
 
 def get_object(path: str) -> tuple[bytes, str]:
-    key = init_storage()
-    if not key:
-        raise HTTPException(503, "Object storage unavailable")
-    r = requests.get(
-        f"{STORAGE_URL}/objects/{path}",
-        headers={"X-Storage-Key": key},
-        timeout=60,
-    )
-    r.raise_for_status()
-    return r.content, r.headers.get("Content-Type", "application/octet-stream")
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        raise HTTPException(503, "Supabase storage is not configured")
+    cleaned_path = path.lstrip("/")
+    url = get_supabase_public_url(cleaned_path)
+    r = requests.get(url, timeout=60)
+    if r.status_code == 200:
+        return r.content, r.headers.get("Content-Type", "application/octet-stream")
+    auth_url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{cleaned_path}"
+    ar = requests.get(auth_url, headers=_supabase_headers(), timeout=60)
+    if ar.status_code == 200:
+        return ar.content, ar.headers.get("Content-Type", "application/octet-stream")
+    ar.raise_for_status()
+    return ar.content, ar.headers.get("Content-Type", "application/octet-stream")
 
 
 # ---------------- Auth helpers ----------------
@@ -554,8 +593,8 @@ async def admin_upload(file: UploadFile = File(...), _admin=Depends(admin_only))
     path = f"{APP_NAME}/products/{uuid.uuid4()}.{ext}"
     result = put_object(path, data, ctype)
     stored_path = result["path"]
-    # Publicly accessible via our backend
-    return {"path": stored_path, "url": f"/api/files/{stored_path}"}
+    public_url = result.get("url") or f"/api/files/{stored_path}"
+    return {"path": stored_path, "url": public_url}
 
 
 @api.get("/files/{path:path}")
@@ -564,6 +603,8 @@ async def download_file(path: str):
         data, ctype = get_object(path)
     except requests.HTTPError as e:
         raise HTTPException(404 if e.response is not None and e.response.status_code == 404 else 500, "File error")
+    except Exception as e:
+        raise HTTPException(500, f"File error: {e}")
     return Response(content=data, media_type=ctype)
 
 

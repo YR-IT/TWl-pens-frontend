@@ -76,16 +76,16 @@ JWT_EXPIRE_MINUTES=10080
 ADMIN_EMAIL=admin@wlpens.in
 ADMIN_PASSWORD=Admin@123456
 
-# WhatsApp Business number in international format — used for the order handoff
 WHATSAPP_NUMBER=+919999999999
 
-# Emergent Object Storage (product image uploads)
-EMERGENT_LLM_KEY=sk-emergent-xxxxxxxxxxxxxxx
-INTEGRATION_PROXY_URL=https://integrations.emergentagent.com
+# Supabase Storage (product & post image uploads)
+SUPABASE_URL=https://<your-project-id>.supabase.co
+SUPABASE_KEY=<your-supabase-service-role-or-anon-key>
+SUPABASE_BUCKET=wlpens
 APP_NAME=wl-pens
 ```
 
-> Only `EMERGENT_LLM_KEY` needs to come from the Emergent workspace. Without it the site still runs — only admin image uploads fail.
+> Create a public bucket in your Supabase project (e.g. `wlpens`) or let the backend create it automatically using a service role key. Without Supabase credentials, the site still runs — only admin image uploads fail.
 
 ### Run the API
 

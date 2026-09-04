@@ -205,12 +205,12 @@ def test_admin_upload_png_and_fetch(admin_headers):
     files = {"file": ("t.png", io.BytesIO(png), "image/png")}
     r = requests.post(f"{API}/admin/upload", headers=admin_headers, files=files, timeout=60)
     if r.status_code == 503:
-        pytest.skip("Object storage unavailable in this environment")
+        pytest.skip("Supabase storage unavailable or unconfigured in this environment")
     assert r.status_code == 200, r.text
     d = r.json()
     assert "path" in d and "url" in d
-    # Fetch via /api/files/{path}
-    fetch_url = f"{BASE_URL}{d['url']}"
+    # Fetch via public URL or /api/files/{path}
+    fetch_url = d["url"] if d["url"].startswith("http") else f"{BASE_URL}{d['url']}"
     fr = requests.get(fetch_url, timeout=30)
     assert fr.status_code == 200
     assert fr.headers.get("content-type", "").startswith("image/")
