@@ -17,9 +17,17 @@ export default function Home() {
   const cats = useCategories();
 
   useEffect(() => {
-    api.get("/products", { params: { featured: true, limit: 6 } }).then((r) => setFeatured(r.data));
-    api.get("/studio-posts", { params: { limit: 6 } }).then((r) => setStudio(r.data));
+    api.get("/products", { params: { featured: true, limit: 6 } })
+      .then((r) => setFeatured(Array.isArray(r.data) ? r.data : (Array.isArray(r.data?.products) ? r.data.products : [])))
+      .catch(() => setFeatured([]));
+    api.get("/studio-posts", { params: { limit: 6 } })
+      .then((r) => setStudio(Array.isArray(r.data) ? r.data : (Array.isArray(r.data?.posts) ? r.data.posts : [])))
+      .catch(() => setStudio([]));
   }, []);
+
+  const safeCats = Array.isArray(cats) ? cats : [];
+  const safeFeatured = Array.isArray(featured) ? featured : [];
+  const safeStudio = Array.isArray(studio) ? studio : [];
 
   return (
     <div className="pt-[76px]">
@@ -95,7 +103,7 @@ export default function Home() {
             <Link to="/shop" className="hidden sm:inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-[#3D4838] hover:text-[#1C1815] border-b border-[#3D4838] pb-1" data-testid="all-categories-link">All categories <ArrowRight size={14}/></Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {cats.slice(0, 5).map((c, i) => (
+            {safeCats.slice(0, 5).map((c, i) => (
               <Link key={c.id} to={`/shop?category=${encodeURIComponent(c.name)}`} className="group border border-[#E6E0D6] bg-[#FAF8F5] p-6 hover:border-[#3D4838] transition-colors" data-testid={`category-tile-${c.name.toLowerCase().replaceAll(' ', '-')}`}>
                 <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">{String(i + 1).padStart(2, "0")}</p>
                 <h3 className="font-serif text-xl text-[#1C1815] mt-3">{c.name}</h3>
@@ -122,7 +130,7 @@ export default function Home() {
           viewport={{ once: true, margin: "-50px" }}
           variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1 } } }}
         >
-          {featured.map((p) => (
+          {safeFeatured.map((p) => (
             <motion.div key={p.id} variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 0.9, 0.3, 1] } } }}>
               <ProductCard p={p}/>
             </motion.div>
@@ -143,7 +151,7 @@ export default function Home() {
               <Instagram size={14}/> @thewlpens
             </a>
           </div>
-          {studio.length === 0 ? (
+          {safeStudio.length === 0 ? (
             <p className="text-[#6E685E] text-sm">The studio feed is coming to life…</p>
           ) : (
             <motion.div
@@ -154,7 +162,7 @@ export default function Home() {
               variants={{ hidden: {}, show: { transition: { staggerChildren: 0.06 } } }}
               data-testid="studio-grid"
             >
-              {studio.slice(0, 6).map((post, i) => (
+              {safeStudio.slice(0, 6).map((post, i) => (
                 <motion.a
                   key={post.id}
                   href={post.link || "https://instagram.com/thewlpens"}

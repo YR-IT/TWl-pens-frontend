@@ -13,11 +13,12 @@ export default function Header() {
   const { user, logout } = useAuth();
   const { count: wcount } = useWishlist();
   const cats = useCategories();
+  const safeCats = Array.isArray(cats) ? cats : [];
   const nav = useNavigate();
   const [mobile, setMobile] = useState(false);
   const [search, setSearch] = useState(false);
 
-  const navCats = cats.slice(0, 7);
+  const navCats = safeCats.slice(0, 7);
 
   return (
     <>
@@ -70,7 +71,7 @@ export default function Header() {
       {mobile && (
         <div className="lg:hidden border-t border-[#E6E0D6] bg-[#FAF8F5]">
           <div className="px-6 py-6 flex flex-col gap-4">
-            {cats.map((c) => (
+            {safeCats.map((c) => (
               <Link key={c.id} to={`/shop?category=${encodeURIComponent(c.name)}`} onClick={() => setMobile(false)} className="text-lg font-serif text-[#1C1815]" data-testid={`mobile-nav-${c.name.toLowerCase().replaceAll(' ', '-')}`}>{c.name}</Link>
             ))}
             {user && <Link to="/wishlist" onClick={() => setMobile(false)} className="text-lg font-serif text-[#B8860B]" data-testid="mobile-wishlist-link">Wishlist</Link>}
