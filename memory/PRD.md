@@ -14,8 +14,8 @@ Build a luxury pen e-commerce website inspired by makoba.com/collections/new-arr
 ## Architecture
 - **Backend** (FastAPI + Motor MongoDB): `/app/backend/server.py`
   - JWT bearer auth (bcrypt), roles: customer / admin
-  - Emergent Object Storage adapter for admin image uploads
-  - Stripe Checkout via `emergentintegrations` (test key already in env)
+  - Supabase Storage adapter for admin image uploads
+  - WhatsApp order handoff (Stripe disabled)
   - Collections: `users`, `products`, `orders`, `payment_transactions`
 - **Frontend** (React 19 + React Router + Tailwind + shadcn/ui):
   - Pages: Home, Catalog (`/shop`), ProductDetail (`/product/:id`), Checkout, PaymentSuccess (`/checkout/success`), Login, Register, Account, Admin
@@ -28,10 +28,10 @@ Build a luxury pen e-commerce website inspired by makoba.com/collections/new-arr
 - Catalog with category / brand / price / search / sort filters
 - Product detail with image thumbnails, specs, features, discount pricing (−% badge)
 - Cart drawer with quantity control, persistent to localStorage
-- Guest & authenticated checkout → Stripe hosted checkout → success page with order confirmation
+- Guest & authenticated checkout → WhatsApp order handoff with pre-filled details
 - Auth: register/login/me, JWT stored client-side
 - Admin dashboard: KPIs (revenue, orders, paid, shipped, products, customers)
-- Admin product CRUD with image upload to Emergent Object Storage
+- Admin product CRUD with image upload to Supabase Storage
 - Admin shipment tracking (status + carrier + tracking number)
 - Backend test suite: 18/18 green; Playwright e2e green
 

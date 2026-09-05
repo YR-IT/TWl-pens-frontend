@@ -42,9 +42,26 @@ export default function Footer() {
           </ul>
         </div>
       </div>
-      <div className="border-t border-[#E6E0D6] py-6 px-6 lg:px-12 text-xs uppercase tracking-[0.2em] text-[#6E685E] flex flex-wrap justify-between gap-3 max-w-[1600px] mx-auto">
-        <span>© 2026 {SITE.brand}</span>
-        <span>{SITE.cities}</span>
+      <div className="border-t border-[#E6E0D6] py-6 px-6 lg:px-12 text-xs tracking-[0.15em] text-[#6E685E] flex flex-wrap justify-between items-center gap-4 max-w-[1600px] mx-auto">
+        <span className="uppercase">© 2026 {SITE.brand}</span>
+        <span className="normal-case tracking-normal text-xs text-[#6E685E]">
+          Design and Development by{" "}
+          <a
+            href="https://yritsolutions.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#1C1815] font-medium hover:text-[#B8860B] transition-colors underline underline-offset-4"
+          >
+            YR IT SOLUTIONS
+          </a>{" "}
+          (<a
+            href="https://yritsolutions.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[#B8860B] transition-colors"
+          >yritsolutions.com</a>)
+        </span>
+        <span className="uppercase">{SITE.cities}</span>
       </div>
     </footer>
   );

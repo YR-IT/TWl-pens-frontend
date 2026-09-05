@@ -198,7 +198,7 @@ wl-pens/
 
 - **`ECONNREFUSED 127.0.0.1:27017`** → MongoDB isn't running. Start it (step 3).
 - **CORS errors in the browser** → make sure `CORS_ORIGINS=http://localhost:3000` in `backend/.env` and restart the backend.
-- **Admin image upload → 503** → `EMERGENT_LLM_KEY` isn't set. Add it and restart.
+- **Admin image upload → 503** → Supabase credentials (`SUPABASE_URL` / `SUPABASE_KEY`) are not set in `backend/.env`. Add them and restart.
 - **`yarn` says "command not found"** → `corepack enable && corepack prepare yarn@1.22.22 --activate` (Node 18+).
 - **Splash reappears every session** → intentional; it's per-session. Clear `sessionStorage.wl_splash_seen` to test.
 
