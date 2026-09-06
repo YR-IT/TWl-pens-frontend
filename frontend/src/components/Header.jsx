@@ -1,10 +1,8 @@
-import { Link, useNavigate } from "react-router-dom";
-import { ShoppingBag, User, Menu, Search, X, Heart, Sparkles } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { ShoppingBag, User, Menu, Search, X, Heart } from "lucide-react";
 import { useCart } from "../lib/cart";
 import { useAuth } from "../lib/auth";
 import { useWishlist } from "../lib/wishlist";
-import { useCategories } from "../lib/categories";
-import { SITE } from "../lib/site";
 import { useState } from "react";
 import SearchModal from "./SearchModal";
 import logo from "../logo.png";
@@ -13,13 +11,10 @@ export default function Header() {
   const { count, setOpen } = useCart();
   const { user, logout } = useAuth();
   const { count: wcount } = useWishlist();
-  const cats = useCategories();
-  const safeCats = Array.isArray(cats) ? cats : [];
+  const loc = useLocation();
   const nav = useNavigate();
   const [mobile, setMobile] = useState(false);
   const [search, setSearch] = useState(false);
-
-  const navCats = safeCats.slice(0, 7);
 
   return (
     <>
@@ -36,17 +31,45 @@ export default function Header() {
             <span className="hidden sm:inline">PENS</span>
           </span>
         </Link>
-        <nav className="hidden lg:flex items-center gap-6">
-          <Link to="/new-arrivals" className="text-xs uppercase tracking-[0.2em] font-semibold text-[#B8860B] hover:text-[#1C1815] transition-colors flex items-center gap-1.5" data-testid="nav-new-arrivals">
+
+        {/* Focused Minimal Navigation: Home · New Arrivals · Contact Us */}
+        <nav className="hidden lg:flex items-center gap-8">
+          <Link
+            to="/"
+            className={`text-xs uppercase tracking-[0.2em] transition-colors pb-0.5 ${
+              loc.pathname === "/"
+                ? "text-[#1C1815] font-semibold border-b border-[#1C1815]"
+                : "text-[#6E685E] hover:text-[#1C1815]"
+            }`}
+            data-testid="nav-home"
+          >
+            Home
+          </Link>
+          <Link
+            to="/new-arrivals"
+            className={`text-xs uppercase tracking-[0.2em] transition-colors pb-0.5 flex items-center gap-1.5 ${
+              loc.pathname === "/new-arrivals"
+                ? "text-[#B8860B] font-semibold border-b border-[#B8860B]"
+                : "text-[#B8860B] hover:text-[#1C1815] font-medium"
+            }`}
+            data-testid="nav-new-arrivals"
+          >
             <span>New Arrivals</span>
             <span className="w-1.5 h-1.5 rounded-full bg-[#B8860B]"></span>
           </Link>
-          {navCats.map((c) => (
-            <Link key={c.id} to={`/shop?category=${encodeURIComponent(c.name)}`} className="text-xs uppercase tracking-[0.2em] text-[#6E685E] hover:text-[#1C1815] transition-colors" data-testid={`nav-${c.name.toLowerCase().replaceAll(' ', '-')}`}>
-              {c.name.split(" ")[0]}
-            </Link>
-          ))}
+          <Link
+            to="/contact"
+            className={`text-xs uppercase tracking-[0.2em] transition-colors pb-0.5 ${
+              loc.pathname === "/contact"
+                ? "text-[#1C1815] font-semibold border-b border-[#1C1815]"
+                : "text-[#6E685E] hover:text-[#1C1815]"
+            }`}
+            data-testid="nav-contact"
+          >
+            Contact Us
+          </Link>
         </nav>
+
         <div className="flex items-center gap-4">
           <button onClick={() => setSearch(true)} className="text-[#6E685E] hover:text-[#1C1815]" data-testid="open-search-btn" aria-label="Open search">
             <Search size={18}/>
@@ -79,13 +102,35 @@ export default function Header() {
       {mobile && (
         <div className="lg:hidden border-t border-[#E6E0D6] bg-[#FAF8F5]">
           <div className="px-6 py-6 flex flex-col gap-4">
-            <Link to="/new-arrivals" onClick={() => setMobile(false)} className="text-lg font-serif text-[#B8860B] font-medium flex items-center justify-between" data-testid="mobile-nav-new-arrivals">
+            <Link
+              to="/"
+              onClick={() => setMobile(false)}
+              className={`text-lg font-serif transition-colors ${
+                loc.pathname === "/" ? "text-[#B8860B] font-medium" : "text-[#1C1815]"
+              }`}
+              data-testid="mobile-nav-home"
+            >
+              Home
+            </Link>
+            <Link
+              to="/new-arrivals"
+              onClick={() => setMobile(false)}
+              className="text-lg font-serif text-[#B8860B] font-medium flex items-center justify-between"
+              data-testid="mobile-nav-new-arrivals"
+            >
               <span>New Arrivals</span>
               <span className="text-[10px] uppercase tracking-[0.2em] bg-[#B8860B]/15 text-[#B8860B] px-2 py-0.5">Fresh</span>
             </Link>
-            {safeCats.map((c) => (
-              <Link key={c.id} to={`/shop?category=${encodeURIComponent(c.name)}`} onClick={() => setMobile(false)} className="text-lg font-serif text-[#1C1815]" data-testid={`mobile-nav-${c.name.toLowerCase().replaceAll(' ', '-')}`}>{c.name}</Link>
-            ))}
+            <Link
+              to="/contact"
+              onClick={() => setMobile(false)}
+              className={`text-lg font-serif transition-colors ${
+                loc.pathname === "/contact" ? "text-[#B8860B] font-medium" : "text-[#1C1815]"
+              }`}
+              data-testid="mobile-nav-contact"
+            >
+              Contact Us
+            </Link>
             {user && <Link to="/wishlist" onClick={() => setMobile(false)} className="text-lg font-serif text-[#B8860B]" data-testid="mobile-wishlist-link">Wishlist</Link>}
             {user?.role === "admin" && (
               <Link to="/admin" onClick={() => setMobile(false)} className="text-lg font-serif text-[#3D4838]" data-testid="mobile-admin-link">Admin dashboard</Link>

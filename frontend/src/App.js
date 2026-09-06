@@ -11,6 +11,7 @@ import Splash from "@/components/Splash";
 import Home from "@/pages/Home";
 import Catalog from "@/pages/Catalog";
 import NewArrivals from "@/pages/NewArrivals";
+import Contact from "@/pages/Contact";
 import ProductDetail from "@/pages/ProductDetail";
 import Checkout from "@/pages/Checkout";
 import OrderPlaced from "@/pages/OrderPlaced";
@@ -43,6 +44,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<PageFade><Home/></PageFade>}/>
         <Route path="/shop" element={<PageFade><Catalog/></PageFade>}/>
         <Route path="/new-arrivals" element={<PageFade><NewArrivals/></PageFade>}/>
+        <Route path="/contact" element={<PageFade><Contact/></PageFade>}/>
         <Route path="/product/:id" element={<PageFade><ProductDetail/></PageFade>}/>
         <Route path="/checkout" element={<PageFade><Checkout/></PageFade>}/>
         <Route path="/order/placed" element={<PageFade><OrderPlaced/></PageFade>}/>

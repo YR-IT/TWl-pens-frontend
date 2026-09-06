@@ -3,7 +3,7 @@ import { MapPin, Mail, Phone, MessageCircle } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="mt-32 border-t border-[#E6E0D6] bg-[#F3EFEA]">
+    <footer id="contact" className="mt-32 border-t border-[#E6E0D6] bg-[#F3EFEA]">
       <div className="max-w-[1600px] mx-auto px-6 lg:px-12 py-16 grid grid-cols-1 md:grid-cols-4 gap-10">
         <div className="md:col-span-2">
           <p className="text-xs uppercase tracking-[0.25em] text-[#B8860B] mb-4">{SITE.brand.toUpperCase()} · {SITE.founded.toUpperCase()}</p>
