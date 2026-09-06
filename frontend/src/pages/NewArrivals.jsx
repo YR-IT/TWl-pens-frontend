@@ -183,7 +183,7 @@ export default function NewArrivals() {
                   <div className="absolute top-3 left-3 z-10 bg-[#B8860B] text-[#FAF8F5] px-2.5 py-1 text-[9px] uppercase tracking-[0.2em] font-semibold pointer-events-none shadow-sm">
                     New Arrival
                   </div>
-                  <ProductCard product={p} />
+                  <ProductCard p={p} product={p} />
                 </div>
               ))}
             </div>

@@ -6,8 +6,10 @@ import { fileUrl } from "../lib/api";
 import { money } from "../lib/format";
 import WishlistButton from "./WishlistButton";
 
-export default function ProductCard({ p }) {
+export default function ProductCard({ p: propP, product }) {
+  const p = propP || product;
   const { add } = useCart();
+  if (!p) return null;
   const hasDiscount = !!p.discount_price;
   const price = hasDiscount ? p.discount_price : p.price;
   const off = hasDiscount ? Math.round(((p.price - p.discount_price) / p.price) * 100) : 0;
