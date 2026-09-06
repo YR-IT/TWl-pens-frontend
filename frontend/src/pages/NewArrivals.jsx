@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import ProductCard from "../components/ProductCard";
 import { Sparkles, ArrowRight, SlidersHorizontal, X } from "lucide-react";
 import { motion } from "framer-motion";
+import HorizontalFlowBars from "../components/ui/demo";
 
 export default function NewArrivals() {
   const [sp, setSp] = useSearchParams();
@@ -56,26 +57,37 @@ export default function NewArrivals() {
 
   return (
     <div className="pt-[76px] bg-[#FAF8F5] min-h-screen">
-      {/* Editorial Hero Banner */}
-      <section className="border-b border-[#E6E0D6] bg-gradient-to-b from-[#F3EFEA] to-[#FAF8F5]">
-        <div className="max-w-[1600px] mx-auto px-6 lg:px-12 py-16 lg:py-24">
-          <div className="flex items-center gap-2 text-[#B8860B] text-[11px] uppercase tracking-[0.3em] mb-4">
-            <Sparkles size={14}/>
-            <span>SS/26 ATELIER COLLECTION</span>
-          </div>
-          <h1 className="font-serif text-4xl sm:text-5xl lg:text-7xl text-[#1C1815] leading-[1.05] max-w-3xl">
-            New arrivals, <em className="text-[#3D4838] font-normal">hand-tuned &amp; fresh.</em>
-          </h1>
-          <p className="mt-6 text-sm sm:text-base text-[#6E685E] max-w-xl leading-relaxed">
-            The newest writing instruments to enter our studio. Each pen is tested on fine vellum, numbered, and ready to be personalized with custom engraving.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <span className="text-xs uppercase tracking-[0.2em] bg-[#1C1815] text-[#FAF8F5] px-3.5 py-1.5 font-medium">
-              {products.length} New Editions
-            </span>
-            <span className="text-xs uppercase tracking-[0.2em] text-[#3D4838] border border-[#3D4838]/40 px-3.5 py-1.5">
-              Available for Engraving
-            </span>
+      {/* Editorial Hero Banner with Generative Ink Flow Effect */}
+      <section className="relative border-b border-[#E6E0D6] bg-[#F3EFEA] overflow-hidden">
+        <HorizontalFlowBars
+          backgroundColor="#F3EFEA"
+          lineColor="#E6E0D6"
+          barColor="#B8860B"
+          lineWidth={1}
+          animationSpeed={0.0006}
+          removeWaveLine={false}
+          className="opacity-50"
+        />
+        <div className="relative z-10 max-w-[1600px] mx-auto px-6 lg:px-12 py-16 lg:py-24 pointer-events-none">
+          <div className="pointer-events-auto">
+            <div className="flex items-center gap-2 text-[#B8860B] text-[11px] uppercase tracking-[0.3em] mb-4">
+              <Sparkles size={14}/>
+              <span>SS/26 ATELIER COLLECTION</span>
+            </div>
+            <h1 className="font-serif text-4xl sm:text-5xl lg:text-7xl text-[#1C1815] leading-[1.05] max-w-3xl">
+              New arrivals, <em className="text-[#3D4838] font-normal">hand-tuned &amp; fresh.</em>
+            </h1>
+            <p className="mt-6 text-sm sm:text-base text-[#6E685E] max-w-xl leading-relaxed">
+              The newest writing instruments to enter our studio. Each pen is tested on fine vellum, numbered, and ready to be personalized with custom engraving.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <span className="text-xs uppercase tracking-[0.2em] bg-[#1C1815] text-[#FAF8F5] px-3.5 py-1.5 font-medium">
+                {products.length} New Editions
+              </span>
+              <span className="text-xs uppercase tracking-[0.2em] text-[#3D4838] border border-[#3D4838]/40 px-3.5 py-1.5">
+                Available for Engraving
+              </span>
+            </div>
           </div>
         </div>
       </section>

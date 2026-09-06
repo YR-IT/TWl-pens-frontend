@@ -6,6 +6,7 @@ import { api, fileUrl } from "../lib/api";
 import { useCategories } from "../lib/categories";
 import { SITE } from "../lib/site";
 import ProductCard from "../components/ProductCard";
+import VerticalBarsNoise from "../components/ui/vertical-bars";
 
 const HERO_IMG = "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600";
 const EDITORIAL_1 = "https://images.unsplash.com/photo-1617177435596-1c9e30d6d608?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200";
@@ -190,14 +191,23 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Editorial spread */}
-      <section className="bg-[#1C1815] text-[#FAF8F5]">
-        <div className="max-w-[1600px] mx-auto px-6 lg:px-12 py-24 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="grid grid-cols-2 gap-4">
-            <img src={EDITORIAL_1} alt="Editorial detail" className="aspect-[3/4] object-cover"/>
-            <img src={EDITORIAL_2} alt="Nib detail" className="aspect-[3/4] object-cover mt-12"/>
+      {/* Editorial spread with Generative Ink Noise Canvas */}
+      <section className="relative bg-[#1C1815] text-[#FAF8F5] overflow-hidden">
+        <VerticalBarsNoise
+          backgroundColor="#1C1815"
+          lineColor="#2E2822"
+          barColor="#B8860B"
+          lineWidth={1}
+          animationSpeed={0.0005}
+          removeWaveLine={false}
+          className="opacity-35 pointer-events-auto"
+        />
+        <div className="relative z-10 max-w-[1600px] mx-auto px-6 lg:px-12 py-24 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center pointer-events-none">
+          <div className="grid grid-cols-2 gap-4 pointer-events-auto">
+            <img src={EDITORIAL_1} alt="Editorial detail" className="aspect-[3/4] object-cover shadow-2xl"/>
+            <img src={EDITORIAL_2} alt="Nib detail" className="aspect-[3/4] object-cover mt-12 shadow-2xl"/>
           </div>
-          <div>
+          <div className="pointer-events-auto">
             <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]" data-testid="craft-eyebrow">04 / CRAFT &amp; ENGRAVING</p>
             <h2 className="font-serif text-4xl lg:text-5xl mt-3 leading-[1.1]">
               Every nib is hand-tuned,<br/>every barrel is<br/><em className="text-[#B8860B]">signed.</em>
