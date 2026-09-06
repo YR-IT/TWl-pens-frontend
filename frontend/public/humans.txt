@@ -1,0 +1,10 @@
+/* TEAM */
+Developer: Aryan Kumar
+Email: aryankumarr127@gmail.com
+Role: Full-Stack Architecture & Development
+
+/* SITE */
+Project: The WL Pens
+Website: https://thewlpens.in
+Technologies: React 19, Tailwind CSS, FastAPI, MongoDB, Supabase
+Standards: HTML5, CSS3, ES6

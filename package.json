@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "description": "The WL Pens - Luxury Writing Instruments",
+  "author": {
+    "name": "Aryan Kumar",
+    "email": "aryankumarr127@gmail.com"
+  },
   "scripts": {
     "dev": "npm --prefix frontend start",
     "start": "npm --prefix frontend start",
