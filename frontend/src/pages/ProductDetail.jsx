@@ -70,7 +70,7 @@ export default function ProductDetail() {
             <span className="font-serif text-3xl text-[#1C1815]">{money(price)}</span>
             {hasDiscount && <><span className="text-lg text-[#6E685E] line-through">{money(p.price)}</span><span className="text-xs uppercase tracking-[0.2em] text-[#B8860B]">−{off}%</span></>}
           </div>
-          <p className="mt-6 text-[#1C1815]/80 leading-relaxed" data-testid="product-description">{p.description}</p>
+          <p className="mt-6 text-[#1C1815]/80 leading-relaxed whitespace-pre-line" data-testid="product-description">{p.description}</p>
 
           {p.features?.length > 0 && (
             <ul className="mt-8 space-y-2" data-testid="product-features">

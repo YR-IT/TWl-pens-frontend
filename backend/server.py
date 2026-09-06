@@ -211,6 +211,7 @@ class ProductIn(BaseModel):
     images: List[str] = Field(default_factory=list)  # URLs (from storage or external)
     stock: int = Field(default=10, ge=0)
     featured: bool = False
+    new_arrival: bool = True
     engravable: bool = False
     engraving_max_length: int = Field(default=20, ge=1, le=60)
 
@@ -218,6 +219,18 @@ class ProductIn(BaseModel):
 class CategoryIn(BaseModel):
     name: str = Field(min_length=1, max_length=60)
     order: int = 0
+
+
+class BannerIn(BaseModel):
+    image: str = ""
+    eyebrow: Optional[str] = "SS/26 ARRIVALS · THE WL PENS"
+    title: Optional[str] = "The quiet art of writing well."
+    subtitle: Optional[str] = "Hand-selected pens and inks, engraved to order, delivered in cotton pouches."
+    cta_text: Optional[str] = "Enter the atelier"
+    cta_link: Optional[str] = "/shop"
+    secondary_cta_text: Optional[str] = "New Arrivals"
+    secondary_cta_link: Optional[str] = "/new-arrivals"
+    enabled: bool = True
 
 
 class StudioPostIn(BaseModel):
@@ -336,6 +349,29 @@ async def startup():
         {"engravable": {"$exists": False}},
         {"$set": {"engravable": True, "engraving_max_length": 20}},
     )
+
+    # Backfill new_arrival flag on existing products (idempotent)
+    await db.products.update_many(
+        {"new_arrival": {"$exists": False}},
+        {"$set": {"new_arrival": True}},
+    )
+
+    # Seed default homepage banner if empty
+    if await db.site_banner.count_documents({}) == 0:
+        await db.site_banner.insert_one({
+            "id": "default",
+            "image": "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+            "eyebrow": "THE WL PENS · SS/26 ARRIVALS",
+            "title": "The quiet art of writing well.",
+            "subtitle": "The WL Pens — a small studio of writing instruments in the shadow of the Shivaliks. Hand-selected pens and inks, engraved to order, delivered in cotton pouches.",
+            "cta_text": "Enter the atelier",
+            "cta_link": "/shop",
+            "secondary_cta_text": "New Arrivals",
+            "secondary_cta_link": "/new-arrivals",
+            "enabled": True,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        })
+        logger.info("Seeded default homepage banner")
 
     # Init storage (non-blocking)
     init_storage()
@@ -457,6 +493,7 @@ async def _seed_products():
     for s in seeds:
         s.setdefault("engravable", True if s.get("category") not in ("Inks",) else False)
         s.setdefault("engraving_max_length", 20)
+        s.setdefault("new_arrival", True)
     docs = [{"id": str(uuid.uuid4()), "created_at": now, **s} for s in seeds]
     await db.products.insert_many(docs)
 
@@ -510,6 +547,7 @@ async def list_products(
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
     featured: Optional[bool] = None,
+    new_arrival: Optional[bool] = None,
     q: Optional[str] = None,
     sort: Optional[str] = "newest",
     limit: int = 100,
@@ -521,6 +559,8 @@ async def list_products(
         query["brand"] = brand
     if featured is not None:
         query["featured"] = featured
+    if new_arrival is not None:
+        query["new_arrival"] = new_arrival
     if q:
         query["$or"] = [
             {"name": {"$regex": q, "$options": "i"}},
@@ -613,6 +653,31 @@ async def admin_upload(file: UploadFile = File(...), _admin=Depends(admin_only))
     stored_path = result["path"]
     public_url = result.get("url") or f"/api/files/{stored_path}"
     return {"path": stored_path, "url": public_url}
+
+
+@api.post("/admin/upload-multiple")
+async def admin_upload_multiple(files: List[UploadFile] = File(...), _admin=Depends(admin_only)):
+    uploaded = []
+    errors = []
+    for file in files:
+        ctype = (file.content_type or "").lower()
+        if ctype not in ALLOWED_IMG:
+            errors.append(f"{file.filename}: Only JPEG, PNG, or WebP allowed")
+            continue
+        data = await file.read()
+        if len(data) > 5 * 1024 * 1024:
+            errors.append(f"{file.filename}: Image exceeds 5 MB")
+            continue
+        ext = (file.filename or "img.png").rsplit(".", 1)[-1].lower()
+        path = f"{APP_NAME}/products/{uuid.uuid4()}.{ext}"
+        try:
+            result = put_object(path, data, ctype)
+            stored_path = result["path"]
+            public_url = result.get("url") or f"/api/files/{stored_path}"
+            uploaded.append({"path": stored_path, "url": public_url, "filename": file.filename})
+        except Exception as e:
+            errors.append(f"{file.filename}: {str(e)}")
+    return {"files": uploaded, "errors": errors}
 
 
 @api.get("/files/{path:path}")
@@ -727,6 +792,39 @@ async def site_config():
             "country": "India",
         },
     }
+
+
+# ---------------- Homepage Banner routes ----------------
+DEFAULT_BANNER = {
+    "id": "default",
+    "image": "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+    "eyebrow": "THE WL PENS · SS/26 ARRIVALS",
+    "title": "The quiet art of writing well.",
+    "subtitle": "The WL Pens — a small studio of writing instruments in the shadow of the Shivaliks. Hand-selected pens and inks, engraved to order, delivered in cotton pouches.",
+    "cta_text": "Enter the atelier",
+    "cta_link": "/shop",
+    "secondary_cta_text": "New Arrivals",
+    "secondary_cta_link": "/new-arrivals",
+    "enabled": True,
+}
+
+
+@api.get("/site/banner")
+async def get_site_banner():
+    banner = await db.site_banner.find_one({"id": "default"}, {"_id": 0})
+    if not banner:
+        return DEFAULT_BANNER
+    return banner
+
+
+@api.put("/admin/banner")
+async def update_site_banner(body: BannerIn, _admin=Depends(admin_only)):
+    data = body.model_dump()
+    data["id"] = "default"
+    data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.site_banner.update_one({"id": "default"}, {"$set": data}, upsert=True)
+    banner = await db.site_banner.find_one({"id": "default"}, {"_id": 0})
+    return banner
 
 
 # ---------------- Order routes ----------------

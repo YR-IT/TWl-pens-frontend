@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ShoppingBag, User, Menu, Search, X, Heart } from "lucide-react";
+import { ShoppingBag, User, Menu, Search, X, Heart, Sparkles } from "lucide-react";
 import { useCart } from "../lib/cart";
 import { useAuth } from "../lib/auth";
 import { useWishlist } from "../lib/wishlist";
@@ -7,6 +7,7 @@ import { useCategories } from "../lib/categories";
 import { SITE } from "../lib/site";
 import { useState } from "react";
 import SearchModal from "./SearchModal";
+import logo from "../logo.png";
 
 export default function Header() {
   const { count, setOpen } = useCart();
@@ -27,12 +28,19 @@ export default function Header() {
         <button className="lg:hidden text-[#1C1815]" onClick={() => setMobile(!mobile)} data-testid="mobile-menu-toggle">
           {mobile ? <X size={22}/> : <Menu size={22}/>}
         </button>
-        <Link to="/" className="font-serif text-xl lg:text-2xl tracking-[0.15em] text-[#1C1815] flex items-center gap-1.5" data-testid="header-nav-brand">
-          <span className="text-[#6E685E] italic font-normal text-sm sm:text-base">The</span>
-          <span className="text-[#B8860B] font-semibold">WL</span>
-          <span>PENS</span>
+        <Link to="/" className="flex items-center gap-2.5 sm:gap-3 group" data-testid="header-nav-brand">
+          <img src={logo} alt="The WL Pens" className="h-10 sm:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105" />
+          <span className="font-serif text-xl lg:text-2xl tracking-[0.15em] text-[#1C1815] flex items-center gap-1.5">
+            <span className="text-[#6E685E] italic font-normal text-sm sm:text-base">The</span>
+            <span className="text-[#B8860B] font-semibold">WL</span>
+            <span className="hidden sm:inline">PENS</span>
+          </span>
         </Link>
         <nav className="hidden lg:flex items-center gap-6">
+          <Link to="/new-arrivals" className="text-xs uppercase tracking-[0.2em] font-semibold text-[#B8860B] hover:text-[#1C1815] transition-colors flex items-center gap-1.5" data-testid="nav-new-arrivals">
+            <span>New Arrivals</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#B8860B]"></span>
+          </Link>
           {navCats.map((c) => (
             <Link key={c.id} to={`/shop?category=${encodeURIComponent(c.name)}`} className="text-xs uppercase tracking-[0.2em] text-[#6E685E] hover:text-[#1C1815] transition-colors" data-testid={`nav-${c.name.toLowerCase().replaceAll(' ', '-')}`}>
               {c.name.split(" ")[0]}
@@ -71,6 +79,10 @@ export default function Header() {
       {mobile && (
         <div className="lg:hidden border-t border-[#E6E0D6] bg-[#FAF8F5]">
           <div className="px-6 py-6 flex flex-col gap-4">
+            <Link to="/new-arrivals" onClick={() => setMobile(false)} className="text-lg font-serif text-[#B8860B] font-medium flex items-center justify-between" data-testid="mobile-nav-new-arrivals">
+              <span>New Arrivals</span>
+              <span className="text-[10px] uppercase tracking-[0.2em] bg-[#B8860B]/15 text-[#B8860B] px-2 py-0.5">Fresh</span>
+            </Link>
             {safeCats.map((c) => (
               <Link key={c.id} to={`/shop?category=${encodeURIComponent(c.name)}`} onClick={() => setMobile(false)} className="text-lg font-serif text-[#1C1815]" data-testid={`mobile-nav-${c.name.toLowerCase().replaceAll(' ', '-')}`}>{c.name}</Link>
             ))}

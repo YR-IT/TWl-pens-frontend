@@ -14,9 +14,13 @@ const EDITORIAL_2 = "https://images.unsplash.com/photo-1473186505569-9c61870c11f
 export default function Home() {
   const [featured, setFeatured] = useState([]);
   const [studio, setStudio] = useState([]);
+  const [banner, setBanner] = useState(null);
   const cats = useCategories();
 
   useEffect(() => {
+    api.get("/site/banner")
+      .then((r) => setBanner(r.data))
+      .catch(() => setBanner(null));
     api.get("/products", { params: { featured: true, limit: 6 } })
       .then((r) => setFeatured(Array.isArray(r.data) ? r.data : (Array.isArray(r.data?.products) ? r.data.products : [])))
       .catch(() => setFeatured([]));
@@ -29,49 +33,47 @@ export default function Home() {
   const safeFeatured = Array.isArray(featured) ? featured : [];
   const safeStudio = Array.isArray(studio) ? studio : [];
 
+  const heroImage = banner?.image ? fileUrl(banner.image) : HERO_IMG;
+  const eyebrow = banner?.eyebrow || `${SITE.brand.toUpperCase()} · SS/26 ARRIVALS`;
+  const title = banner?.title || "The quiet art of writing well.";
+  const subtitle = banner?.subtitle || `${SITE.brand} — a small studio of writing instruments in the shadow of the Shivaliks. Hand-selected pens and inks, engraved to order, delivered in cotton pouches.`;
+  const ctaText = banner?.cta_text || "Enter the atelier";
+  const ctaLink = banner?.cta_link || "/shop";
+  const secondaryCtaText = banner?.secondary_cta_text || "New Arrivals";
+  const secondaryCtaLink = banner?.secondary_cta_link || "/new-arrivals";
+
   return (
     <div className="pt-[76px]">
-      {/* Hero */}
+      {/* Hero / Banner */}
       <section className="max-w-[1600px] mx-auto px-6 lg:px-12 pt-16 lg:pt-24 pb-16 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
         <div className="lg:col-span-7 order-2 lg:order-1">
           <motion.p
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}
             className="text-[11px] uppercase tracking-[0.35em] text-[#B8860B] mb-6" data-testid="hero-eyebrow">
-            {SITE.brand.toUpperCase()} · SS/26 ARRIVALS
+            {eyebrow}
           </motion.p>
           <motion.h1
             initial="hidden" animate="show"
             variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08, delayChildren: 0.15 } } }}
             className="font-serif text-5xl sm:text-6xl lg:text-7xl xl:text-[92px] leading-[0.98] tracking-tight text-[#1C1815]"
           >
-            {["The quiet", "art of", <em key="e" className="text-[#3D4838]">writing well.</em>].map((word, i) => (
-              <span key={i} className="block overflow-hidden">
-                <motion.span
-                  className="block"
-                  variants={{ hidden: { y: "110%" }, show: { y: 0 } }}
-                  transition={{ duration: 0.9, ease: [0.22, 0.9, 0.3, 1] }}
-                >
-                  {word}
-                </motion.span>
-              </span>
-            ))}
+            {title}
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.8 }}
             className="mt-8 max-w-lg text-[#6E685E] leading-relaxed"
           >
-            {SITE.brand} — a small studio of writing instruments in the shadow of the Shivaliks.
-            Hand-selected pens and inks, engraved to order, delivered in cotton pouches.
+            {subtitle}
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 1.0 }}
             className="mt-10 flex flex-wrap gap-4"
           >
-            <Link to="/shop" className="group inline-flex items-center gap-3 bg-[#1C1815] text-[#FAF8F5] px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-[#3D4838] transition-colors active:scale-[0.98]" data-testid="hero-cta-shop">
-              Enter the atelier <ArrowRight size={14} className="transition-transform group-hover:translate-x-1"/>
+            <Link to={ctaLink} className="group inline-flex items-center gap-3 bg-[#1C1815] text-[#FAF8F5] px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-[#3D4838] transition-colors active:scale-[0.98]" data-testid="hero-cta-shop">
+              {ctaText} <ArrowRight size={14} className="transition-transform group-hover:translate-x-1"/>
             </Link>
-            <Link to="/shop?category=Limited%20Editions" className="inline-flex items-center gap-3 border border-[#1C1815] text-[#1C1815] px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-[#1C1815] hover:text-[#FAF8F5] transition-colors active:scale-[0.98]" data-testid="hero-cta-limited">
-              Limited editions
+            <Link to={secondaryCtaLink} className="inline-flex items-center gap-3 border border-[#1C1815] text-[#1C1815] px-7 py-4 text-xs uppercase tracking-[0.25em] hover:bg-[#1C1815] hover:text-[#FAF8F5] transition-colors active:scale-[0.98]" data-testid="hero-cta-limited">
+              {secondaryCtaText}
             </Link>
           </motion.div>
         </div>
@@ -80,7 +82,7 @@ export default function Home() {
           className="lg:col-span-5 order-1 lg:order-2 relative"
         >
           <div className="aspect-[4/5] overflow-hidden bg-[#F3EFEA]">
-            <img src={HERO_IMG} alt="Fountain pen resting on paper" className="w-full h-full object-cover"/>
+            <img src={heroImage} alt="The WL Pens Hero Banner" className="w-full h-full object-cover"/>
           </div>
           <motion.div
             initial={{ opacity: 0, y: 20, x: -20 }} animate={{ opacity: 1, y: 0, x: 0 }} transition={{ duration: 0.7, delay: 1.1 }}

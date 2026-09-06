@@ -26,7 +26,7 @@ export default function Admin() {
             <h1 className="font-serif text-3xl lg:text-4xl text-[#1C1815] mt-2">Admin dashboard</h1>
           </div>
           <div className="flex gap-2 flex-wrap">
-            {["dashboard", "products", "categories", "studio", "orders"].map((t) => (
+            {["dashboard", "products", "categories", "banner", "studio", "orders"].map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -43,6 +43,7 @@ export default function Admin() {
           {tab === "dashboard" && <Dashboard/>}
           {tab === "products" && <ProductsTab/>}
           {tab === "categories" && <CategoriesTab/>}
+          {tab === "banner" && <BannerTab/>}
           {tab === "studio" && <StudioTab/>}
           {tab === "orders" && <OrdersTab/>}
         </div>
@@ -164,16 +165,21 @@ function ProductForm({ product, onClose, onSaved }) {
     features: product.features?.join("\n") || "",
     specs: Object.entries(product.specs || {}).map(([k, v]) => `${k}: ${v}`).join("\n"),
     images: product.images || [],
+    featured: !!product.featured,
+    new_arrival: product.new_arrival ?? true,
     engravable: !!product.engravable,
     engraving_max_length: product.engraving_max_length ?? 20,
   } : {
     name: "", brand: "", category: cats[0]?.name || "",
     price: "", discount_price: "",
-    description: "", features: "", specs: "", images: [], stock: 10, featured: false,
+    description: "", features: "", specs: "", images: [], stock: 10,
+    featured: false, new_arrival: true,
     engravable: true, engraving_max_length: 20,
   });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [urlInput, setUrlInput] = useState("");
+  const [showUrlField, setShowUrlField] = useState(false);
   const set = (k, v) => setForm({ ...form, [k]: v });
 
   // If no category assigned (new product) and cats loaded later, default it
@@ -182,14 +188,33 @@ function ProductForm({ product, onClose, onSaved }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cats.length]);
 
-  const upload = async (file) => {
+  const uploadFiles = async (fileList) => {
+    if (!fileList || fileList.length === 0) return;
     setUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
+    const filesArray = Array.from(fileList);
+    const newUrls = [];
     try {
-      const r = await api.post("/admin/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
-      set("images", [...form.images, r.data.url]);
-      toast.success("Image uploaded");
+      // First attempt batch upload endpoint
+      const fd = new FormData();
+      filesArray.forEach((f) => fd.append("files", f));
+      try {
+        const r = await api.post("/admin/upload-multiple", fd, { headers: { "Content-Type": "multipart/form-data" } });
+        if (r.data?.files?.length) {
+          r.data.files.forEach((f) => { if (f.url) newUrls.push(f.url); });
+        }
+      } catch (batchErr) {
+        // Fallback to sequential single uploads
+        for (const file of filesArray) {
+          const singleFd = new FormData();
+          singleFd.append("file", file);
+          const sr = await api.post("/admin/upload", singleFd, { headers: { "Content-Type": "multipart/form-data" } });
+          if (sr.data?.url) newUrls.push(sr.data.url);
+        }
+      }
+      if (newUrls.length > 0) {
+        setForm((prev) => ({ ...prev, images: [...prev.images, ...newUrls] }));
+        toast.success(`${newUrls.length} image${newUrls.length > 1 ? "s" : ""} added`);
+      }
     } catch (err) {
       toast.error("Upload failed: " + (err.response?.data?.detail || err.message));
     } finally {
@@ -197,14 +222,25 @@ function ProductForm({ product, onClose, onSaved }) {
     }
   };
 
-  const removeImage = (i) => set("images", form.images.filter((_, idx) => idx !== i));
+  const addUrlImage = () => {
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+    setForm((prev) => ({ ...prev, images: [...prev.images, trimmed] }));
+    setUrlInput("");
+    setShowUrlField(false);
+    toast.success("Image URL added");
+  };
+
+  const removeImage = (i) => setForm((prev) => ({ ...prev, images: prev.images.filter((_, idx) => idx !== i) }));
 
   const moveImage = (from, to) => {
-    if (to < 0 || to >= form.images.length || from === to) return;
-    const next = [...form.images];
-    const [item] = next.splice(from, 1);
-    next.splice(to, 0, item);
-    set("images", next);
+    setForm((prev) => {
+      if (to < 0 || to >= prev.images.length || from === to) return prev;
+      const next = [...prev.images];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return { ...prev, images: next };
+    });
   };
 
   const onDragStart = (i) => (e) => {
@@ -234,6 +270,7 @@ function ProductForm({ product, onClose, onSaved }) {
       images: form.images,
       stock: parseInt(form.stock) || 0,
       featured: !!form.featured,
+      new_arrival: !!form.new_arrival,
       engravable: !!form.engravable,
       engraving_max_length: parseInt(form.engraving_max_length) || 20,
     };
@@ -318,18 +355,65 @@ function ProductForm({ product, onClose, onSaved }) {
                   </div>
                 </div>
               ))}
-              <label className="aspect-square border border-dashed border-[#3D4838] flex flex-col items-center justify-center text-[#3D4838] cursor-pointer hover:bg-[#F3EFEA]" data-testid="pf-upload-image">
+              <label className="aspect-square border border-dashed border-[#3D4838] flex flex-col items-center justify-center text-[#3D4838] cursor-pointer hover:bg-[#F3EFEA] transition-colors p-2 text-center" data-testid="pf-upload-image">
                 <Upload size={20}/>
-                <span className="text-[10px] uppercase tracking-[0.15em] mt-2">{uploading ? "Uploading…" : "Upload"}</span>
-                <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}/>
+                <span className="text-[10px] uppercase tracking-[0.15em] mt-2 leading-tight">
+                  {uploading ? "Uploading…" : "Add images"}
+                </span>
+                <span className="text-[8px] text-[#6E685E] mt-0.5">Select multiple</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files?.length) {
+                      uploadFiles(e.target.files);
+                      e.target.value = null;
+                    }
+                  }}
+                />
               </label>
             </div>
+            <div className="mt-3 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setShowUrlField(!showUrlField)}
+                className="text-xs uppercase tracking-[0.15em] text-[#3D4838] hover:text-[#B8860B] transition-colors flex items-center gap-1 font-medium"
+              >
+                {showUrlField ? "− Close URL field" : "+ Add image via web URL"}
+              </button>
+            </div>
+            {showUrlField && (
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="url"
+                  value={urlInput}
+                  onChange={(e) => setUrlInput(e.target.value)}
+                  placeholder="https://images.unsplash.com/photo-..."
+                  className="flex-1 bg-transparent border border-[#E6E0D6] px-3 py-2 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                />
+                <button
+                  type="button"
+                  onClick={addUrlImage}
+                  className="bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-[#3D4838]"
+                >
+                  Add
+                </button>
+              </div>
+            )}
           </div>
 
-          <label className="flex items-center gap-3 text-sm text-[#1C1815]">
-            <input type="checkbox" checked={form.featured} onChange={(e) => set("featured", e.target.checked)} data-testid="pf-featured"/>
-            Feature on homepage
-          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="flex items-center gap-3 text-sm text-[#1C1815] cursor-pointer">
+              <input type="checkbox" checked={form.featured} onChange={(e) => set("featured", e.target.checked)} data-testid="pf-featured" className="accent-[#3D4838]"/>
+              Feature on homepage
+            </label>
+            <label className="flex items-center gap-3 text-sm text-[#1C1815] cursor-pointer">
+              <input type="checkbox" checked={form.new_arrival} onChange={(e) => set("new_arrival", e.target.checked)} data-testid="pf-new-arrival" className="accent-[#3D4838]"/>
+              Mark as New Arrival
+            </label>
+          </div>
 
           <div className="border-t border-[#E6E0D6] pt-5">
             <label className="flex items-center gap-3 text-sm text-[#1C1815]">
@@ -718,6 +802,205 @@ function ShipmentForm({ order, onUpdate }) {
         </div>
         <button onClick={() => onUpdate(order.id, f)} className="mt-2 bg-[#1C1815] text-[#FAF8F5] px-5 py-2.5 text-xs uppercase tracking-[0.2em] hover:bg-[#3D4838]" data-testid={`save-shipment-${order.id}`}>
           Save shipment
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function BannerTab() {
+  const [banner, setBanner] = useState({
+    image: "",
+    eyebrow: "THE WL PENS · SS/26 ARRIVALS",
+    title: "The quiet art of writing well.",
+    subtitle: "The WL Pens — a small studio of writing instruments in the shadow of the Shivaliks. Hand-selected pens and inks, engraved to order, delivered in cotton pouches.",
+    cta_text: "Enter the atelier",
+    cta_link: "/shop",
+    secondary_cta_text: "New Arrivals",
+    secondary_cta_link: "/new-arrivals",
+    enabled: true,
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    api.get("/site/banner")
+      .then((r) => {
+        if (r.data) setBanner((prev) => ({ ...prev, ...r.data }));
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const upload = async (file) => {
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await api.post("/admin/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      setBanner((prev) => ({ ...prev, image: r.data.url }));
+      toast.success("Banner image uploaded");
+    } catch (err) {
+      toast.error("Upload failed: " + (err.response?.data?.detail || err.message));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await api.put("/admin/banner", banner);
+      toast.success("Homepage banner updated");
+    } catch (err) {
+      toast.error("Save failed: " + (err.response?.data?.detail || err.message));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) return <p className="text-[#6E685E]">Loading banner settings…</p>;
+
+  return (
+    <div className="max-w-4xl bg-white border border-[#E6E0D6] p-8 space-y-6" data-testid="admin-banner-tab">
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">HERO SECTION</p>
+        <h2 className="font-serif text-3xl text-[#1C1815] mt-1">Homepage Banner Configuration</h2>
+        <p className="text-sm text-[#6E685E] mt-1">Manage the hero banner image, headline, subtitle, and action buttons shown on the main page.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-[#E6E0D6]">
+        <div>
+          <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-2 font-medium">Banner Image</span>
+          <div className="aspect-[4/3] bg-[#F3EFEA] border border-[#E6E0D6] overflow-hidden relative group flex items-center justify-center">
+            {banner.image ? (
+              <img src={fileUrl(banner.image)} alt="Banner preview" className="w-full h-full object-cover"/>
+            ) : (
+              <span className="text-xs text-[#6E685E] uppercase tracking-[0.15em]">No banner image</span>
+            )}
+          </div>
+          <div className="mt-4 flex items-center gap-3">
+            <label className="bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] cursor-pointer hover:bg-[#3D4838] transition-colors">
+              {uploading ? "Uploading…" : "Upload New Image"}
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
+            </label>
+            {banner.image && (
+              <button
+                type="button"
+                onClick={() => setBanner((prev) => ({ ...prev, image: "" }))}
+                className="text-xs text-red-700 hover:underline uppercase tracking-[0.15em]"
+              >
+                Clear Image
+              </button>
+            )}
+          </div>
+          <label className="block mt-4">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Or Direct Image URL</span>
+            <input
+              type="text"
+              value={banner.image}
+              onChange={(e) => setBanner((prev) => ({ ...prev, image: e.target.value }))}
+              placeholder="https://..."
+              className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+            />
+          </label>
+        </div>
+
+        <div className="space-y-4">
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Eyebrow text</span>
+            <input
+              type="text"
+              value={banner.eyebrow || ""}
+              onChange={(e) => setBanner((prev) => ({ ...prev, eyebrow: e.target.value }))}
+              className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Main Headline</span>
+            <input
+              type="text"
+              value={banner.title || ""}
+              onChange={(e) => setBanner((prev) => ({ ...prev, title: e.target.value }))}
+              className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm font-serif text-[#1C1815] outline-none focus:border-[#3D4838]"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Subtitle / Description</span>
+            <textarea
+              rows={3}
+              value={banner.subtitle || ""}
+              onChange={(e) => setBanner((prev) => ({ ...prev, subtitle: e.target.value }))}
+              className="mt-1 w-full bg-transparent border border-[#E6E0D6] p-2.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+            />
+          </label>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Primary Button Text</span>
+              <input
+                type="text"
+                value={banner.cta_text || ""}
+                onChange={(e) => setBanner((prev) => ({ ...prev, cta_text: e.target.value }))}
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Primary Button Link</span>
+              <input
+                type="text"
+                value={banner.cta_link || ""}
+                onChange={(e) => setBanner((prev) => ({ ...prev, cta_link: e.target.value }))}
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Secondary Button Text</span>
+              <input
+                type="text"
+                value={banner.secondary_cta_text || ""}
+                onChange={(e) => setBanner((prev) => ({ ...prev, secondary_cta_text: e.target.value }))}
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Secondary Button Link</span>
+              <input
+                type="text"
+                value={banner.secondary_cta_link || ""}
+                onChange={(e) => setBanner((prev) => ({ ...prev, secondary_cta_link: e.target.value }))}
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+          </div>
+
+          <div className="pt-2">
+            <label className="flex items-center gap-2.5 text-xs text-[#1C1815] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={banner.enabled}
+                onChange={(e) => setBanner((prev) => ({ ...prev, enabled: e.target.checked }))}
+                className="accent-[#3D4838]"
+              />
+              <span>Enable banner on homepage</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-6 border-t border-[#E6E0D6] flex justify-end">
+        <button
+          onClick={save}
+          disabled={saving}
+          className="bg-[#1C1815] text-[#FAF8F5] px-8 py-3.5 text-xs uppercase tracking-[0.2em] hover:bg-[#3D4838] transition-colors disabled:opacity-50"
+          data-testid="save-banner-btn"
+        >
+          {saving ? "Saving…" : "Save Banner Changes"}
         </button>
       </div>
     </div>
