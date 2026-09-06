@@ -1,0 +1,12 @@
+{
+  "name": "thewlpens",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The WL Pens - Luxury Writing Instruments",
+  "scripts": {
+    "dev": "npm --prefix frontend start",
+    "start": "npm --prefix frontend start",
+    "build": "npm --prefix frontend run build",
+    "test": "npm --prefix frontend test"
+  }
+}
