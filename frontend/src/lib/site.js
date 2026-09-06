@@ -9,5 +9,8 @@ export const SITE = {
     "Panchkula, Haryana — 134107",
     "India",
   ],
+  phone: "+91 93519 96272",
+  phone_raw: "+919351996272",
+  whatsapp_number: "+919351996272",
   cities: "Panchkula · Chandigarh · Kalka",
 };

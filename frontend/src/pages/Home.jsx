@@ -7,6 +7,7 @@ import { useCategories } from "../lib/categories";
 import { SITE } from "../lib/site";
 import ProductCard from "../components/ProductCard";
 import VerticalBarsNoise from "../components/ui/vertical-bars";
+import NewArrivalsTicker from "../components/NewArrivalsTicker";
 
 const HERO_IMG = "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600";
 const EDITORIAL_1 = "https://images.unsplash.com/photo-1617177435596-1c9e30d6d608?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200";
@@ -116,6 +117,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Continuous Motion Strip of New Arrival */}
+      <NewArrivalsTicker variant="dark" />
 
       {/* Featured products */}
       <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-20">
