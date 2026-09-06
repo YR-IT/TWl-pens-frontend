@@ -5,7 +5,6 @@ import ProductCard from "../components/ProductCard";
 import { Sparkles, ArrowRight, SlidersHorizontal, X } from "lucide-react";
 import { motion } from "framer-motion";
 import HorizontalFlowBars from "../components/ui/demo";
-import NewArrivalsTicker from "../components/NewArrivalsTicker";
 
 export default function NewArrivals() {
   const [sp, setSp] = useSearchParams();
@@ -92,9 +91,6 @@ export default function NewArrivals() {
           </div>
         </div>
       </section>
-
-      {/* Continuous Motion Strip of New Arrival */}
-      <NewArrivalsTicker variant="dark" />
 
       {/* Main Content Area */}
       <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-12 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-12">

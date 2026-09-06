@@ -111,3 +111,9 @@ a.link-slide:hover::after { transform: scaleX(1); transform-origin: left; }
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   .animate-marquee-infinite, .animate-marquee-reverse { animation: none !important; }
 }
+
+/* Header offset with continuous strip below navbar */
+.pt-\[76px\] {
+  padding-top: 108px !important;
+}
+

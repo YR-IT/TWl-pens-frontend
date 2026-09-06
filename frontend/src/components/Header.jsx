@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { ShoppingBag, User, Menu, Search, X, Heart } from "lucide-react";
+import { ShoppingBag, User, Menu, Search, X, Heart, Sparkles, ArrowRight } from "lucide-react";
 import { useCart } from "../lib/cart";
 import { useAuth } from "../lib/auth";
 import { useWishlist } from "../lib/wishlist";
@@ -15,6 +15,46 @@ export default function Header() {
   const nav = useNavigate();
   const [mobile, setMobile] = useState(false);
   const [search, setSearch] = useState(false);
+
+  const tickerContent = (
+    <div className="flex items-center gap-8 px-4 shrink-0">
+      <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold">
+        <Sparkles size={11} className="text-[#B8860B] shrink-0" />
+        NEW ARRIVALS
+      </span>
+      <span className="w-1 h-1 rounded-full bg-[#B8860B]/60" />
+
+      <span className="inline-flex items-center text-[10px] uppercase tracking-[0.2em] text-[#FAF8F5]/90 font-medium">
+        SS/26 ATELIER COLLECTION
+      </span>
+      <span className="w-1 h-1 rounded-full bg-[#B8860B]/60" />
+
+      <span className="inline-flex items-center text-[10px] uppercase tracking-[0.2em] text-[#FAF8F5]/90 font-medium">
+        HAND-GROUND IRIDIUM NIBS
+      </span>
+      <span className="w-1 h-1 rounded-full bg-[#B8860B]/60" />
+
+      <span className="inline-flex items-center text-[10px] uppercase tracking-[0.2em] text-[#B8860B] font-semibold">
+        COMPLIMENTARY BESPOKE STUDIO ENGRAVING
+      </span>
+      <span className="w-1 h-1 rounded-full bg-[#B8860B]/60" />
+
+      <span className="inline-flex items-center text-[10px] uppercase tracking-[0.2em] text-[#FAF8F5]/90 font-medium">
+        CALL / WHATSAPP: +91 93519 96272
+      </span>
+      <span className="w-1 h-1 rounded-full bg-[#B8860B]/60" />
+
+      <span className="inline-flex items-center text-[10px] uppercase tracking-[0.2em] text-[#FAF8F5]/90 font-medium">
+        SHIPS WITHIN 48 HOURS FROM PANCHKULA
+      </span>
+      <span className="w-1 h-1 rounded-full bg-[#B8860B]/60" />
+
+      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold underline underline-offset-4 group-hover:text-[#FAF8F5] transition-colors">
+        EXPLORE NEW EDITIONS <ArrowRight size={10} className="shrink-0 ml-0.5" />
+      </span>
+      <span className="w-1 h-1 rounded-full bg-[#B8860B]/60" />
+    </div>
+  );
 
   return (
     <>
@@ -99,6 +139,17 @@ export default function Header() {
           </button>
         </div>
       </div>
+
+      {/* Continuous Motion Strip Right Under Navbar */}
+      <div className="border-t border-[#3D4838]/40 bg-[#1C1815] text-[#FAF8F5] py-2 overflow-hidden select-none cursor-pointer group" data-testid="header-sub-ticker">
+        <Link to="/new-arrivals" className="block focus:outline-none" title="Explore New Arrivals">
+          <div className="animate-marquee-infinite flex items-center">
+            {tickerContent}
+            {tickerContent}
+          </div>
+        </Link>
+      </div>
+
       {mobile && (
         <div className="lg:hidden border-t border-[#E6E0D6] bg-[#FAF8F5]">
           <div className="px-6 py-6 flex flex-col gap-4">
