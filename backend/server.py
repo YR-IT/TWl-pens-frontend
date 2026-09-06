@@ -5,6 +5,7 @@ FastAPI + MongoDB (Motor) + JWT auth + Supabase Storage + WhatsApp order handoff
 import os
 import uuid
 import logging
+import asyncio
 import bcrypt
 import jwt
 import requests
@@ -338,6 +339,23 @@ async def startup():
 
     # Init storage (non-blocking)
     init_storage()
+
+    # Start background keep-alive loop to prevent Render free-tier idle sleep
+    async def keep_alive_loop():
+        await asyncio.sleep(20)
+        self_url = os.environ.get("RENDER_EXTERNAL_URL") or os.environ.get("SELF_PING_URL") or "https://wl-pens-backend.onrender.com"
+        target_url = f"{self_url.rstrip('/')}/api/site/config"
+        logger.info(f"Keep-alive loop active targeting {target_url}")
+        while True:
+            try:
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, lambda: requests.get(target_url, timeout=10))
+                logger.info("Keep-alive self-ping sent")
+            except Exception as e:
+                logger.debug(f"Keep-alive ping error: {e}")
+            await asyncio.sleep(600)  # Ping every 10 minutes (Render sleeps after 15 min idle)
+
+    asyncio.create_task(keep_alive_loop())
 
 
 async def _seed_products():
