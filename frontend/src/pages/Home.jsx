@@ -23,8 +23,16 @@ export default function Home() {
     api.get("/site/banner")
       .then((r) => setBanner(r.data))
       .catch(() => setBanner(null));
-    api.get("/products", { params: { featured: true, limit: 6 } })
-      .then((r) => setFeatured(Array.isArray(r.data) ? r.data : (Array.isArray(r.data?.products) ? r.data.products : [])))
+    api.get("/products", { params: { best_seller: true, limit: 6 } })
+      .then((r) => {
+        const list = Array.isArray(r.data) ? r.data : (Array.isArray(r.data?.products) ? r.data.products : []);
+        if (list.length > 0) {
+          setFeatured(list);
+        } else {
+          api.get("/products", { params: { featured: true, limit: 6 } })
+            .then((res) => setFeatured(Array.isArray(res.data) ? res.data : []));
+        }
+      })
       .catch(() => setFeatured([]));
     api.get("/studio-posts", { params: { limit: 6 } })
       .then((r) => setStudio(Array.isArray(r.data) ? r.data : (Array.isArray(r.data?.posts) ? r.data.posts : [])))
@@ -172,14 +180,17 @@ export default function Home() {
       {/* Continuous Motion Strip of New Arrival */}
       <NewArrivalsTicker variant="dark" />
 
-      {/* Featured products */}
+      {/* Best sellers & hallmark instruments */}
       <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-20">
-        <div className="flex items-end justify-between border-b border-[#E6E0D6] pb-8 mb-10">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#E6E0D6] pb-8 mb-10 gap-4">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">02 / IN HAND</p>
-            <h2 className="font-serif text-3xl lg:text-5xl text-[#1C1815] mt-2">New arrivals.</h2>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">02 / BEST SELLERS</p>
+            <h2 className="font-serif text-3xl lg:text-5xl text-[#1C1815] mt-2">Hallmark editions.</h2>
+            <p className="mt-2 text-xs sm:text-sm text-[#6E685E]">Our most coveted writing instruments, beloved by connoisseurs.</p>
           </div>
-          <Link to="/shop" className="text-xs uppercase tracking-[0.2em] text-[#3D4838] hover:text-[#1C1815] border-b border-[#3D4838] pb-1" data-testid="view-all-products">View all</Link>
+          <Link to="/best-sellers" className="text-xs uppercase tracking-[0.2em] text-[#3D4838] hover:text-[#1C1815] border-b border-[#3D4838] pb-1 self-start sm:self-auto" data-testid="view-all-products">
+            View all best sellers
+          </Link>
         </div>
         <motion.div
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12"
@@ -199,11 +210,11 @@ export default function Home() {
       {/* Studio feed — instagram-style grid */}
       <section className="border-t border-[#E6E0D6] bg-[#F3EFEA]/60">
         <div className="max-w-[1600px] mx-auto px-6 lg:px-12 py-20">
-          <div className="flex items-end justify-between border-b border-[#E6E0D6] pb-8 mb-10">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#E6E0D6] pb-8 mb-10 gap-4">
             <div>
               <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">03 / FROM THE STUDIO</p>
-              <h2 className="font-serif text-3xl lg:text-5xl text-[#1C1815] mt-2">New arrivals, live from the desk.</h2>
-              <p className="mt-2 text-sm text-[#6E685E] max-w-lg">Fresh nib videos, first inks of the season, and the odd wedding order — straight from our Panchkula studio.</p>
+              <h2 className="font-serif text-3xl lg:text-5xl text-[#1C1815] mt-2">Live from the desk.</h2>
+              <p className="mt-2 text-sm text-[#6E685E] max-w-lg">Fresh nib videos, first inks of the season, and bespoke commissions — straight from our Panchkula atelier.</p>
             </div>
             <a href="https://instagram.com/thewlpens" target="_blank" rel="noopener noreferrer" className="hidden sm:inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-[#3D4838] hover:text-[#1C1815] border-b border-[#3D4838] pb-1" data-testid="instagram-follow-link">
               <Instagram size={14}/> @thewlpens
