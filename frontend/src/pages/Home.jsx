@@ -173,11 +173,11 @@ export default function Home() {
                   </div>
 
                   {/* Bottom Info */}
-                  <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5 flex flex-col justify-end">
-                    <h3 className="font-serif text-lg sm:text-xl text-[#FAF8F5] leading-tight group-hover:text-[#B8860B] transition-colors">
+                  <div className="absolute inset-x-0 bottom-0 p-3.5 sm:p-5 flex flex-col justify-end">
+                    <h3 className="font-serif text-base sm:text-lg lg:text-xl text-[#FAF8F5] leading-tight group-hover:text-[#B8860B] transition-colors break-words">
                       {c.name}
                     </h3>
-                    <div className="mt-2 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-[#FAF8F5]/70 group-hover:text-[#FAF8F5] transition-colors">
+                    <div className="mt-1.5 sm:mt-2 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-[#FAF8F5]/70 group-hover:text-[#FAF8F5] transition-colors">
                       <span>View</span>
                       <ArrowRight size={12} className="transition-transform group-hover:translate-x-1 duration-300" />
                     </div>

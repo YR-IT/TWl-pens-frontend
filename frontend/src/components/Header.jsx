@@ -73,7 +73,7 @@ export default function Header() {
         </Link>
 
         {/* Navigation: Home · Products · New Arrivals · Best Sellers · Contact Us */}
-        <nav className="hidden lg:flex items-center gap-7">
+        <nav className="hidden lg:flex items-center gap-5 xl:gap-7">
           <Link
             to="/"
             className={`text-xs uppercase tracking-[0.2em] transition-colors pb-0.5 ${
