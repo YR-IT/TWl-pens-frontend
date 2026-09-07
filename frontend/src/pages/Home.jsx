@@ -96,24 +96,75 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Categories strip */}
-      <section className="border-y border-[#E6E0D6] bg-[#F3EFEA]">
-        <div className="max-w-[1600px] mx-auto px-6 lg:px-12 py-14">
-          <div className="flex items-end justify-between mb-10">
+      {/* Categories strip with Images — Placed right after Hero */}
+      <section className="border-y border-[#E6E0D6] bg-[#F3EFEA]/80 py-16">
+        <div className="max-w-[1600px] mx-auto px-6 lg:px-12">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">01 / CURATED</p>
-              <h2 className="font-serif text-3xl lg:text-5xl text-[#1C1815] mt-2">By discipline.</h2>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">01 / CURATED COLLECTIONS</p>
+              <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#1C1815] mt-2">Shop by category.</h2>
+              <p className="text-xs sm:text-sm text-[#6E685E] mt-2 max-w-lg">
+                Explore fine pens, rich pigment inks, and handcrafted accessories engineered for effortless writing.
+              </p>
             </div>
-            <Link to="/shop" className="hidden sm:inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-[#3D4838] hover:text-[#1C1815] border-b border-[#3D4838] pb-1" data-testid="all-categories-link">All categories <ArrowRight size={14}/></Link>
+            <Link
+              to="/products"
+              className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-[#1C1815] hover:text-[#B8860B] border-b border-[#1C1815] hover:border-[#B8860B] pb-1 transition-colors self-start sm:self-auto"
+              data-testid="all-categories-link"
+            >
+              All collections <ArrowRight size={14}/>
+            </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            {safeCats.slice(0, 5).map((c, i) => (
-              <Link key={c.id} to={`/shop?category=${encodeURIComponent(c.name)}`} className="group border border-[#E6E0D6] bg-[#FAF8F5] p-6 hover:border-[#3D4838] transition-colors" data-testid={`category-tile-${c.name.toLowerCase().replaceAll(' ', '-')}`}>
-                <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">{String(i + 1).padStart(2, "0")}</p>
-                <h3 className="font-serif text-xl text-[#1C1815] mt-3">{c.name}</h3>
-                <ArrowRight size={16} className="mt-6 text-[#6E685E] group-hover:text-[#3D4838] transition-transform group-hover:translate-x-1"/>
-              </Link>
-            ))}
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 sm:gap-6">
+            {safeCats.map((c, i) => {
+              const fallbackImages = {
+                "fountain pens": "https://images.unsplash.com/photo-1583912372642-8b0adbb1a53a?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+                "rollerball": "https://images.unsplash.com/photo-1585336261026-7f09a341b312?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+                "ballpoint": "https://images.unsplash.com/photo-1569683795645-b62e50fbf103?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+                "mechanical pencils": "https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+                "inks": "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+                "accessories": "https://images.unsplash.com/photo-1617177435596-1c9e30d6d608?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+                "limited editions": "https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+              };
+              const catImg = c.image ? fileUrl(c.image) : (fallbackImages[c.name?.toLowerCase().trim()] || "https://images.unsplash.com/photo-1583912372642-8b0adbb1a53a?crop=entropy&cs=srgb&fm=jpg&q=85&w=800");
+
+              return (
+                <Link
+                  key={c.id || i}
+                  to={`/shop?category=${encodeURIComponent(c.name)}`}
+                  className="group relative aspect-[3/4] overflow-hidden rounded-sm border border-[#E6E0D6] bg-[#1C1815] shadow-sm hover:shadow-md transition-all duration-500 hover:border-[#B8860B]"
+                  data-testid={`category-tile-${c.name.toLowerCase().replaceAll(' ', '-')}`}
+                >
+                  <img
+                    src={catImg}
+                    alt={c.name}
+                    className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-108 filter brightness-[0.92] group-hover:brightness-100"
+                    loading="lazy"
+                  />
+                  {/* Subtle Gradient Overlays for Readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#1C1815]/90 via-[#1C1815]/30 to-transparent transition-opacity duration-300 group-hover:opacity-85" />
+
+                  {/* Top Badge */}
+                  <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-[#1C1815]/70 backdrop-blur-sm px-2 py-0.5 border border-white/10">
+                    <span className="text-[9px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                  </div>
+
+                  {/* Bottom Info */}
+                  <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5 flex flex-col justify-end">
+                    <h3 className="font-serif text-lg sm:text-xl text-[#FAF8F5] leading-tight group-hover:text-[#B8860B] transition-colors">
+                      {c.name}
+                    </h3>
+                    <div className="mt-2 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-[#FAF8F5]/70 group-hover:text-[#FAF8F5] transition-colors">
+                      <span>View</span>
+                      <ArrowRight size={12} className="transition-transform group-hover:translate-x-1 duration-300" />
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

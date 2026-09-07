@@ -72,8 +72,8 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* Focused Minimal Navigation: Home · New Arrivals · Contact Us */}
-        <nav className="hidden lg:flex items-center gap-8">
+        {/* Navigation: Home · Products · New Arrivals · Best Sellers · Contact Us */}
+        <nav className="hidden lg:flex items-center gap-7">
           <Link
             to="/"
             className={`text-xs uppercase tracking-[0.2em] transition-colors pb-0.5 ${
@@ -86,6 +86,17 @@ export default function Header() {
             Home
           </Link>
           <Link
+            to="/products"
+            className={`text-xs uppercase tracking-[0.2em] transition-colors pb-0.5 ${
+              loc.pathname === "/products" || loc.pathname === "/shop"
+                ? "text-[#1C1815] font-semibold border-b border-[#1C1815]"
+                : "text-[#6E685E] hover:text-[#1C1815]"
+            }`}
+            data-testid="nav-products"
+          >
+            Products
+          </Link>
+          <Link
             to="/new-arrivals"
             className={`text-xs uppercase tracking-[0.2em] transition-colors pb-0.5 flex items-center gap-1.5 ${
               loc.pathname === "/new-arrivals"
@@ -96,6 +107,17 @@ export default function Header() {
           >
             <span>New Arrivals</span>
             <span className="w-1.5 h-1.5 rounded-full bg-[#B8860B]"></span>
+          </Link>
+          <Link
+            to="/best-sellers"
+            className={`text-xs uppercase tracking-[0.2em] transition-colors pb-0.5 ${
+              loc.pathname === "/best-sellers"
+                ? "text-[#1C1815] font-semibold border-b border-[#1C1815]"
+                : "text-[#6E685E] hover:text-[#1C1815]"
+            }`}
+            data-testid="nav-best-sellers"
+          >
+            Best Sellers
           </Link>
           <Link
             to="/contact"
@@ -164,6 +186,16 @@ export default function Header() {
               Home
             </Link>
             <Link
+              to="/products"
+              onClick={() => setMobile(false)}
+              className={`text-lg font-serif transition-colors ${
+                loc.pathname === "/products" || loc.pathname === "/shop" ? "text-[#B8860B] font-medium" : "text-[#1C1815]"
+              }`}
+              data-testid="mobile-nav-products"
+            >
+              Products
+            </Link>
+            <Link
               to="/new-arrivals"
               onClick={() => setMobile(false)}
               className="text-lg font-serif text-[#B8860B] font-medium flex items-center justify-between"
@@ -171,6 +203,16 @@ export default function Header() {
             >
               <span>New Arrivals</span>
               <span className="text-[10px] uppercase tracking-[0.2em] bg-[#B8860B]/15 text-[#B8860B] px-2 py-0.5">Fresh</span>
+            </Link>
+            <Link
+              to="/best-sellers"
+              onClick={() => setMobile(false)}
+              className={`text-lg font-serif transition-colors ${
+                loc.pathname === "/best-sellers" ? "text-[#B8860B] font-medium" : "text-[#1C1815]"
+              }`}
+              data-testid="mobile-nav-best-sellers"
+            >
+              Best Sellers
             </Link>
             <Link
               to="/contact"

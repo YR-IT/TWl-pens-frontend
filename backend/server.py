@@ -212,6 +212,7 @@ class ProductIn(BaseModel):
     stock: int = Field(default=10, ge=0)
     featured: bool = False
     new_arrival: bool = True
+    best_seller: bool = False
     engravable: bool = False
     engraving_max_length: int = Field(default=20, ge=1, le=60)
 
@@ -219,6 +220,7 @@ class ProductIn(BaseModel):
 class CategoryIn(BaseModel):
     name: str = Field(min_length=1, max_length=60)
     order: int = 0
+    image: Optional[str] = ""
 
 
 class BannerIn(BaseModel):
@@ -318,14 +320,29 @@ async def startup():
         logger.info("Seeded starter product catalog")
 
     # Seed categories if empty
+    default_cat_images = {
+        "Fountain Pens": "https://images.unsplash.com/photo-1583912372642-8b0adbb1a53a?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "Rollerball": "https://images.unsplash.com/photo-1585336261026-7f09a341b312?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "Ballpoint": "https://images.unsplash.com/photo-1569683795645-b62e50fbf103?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "Mechanical Pencils": "https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "Inks": "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "Accessories": "https://images.unsplash.com/photo-1617177435596-1c9e30d6d608?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+        "Limited Editions": "https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+    }
     if await db.categories.count_documents({}) == 0:
-        default_cats = ["Fountain Pens", "Rollerball", "Ballpoint", "Mechanical Pencils", "Inks", "Accessories", "Limited Editions"]
         now = datetime.now(timezone.utc).isoformat()
         await db.categories.insert_many([
-            {"id": str(uuid.uuid4()), "name": c, "order": i, "created_at": now}
-            for i, c in enumerate(default_cats)
+            {"id": str(uuid.uuid4()), "name": c, "image": default_cat_images.get(c, ""), "order": i, "created_at": now}
+            for i, c in enumerate(default_cat_images.keys())
         ])
-        logger.info("Seeded default categories")
+        logger.info("Seeded default categories with images")
+
+    # Backfill category images if missing
+    for cname, cimg in default_cat_images.items():
+        await db.categories.update_many(
+            {"name": cname, "$or": [{"image": {"$exists": False}}, {"image": ""}, {"image": None}]},
+            {"$set": {"image": cimg}},
+        )
 
     # Seed studio posts if empty
     if await db.studio_posts.count_documents({}) == 0:
@@ -355,6 +372,14 @@ async def startup():
         {"new_arrival": {"$exists": False}},
         {"$set": {"new_arrival": True}},
     )
+
+    # Backfill best_seller flag on existing products (idempotent)
+    await db.products.update_many(
+        {"best_seller": {"$exists": False}},
+        {"$set": {"best_seller": False}},
+    )
+    if await db.products.count_documents({"best_seller": True}) == 0:
+        await db.products.update_many({"featured": True}, {"$set": {"best_seller": True}})
 
     # Seed default homepage banner if empty
     if await db.site_banner.count_documents({}) == 0:
@@ -548,6 +573,7 @@ async def list_products(
     max_price: Optional[float] = None,
     featured: Optional[bool] = None,
     new_arrival: Optional[bool] = None,
+    best_seller: Optional[bool] = None,
     q: Optional[str] = None,
     sort: Optional[str] = "newest",
     limit: int = 100,
@@ -561,6 +587,8 @@ async def list_products(
         query["featured"] = featured
     if new_arrival is not None:
         query["new_arrival"] = new_arrival
+    if best_seller is not None:
+        query["best_seller"] = best_seller
     if q:
         query["$or"] = [
             {"name": {"$regex": q, "$options": "i"}},
@@ -990,7 +1018,13 @@ async def create_category(body: CategoryIn, _admin=Depends(admin_only)):
     name = body.name.strip()
     if await db.categories.find_one({"name": name}):
         raise HTTPException(409, "Category already exists")
-    doc = {"id": str(uuid.uuid4()), "name": name, "order": body.order, "created_at": datetime.now(timezone.utc).isoformat()}
+    doc = {
+        "id": str(uuid.uuid4()),
+        "name": name,
+        "order": body.order,
+        "image": (body.image or "").strip(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
     await db.categories.insert_one(doc)
     doc.pop("_id", None)
     return doc
@@ -1006,7 +1040,10 @@ async def update_category(cat_id: str, body: CategoryIn, _admin=Depends(admin_on
     dup = await db.categories.find_one({"name": new_name, "id": {"$ne": cat_id}})
     if dup:
         raise HTTPException(409, "Another category has this name")
-    await db.categories.update_one({"id": cat_id}, {"$set": {"name": new_name, "order": body.order}})
+    upd = {"name": new_name, "order": body.order}
+    if body.image is not None:
+        upd["image"] = body.image.strip()
+    await db.categories.update_one({"id": cat_id}, {"$set": upd})
     # Cascade rename on products
     if new_name != old["name"]:
         await db.products.update_many({"category": old["name"]}, {"$set": {"category": new_name}})

@@ -453,18 +453,41 @@ function CategoriesTab() {
   const cats = useCategories();
   const [busy, setBusy] = useState(false);
   const [newName, setNewName] = useState("");
-  const [editing, setEditing] = useState(null); // {id, name, order}
+  const [newImage, setNewImage] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [editing, setEditing] = useState(null); // {id, name, order, image}
 
   const reload = async () => { await refreshCategories(); };
+
+  const handleUpload = async (file, isEditing = false) => {
+    if (!file) return;
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await api.post("/admin/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      if (isEditing) {
+        setEditing((prev) => ({ ...prev, image: r.data.url }));
+      } else {
+        setNewImage(r.data.url);
+      }
+      toast.success("Category image uploaded");
+    } catch (err) {
+      toast.error("Upload failed: " + (err.response?.data?.detail || err.message));
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const create = async (e) => {
     e.preventDefault();
     if (!newName.trim()) return;
     setBusy(true);
     try {
-      await api.post("/admin/categories", { name: newName.trim(), order: cats.length });
+      await api.post("/admin/categories", { name: newName.trim(), order: cats.length, image: newImage.trim() });
       toast.success("Category created");
       setNewName("");
+      setNewImage("");
       await reload();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Create failed");
@@ -474,7 +497,11 @@ function CategoriesTab() {
   const save = async () => {
     if (!editing.name.trim()) return;
     try {
-      await api.put(`/admin/categories/${editing.id}`, { name: editing.name.trim(), order: parseInt(editing.order) || 0 });
+      await api.put(`/admin/categories/${editing.id}`, {
+        name: editing.name.trim(),
+        order: parseInt(editing.order) || 0,
+        image: (editing.image || "").trim()
+      });
       toast.success("Category updated");
       setEditing(null);
       await reload();
@@ -497,17 +524,61 @@ function CategoriesTab() {
   return (
     <div data-testid="categories-tab">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="font-serif text-2xl text-[#1C1815]">Categories</h2>
+        <div>
+          <h2 className="font-serif text-2xl text-[#1C1815]">Categories</h2>
+          <p className="text-xs text-[#6E685E] mt-1">Manage store categories, display order, and collection hero images.</p>
+        </div>
       </div>
 
-      <form onSubmit={create} className="border border-[#E6E0D6] bg-white p-5 flex flex-wrap items-end gap-3 mb-6" data-testid="new-category-form">
-        <label className="flex-1 min-w-[200px]">
-          <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">New category</span>
-          <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g. Wooden Pens" className="mt-2 w-full bg-transparent border-b border-[#E6E0D6] py-2.5 outline-none focus:border-[#3D4838]" data-testid="new-category-name"/>
-        </label>
-        <button disabled={busy || !newName.trim()} className="bg-[#1C1815] text-[#FAF8F5] px-5 py-3 text-xs uppercase tracking-[0.2em] hover:bg-[#3D4838] disabled:bg-[#6E685E] inline-flex items-center gap-2" data-testid="create-category-btn">
-          <Plus size={14}/> Add category
-        </button>
+      <form onSubmit={create} className="border border-[#E6E0D6] bg-white p-6 mb-6 space-y-4" data-testid="new-category-form">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Category Name</span>
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="e.g. Calligraphy Sets"
+              className="mt-2 w-full bg-transparent border-b border-[#E6E0D6] py-2.5 outline-none focus:border-[#3D4838]"
+              data-testid="new-category-name"
+            />
+          </label>
+
+          <div>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-2">Category Image (Upload or URL)</span>
+            <div className="flex items-center gap-2">
+              <input
+                value={newImage}
+                onChange={(e) => setNewImage(e.target.value)}
+                placeholder="https://... or upload photo"
+                className="flex-1 bg-transparent border-b border-[#E6E0D6] py-2 outline-none focus:border-[#3D4838] text-xs"
+              />
+              <label className="bg-[#FAF8F5] border border-[#E6E0D6] text-[#1C1815] px-3 py-2 text-xs uppercase tracking-[0.1em] hover:bg-[#F3EFEA] cursor-pointer inline-flex items-center gap-1.5 shrink-0">
+                <Upload size={12}/> {uploading ? "..." : "Upload"}
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUpload(e.target.files?.[0], false)} disabled={uploading}/>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {newImage && (
+          <div className="flex items-center gap-3 pt-2">
+            <div className="w-16 h-16 rounded border border-[#E6E0D6] overflow-hidden bg-[#FAF8F5]">
+              <img src={fileUrl(newImage)} alt="Preview" className="w-full h-full object-cover"/>
+            </div>
+            <button type="button" onClick={() => setNewImage("")} className="text-xs text-red-600 hover:underline">Remove image</button>
+          </div>
+        )}
+
+        <div className="pt-2 flex justify-end">
+          <button
+            type="submit"
+            disabled={busy || !newName.trim()}
+            className="bg-[#1C1815] text-[#FAF8F5] px-6 py-3 text-xs uppercase tracking-[0.2em] hover:bg-[#3D4838] disabled:bg-[#6E685E] inline-flex items-center gap-2 transition-colors"
+            data-testid="create-category-btn"
+          >
+            <Plus size={14}/> Add category
+          </button>
+        </div>
       </form>
 
       {cats.length === 0 ? (
@@ -515,32 +586,60 @@ function CategoriesTab() {
       ) : (
         <ul className="border border-[#E6E0D6] bg-white divide-y divide-[#E6E0D6]" data-testid="categories-list">
           {cats.map((c) => (
-            <li key={c.id} className="flex items-center justify-between gap-3 px-5 py-4" data-testid={`category-row-${c.id}`}>
+            <li key={c.id} className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-5 py-4" data-testid={`category-row-${c.id}`}>
               {editing?.id === c.id ? (
-                <>
-                  <div className="flex-1 flex flex-wrap items-center gap-3">
-                    <input value={editing.name} onChange={(e) => setEditing({...editing, name: e.target.value})} className="flex-1 min-w-[160px] bg-transparent border-b border-[#3D4838] py-2 outline-none" data-testid={`edit-cat-name-${c.id}`}/>
-                    <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">
-                      Order
-                      <input type="number" value={editing.order} onChange={(e) => setEditing({...editing, order: e.target.value})} className="w-16 bg-transparent border-b border-[#E6E0D6] py-1 outline-none text-[#1C1815]" data-testid={`edit-cat-order-${c.id}`}/>
+                <div className="flex-1 flex flex-col md:flex-row flex-wrap items-start md:items-center gap-3">
+                  <input
+                    value={editing.name}
+                    onChange={(e) => setEditing({...editing, name: e.target.value})}
+                    placeholder="Category name"
+                    className="flex-1 min-w-[160px] bg-transparent border-b border-[#3D4838] py-2 outline-none font-serif text-lg"
+                    data-testid={`edit-cat-name-${c.id}`}
+                  />
+                  <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">
+                    Order
+                    <input
+                      type="number"
+                      value={editing.order}
+                      onChange={(e) => setEditing({...editing, order: e.target.value})}
+                      className="w-16 bg-transparent border-b border-[#E6E0D6] py-1 outline-none text-[#1C1815]"
+                      data-testid={`edit-cat-order-${c.id}`}
+                    />
+                  </label>
+                  <div className="flex items-center gap-2 flex-1 min-w-[220px]">
+                    <input
+                      value={editing.image || ""}
+                      onChange={(e) => setEditing({...editing, image: e.target.value})}
+                      placeholder="Image URL"
+                      className="flex-1 bg-transparent border-b border-[#E6E0D6] py-1 text-xs outline-none"
+                    />
+                    <label className="p-1.5 border border-[#E6E0D6] hover:bg-[#FAF8F5] cursor-pointer" title="Upload Image">
+                      <Upload size={13}/>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUpload(e.target.files?.[0], true)}/>
                     </label>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 shrink-0">
                     <button onClick={save} className="text-xs uppercase tracking-[0.15em] bg-[#1C1815] text-[#FAF8F5] px-4 py-2 hover:bg-[#3D4838]" data-testid={`save-cat-${c.id}`}>Save</button>
                     <button onClick={() => setEditing(null)} className="text-xs uppercase tracking-[0.15em] border border-[#E6E0D6] px-4 py-2 hover:border-[#3D4838]" data-testid={`cancel-cat-${c.id}`}>Cancel</button>
                   </div>
-                </>
+                </div>
               ) : (
                 <>
                   <div className="flex items-center gap-4 flex-1">
-                    <Tag size={14} className="text-[#B8860B]"/>
+                    <div className="w-14 h-14 rounded-sm border border-[#E6E0D6] bg-[#F3EFEA] overflow-hidden shrink-0 flex items-center justify-center">
+                      {c.image ? (
+                        <img src={fileUrl(c.image)} alt={c.name} className="w-full h-full object-cover"/>
+                      ) : (
+                        <Tag size={18} className="text-[#B8860B]"/>
+                      )}
+                    </div>
                     <div>
                       <p className="font-serif text-lg text-[#1C1815]" data-testid={`cat-name-${c.id}`}>{c.name}</p>
                       <p className="text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">Order · {c.order}</p>
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => setEditing({ id: c.id, name: c.name, order: c.order })} className="p-2 hover:bg-[#F3EFEA]" data-testid={`edit-cat-${c.id}`}><Edit3 size={14}/></button>
+                  <div className="flex gap-1 shrink-0">
+                    <button onClick={() => setEditing({ id: c.id, name: c.name, order: c.order, image: c.image || "" })} className="p-2 hover:bg-[#F3EFEA]" data-testid={`edit-cat-${c.id}`}><Edit3 size={14}/></button>
                     <button onClick={() => del(c)} className="p-2 hover:bg-[#F3EFEA] text-red-700" data-testid={`delete-cat-${c.id}`}><Trash2 size={14}/></button>
                   </div>
                 </>
