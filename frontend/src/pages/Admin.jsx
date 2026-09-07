@@ -33,7 +33,7 @@ export default function Admin() {
                 className={`px-4 py-2 text-xs uppercase tracking-[0.15em] border transition-colors ${tab === t ? "border-[#1C1815] bg-[#1C1815] text-[#FAF8F5]" : "border-[#E6E0D6] text-[#6E685E] hover:border-[#3D4838]"}`}
                 data-testid={`admin-tab-${t}`}
               >
-                {t}
+                {t === "banner" ? "Homepage Sections" : t}
               </button>
             ))}
           </div>
@@ -167,13 +167,14 @@ function ProductForm({ product, onClose, onSaved }) {
     images: product.images || [],
     featured: !!product.featured,
     new_arrival: product.new_arrival ?? true,
+    best_seller: !!product.best_seller,
     engravable: !!product.engravable,
     engraving_max_length: product.engraving_max_length ?? 20,
   } : {
     name: "", brand: "", category: cats[0]?.name || "",
     price: "", discount_price: "",
     description: "", features: "", specs: "", images: [], stock: 10,
-    featured: false, new_arrival: true,
+    featured: false, new_arrival: true, best_seller: false,
     engravable: true, engraving_max_length: 20,
   });
   const [uploading, setUploading] = useState(false);
@@ -271,6 +272,7 @@ function ProductForm({ product, onClose, onSaved }) {
       stock: parseInt(form.stock) || 0,
       featured: !!form.featured,
       new_arrival: !!form.new_arrival,
+      best_seller: !!form.best_seller,
       engravable: !!form.engravable,
       engraving_max_length: parseInt(form.engraving_max_length) || 20,
     };
@@ -404,7 +406,7 @@ function ProductForm({ product, onClose, onSaved }) {
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <label className="flex items-center gap-3 text-sm text-[#1C1815] cursor-pointer">
               <input type="checkbox" checked={form.featured} onChange={(e) => set("featured", e.target.checked)} data-testid="pf-featured" className="accent-[#3D4838]"/>
               Feature on homepage
@@ -412,6 +414,10 @@ function ProductForm({ product, onClose, onSaved }) {
             <label className="flex items-center gap-3 text-sm text-[#1C1815] cursor-pointer">
               <input type="checkbox" checked={form.new_arrival} onChange={(e) => set("new_arrival", e.target.checked)} data-testid="pf-new-arrival" className="accent-[#3D4838]"/>
               Mark as New Arrival
+            </label>
+            <label className="flex items-center gap-3 text-sm text-[#1C1815] cursor-pointer">
+              <input type="checkbox" checked={form.best_seller} onChange={(e) => set("best_seller", e.target.checked)} data-testid="pf-best-seller" className="accent-[#3D4838]"/>
+              Mark as Best Seller
             </label>
           </div>
 
@@ -918,6 +924,18 @@ function BannerTab() {
     secondary_cta_text: "New Arrivals",
     secondary_cta_link: "/new-arrivals",
     enabled: true,
+
+    categories_eyebrow: "01 / CURATED COLLECTIONS",
+    categories_title: "Shop by category.",
+    categories_subtitle: "Explore fine pens, rich pigment inks, and handcrafted accessories engineered for effortless writing.",
+
+    bestsellers_eyebrow: "02 / BEST SELLERS",
+    bestsellers_title: "Hallmark editions.",
+    bestsellers_subtitle: "Our most coveted writing instruments, beloved by connoisseurs.",
+
+    studio_eyebrow: "03 / FROM THE STUDIO",
+    studio_title: "Live from the desk.",
+    studio_subtitle: "Fresh nib videos, first inks of the season, and bespoke commissions — straight from our Panchkula atelier.",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -950,7 +968,7 @@ function BannerTab() {
     setSaving(true);
     try {
       await api.put("/admin/banner", banner);
-      toast.success("Homepage banner updated");
+      toast.success("Homepage sections & banner updated");
     } catch (err) {
       toast.error("Save failed: " + (err.response?.data?.detail || err.message));
     } finally {
@@ -958,148 +976,284 @@ function BannerTab() {
     }
   };
 
-  if (loading) return <p className="text-[#6E685E]">Loading banner settings…</p>;
+  if (loading) return <p className="text-[#6E685E]">Loading homepage settings…</p>;
 
   return (
-    <div className="max-w-4xl bg-white border border-[#E6E0D6] p-8 space-y-6" data-testid="admin-banner-tab">
-      <div>
-        <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">HERO SECTION</p>
-        <h2 className="font-serif text-3xl text-[#1C1815] mt-1">Homepage Banner Configuration</h2>
-        <p className="text-sm text-[#6E685E] mt-1">Manage the hero banner image, headline, subtitle, and action buttons shown on the main page.</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-[#E6E0D6]">
+    <div className="max-w-4xl space-y-8" data-testid="admin-banner-tab">
+      {/* 1. Hero Banner Configuration */}
+      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6">
         <div>
-          <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-2 font-medium">Banner Image</span>
-          <div className="aspect-[4/3] bg-[#F3EFEA] border border-[#E6E0D6] overflow-hidden relative group flex items-center justify-center">
-            {banner.image ? (
-              <img src={fileUrl(banner.image)} alt="Banner preview" className="w-full h-full object-cover"/>
-            ) : (
-              <span className="text-xs text-[#6E685E] uppercase tracking-[0.15em]">No banner image</span>
-            )}
-          </div>
-          <div className="mt-4 flex items-center gap-3">
-            <label className="bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] cursor-pointer hover:bg-[#3D4838] transition-colors">
-              {uploading ? "Uploading…" : "Upload New Image"}
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
-            </label>
-            {banner.image && (
-              <button
-                type="button"
-                onClick={() => setBanner((prev) => ({ ...prev, image: "" }))}
-                className="text-xs text-red-700 hover:underline uppercase tracking-[0.15em]"
-              >
-                Clear Image
-              </button>
-            )}
-          </div>
-          <label className="block mt-4">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Or Direct Image URL</span>
-            <input
-              type="text"
-              value={banner.image}
-              onChange={(e) => setBanner((prev) => ({ ...prev, image: e.target.value }))}
-              placeholder="https://..."
-              className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-            />
-          </label>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">HERO SECTION</p>
+          <h2 className="font-serif text-3xl text-[#1C1815] mt-1">Hero Banner Configuration</h2>
+          <p className="text-sm text-[#6E685E] mt-1">Manage the top hero banner image, headline, subtitle, and call-to-action buttons.</p>
         </div>
 
-        <div className="space-y-4">
-          <label className="block">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Eyebrow text</span>
-            <input
-              type="text"
-              value={banner.eyebrow || ""}
-              onChange={(e) => setBanner((prev) => ({ ...prev, eyebrow: e.target.value }))}
-              className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
-            />
-          </label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-[#E6E0D6]">
+          <div>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-2 font-medium">Banner Image</span>
+            <div className="aspect-[4/3] bg-[#F3EFEA] border border-[#E6E0D6] overflow-hidden relative group flex items-center justify-center">
+              {banner.image ? (
+                <img src={fileUrl(banner.image)} alt="Banner preview" className="w-full h-full object-cover"/>
+              ) : (
+                <span className="text-xs text-[#6E685E] uppercase tracking-[0.15em]">No banner image</span>
+              )}
+            </div>
+            <div className="mt-4 flex items-center gap-3">
+              <label className="bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] cursor-pointer hover:bg-[#3D4838] transition-colors">
+                {uploading ? "Uploading…" : "Upload New Image"}
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
+              </label>
+              {banner.image && (
+                <button
+                  type="button"
+                  onClick={() => setBanner((prev) => ({ ...prev, image: "" }))}
+                  className="text-xs text-red-700 hover:underline uppercase tracking-[0.15em]"
+                >
+                  Clear Image
+                </button>
+              )}
+            </div>
+            <label className="block mt-4">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Or Direct Image URL</span>
+              <input
+                type="text"
+                value={banner.image || ""}
+                onChange={(e) => setBanner((prev) => ({ ...prev, image: e.target.value }))}
+                placeholder="https://..."
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+          </div>
 
-          <label className="block">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Main Headline</span>
-            <input
-              type="text"
-              value={banner.title || ""}
-              onChange={(e) => setBanner((prev) => ({ ...prev, title: e.target.value }))}
-              className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm font-serif text-[#1C1815] outline-none focus:border-[#3D4838]"
-            />
-          </label>
+          <div className="space-y-4">
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Eyebrow text</span>
+              <input
+                type="text"
+                value={banner.eyebrow || ""}
+                onChange={(e) => setBanner((prev) => ({ ...prev, eyebrow: e.target.value }))}
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
 
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Main Headline</span>
+              <input
+                type="text"
+                value={banner.title || ""}
+                onChange={(e) => setBanner((prev) => ({ ...prev, title: e.target.value }))}
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm font-serif text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Subtitle / Description</span>
+              <textarea
+                rows={3}
+                value={banner.subtitle || ""}
+                onChange={(e) => setBanner((prev) => ({ ...prev, subtitle: e.target.value }))}
+                className="mt-1 w-full bg-transparent border border-[#E6E0D6] p-2.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Primary Button Text</span>
+                <input
+                  type="text"
+                  value={banner.cta_text || ""}
+                  onChange={(e) => setBanner((prev) => ({ ...prev, cta_text: e.target.value }))}
+                  className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Primary Button Link</span>
+                <input
+                  type="text"
+                  value={banner.cta_link || ""}
+                  onChange={(e) => setBanner((prev) => ({ ...prev, cta_link: e.target.value }))}
+                  className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Secondary Button Text</span>
+                <input
+                  type="text"
+                  value={banner.secondary_cta_text || ""}
+                  onChange={(e) => setBanner((prev) => ({ ...prev, secondary_cta_text: e.target.value }))}
+                  className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Secondary Button Link</span>
+                <input
+                  type="text"
+                  value={banner.secondary_cta_link || ""}
+                  onChange={(e) => setBanner((prev) => ({ ...prev, secondary_cta_link: e.target.value }))}
+                  className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                />
+              </label>
+            </div>
+
+            <div className="pt-2">
+              <label className="flex items-center gap-2.5 text-xs text-[#1C1815] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={banner.enabled}
+                  onChange={(e) => setBanner((prev) => ({ ...prev, enabled: e.target.checked }))}
+                  className="accent-[#3D4838]"
+                />
+                <span>Enable banner on homepage</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Section 01: Categories Configuration */}
+      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 01</p>
+          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Shop by Category Header</h2>
+          <p className="text-sm text-[#6E685E] mt-1">Customize the title, subtitle, and eyebrow shown above the category cards strip on the homepage.</p>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t border-[#E6E0D6]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Eyebrow</span>
+              <input
+                type="text"
+                value={banner.categories_eyebrow ?? "01 / CURATED COLLECTIONS"}
+                onChange={(e) => setBanner((prev) => ({ ...prev, categories_eyebrow: e.target.value }))}
+                placeholder="01 / CURATED COLLECTIONS"
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Main Heading</span>
+              <input
+                type="text"
+                value={banner.categories_title ?? "Shop by category."}
+                onChange={(e) => setBanner((prev) => ({ ...prev, categories_title: e.target.value }))}
+                placeholder="Shop by category."
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm font-serif text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+          </div>
           <label className="block">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Subtitle / Description</span>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Subtitle / Description</span>
             <textarea
-              rows={3}
-              value={banner.subtitle || ""}
-              onChange={(e) => setBanner((prev) => ({ ...prev, subtitle: e.target.value }))}
+              rows={2}
+              value={banner.categories_subtitle ?? "Explore fine pens, rich pigment inks, and handcrafted accessories engineered for effortless writing."}
+              onChange={(e) => setBanner((prev) => ({ ...prev, categories_subtitle: e.target.value }))}
+              placeholder="Explore fine pens, rich pigment inks..."
               className="mt-1 w-full bg-transparent border border-[#E6E0D6] p-2.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
             />
           </label>
-
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Primary Button Text</span>
-              <input
-                type="text"
-                value={banner.cta_text || ""}
-                onChange={(e) => setBanner((prev) => ({ ...prev, cta_text: e.target.value }))}
-                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-              />
-            </label>
-            <label className="block">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Primary Button Link</span>
-              <input
-                type="text"
-                value={banner.cta_link || ""}
-                onChange={(e) => setBanner((prev) => ({ ...prev, cta_link: e.target.value }))}
-                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-              />
-            </label>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Secondary Button Text</span>
-              <input
-                type="text"
-                value={banner.secondary_cta_text || ""}
-                onChange={(e) => setBanner((prev) => ({ ...prev, secondary_cta_text: e.target.value }))}
-                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-              />
-            </label>
-            <label className="block">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Secondary Button Link</span>
-              <input
-                type="text"
-                value={banner.secondary_cta_link || ""}
-                onChange={(e) => setBanner((prev) => ({ ...prev, secondary_cta_link: e.target.value }))}
-                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-              />
-            </label>
-          </div>
-
-          <div className="pt-2">
-            <label className="flex items-center gap-2.5 text-xs text-[#1C1815] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={banner.enabled}
-                onChange={(e) => setBanner((prev) => ({ ...prev, enabled: e.target.checked }))}
-                className="accent-[#3D4838]"
-              />
-              <span>Enable banner on homepage</span>
-            </label>
-          </div>
         </div>
       </div>
 
-      <div className="pt-6 border-t border-[#E6E0D6] flex justify-end">
+      {/* 3. Section 02: Best Sellers Configuration */}
+      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 02</p>
+          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Best Sellers Header</h2>
+          <p className="text-sm text-[#6E685E] mt-1">Customize the title, subtitle, and eyebrow shown above the best sellers product grid on the homepage.</p>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t border-[#E6E0D6]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Eyebrow</span>
+              <input
+                type="text"
+                value={banner.bestsellers_eyebrow ?? "02 / BEST SELLERS"}
+                onChange={(e) => setBanner((prev) => ({ ...prev, bestsellers_eyebrow: e.target.value }))}
+                placeholder="02 / BEST SELLERS"
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Main Heading</span>
+              <input
+                type="text"
+                value={banner.bestsellers_title ?? "Hallmark editions."}
+                onChange={(e) => setBanner((prev) => ({ ...prev, bestsellers_title: e.target.value }))}
+                placeholder="Hallmark editions."
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm font-serif text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+          </div>
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Subtitle / Description</span>
+            <textarea
+              rows={2}
+              value={banner.bestsellers_subtitle ?? "Our most coveted writing instruments, beloved by connoisseurs."}
+              onChange={(e) => setBanner((prev) => ({ ...prev, bestsellers_subtitle: e.target.value }))}
+              placeholder="Our most coveted writing instruments, beloved by connoisseurs."
+              className="mt-1 w-full bg-transparent border border-[#E6E0D6] p-2.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+            />
+          </label>
+        </div>
+      </div>
+
+      {/* 4. Section 03: Studio Feed Configuration */}
+      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 03</p>
+          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Studio / Desk Feed Header</h2>
+          <p className="text-sm text-[#6E685E] mt-1">Customize the title, subtitle, and eyebrow shown above the live studio photo feed on the homepage.</p>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t border-[#E6E0D6]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Eyebrow</span>
+              <input
+                type="text"
+                value={banner.studio_eyebrow ?? "03 / FROM THE STUDIO"}
+                onChange={(e) => setBanner((prev) => ({ ...prev, studio_eyebrow: e.target.value }))}
+                placeholder="03 / FROM THE STUDIO"
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Main Heading</span>
+              <input
+                type="text"
+                value={banner.studio_title ?? "Live from the desk."}
+                onChange={(e) => setBanner((prev) => ({ ...prev, studio_title: e.target.value }))}
+                placeholder="Live from the desk."
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm font-serif text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+          </div>
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Subtitle / Description</span>
+            <textarea
+              rows={2}
+              value={banner.studio_subtitle ?? "Fresh nib videos, first inks of the season, and bespoke commissions — straight from our Panchkula atelier."}
+              onChange={(e) => setBanner((prev) => ({ ...prev, studio_subtitle: e.target.value }))}
+              placeholder="Fresh nib videos, first inks of the season..."
+              className="mt-1 w-full bg-transparent border border-[#E6E0D6] p-2.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+            />
+          </label>
+        </div>
+      </div>
+
+      {/* Save Button Sticky Bar */}
+      <div className="pt-4 flex justify-end">
         <button
           onClick={save}
           disabled={saving}
-          className="bg-[#1C1815] text-[#FAF8F5] px-8 py-3.5 text-xs uppercase tracking-[0.2em] hover:bg-[#3D4838] transition-colors disabled:opacity-50"
+          className="bg-[#1C1815] text-[#FAF8F5] px-10 py-4 text-xs uppercase tracking-[0.2em] hover:bg-[#3D4838] transition-colors disabled:opacity-50 shadow-md"
           data-testid="save-banner-btn"
         >
-          {saving ? "Saving…" : "Save Banner Changes"}
+          {saving ? "Saving…" : "Save All Homepage Changes"}
         </button>
       </div>
     </div>

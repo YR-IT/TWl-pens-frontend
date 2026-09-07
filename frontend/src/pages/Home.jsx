@@ -52,6 +52,18 @@ export default function Home() {
   const secondaryCtaText = banner?.secondary_cta_text || "New Arrivals";
   const secondaryCtaLink = banner?.secondary_cta_link || "/new-arrivals";
 
+  const categoriesEyebrow = banner?.categories_eyebrow || "01 / CURATED COLLECTIONS";
+  const categoriesTitle = banner?.categories_title || "Shop by category.";
+  const categoriesSubtitle = banner?.categories_subtitle || "Explore fine pens, rich pigment inks, and handcrafted accessories engineered for effortless writing.";
+
+  const bestsellersEyebrow = banner?.bestsellers_eyebrow || "02 / BEST SELLERS";
+  const bestsellersTitle = banner?.bestsellers_title || "Hallmark editions.";
+  const bestsellersSubtitle = banner?.bestsellers_subtitle || "Our most coveted writing instruments, beloved by connoisseurs.";
+
+  const studioEyebrow = banner?.studio_eyebrow || "03 / FROM THE STUDIO";
+  const studioTitle = banner?.studio_title || "Live from the desk.";
+  const studioSubtitle = banner?.studio_subtitle || "Fresh nib videos, first inks of the season, and bespoke commissions — straight from our Panchkula atelier.";
+
   return (
     <div className="pt-[76px]">
       {/* Hero / Banner */}
@@ -109,10 +121,10 @@ export default function Home() {
         <div className="max-w-[1600px] mx-auto px-6 lg:px-12">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">01 / CURATED COLLECTIONS</p>
-              <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#1C1815] mt-2">Shop by category.</h2>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">{categoriesEyebrow}</p>
+              <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#1C1815] mt-2">{categoriesTitle}</h2>
               <p className="text-xs sm:text-sm text-[#6E685E] mt-2 max-w-lg">
-                Explore fine pens, rich pigment inks, and handcrafted accessories engineered for effortless writing.
+                {categoriesSubtitle}
               </p>
             </div>
             <Link
@@ -184,9 +196,9 @@ export default function Home() {
       <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-20">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#E6E0D6] pb-8 mb-10 gap-4">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">02 / BEST SELLERS</p>
-            <h2 className="font-serif text-3xl lg:text-5xl text-[#1C1815] mt-2">Hallmark editions.</h2>
-            <p className="mt-2 text-xs sm:text-sm text-[#6E685E]">Our most coveted writing instruments, beloved by connoisseurs.</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">{bestsellersEyebrow}</p>
+            <h2 className="font-serif text-3xl lg:text-5xl text-[#1C1815] mt-2">{bestsellersTitle}</h2>
+            <p className="mt-2 text-xs sm:text-sm text-[#6E685E]">{bestsellersSubtitle}</p>
           </div>
           <Link to="/best-sellers" className="text-xs uppercase tracking-[0.2em] text-[#3D4838] hover:text-[#1C1815] border-b border-[#3D4838] pb-1 self-start sm:self-auto" data-testid="view-all-products">
             View all best sellers
@@ -212,9 +224,9 @@ export default function Home() {
         <div className="max-w-[1600px] mx-auto px-6 lg:px-12 py-20">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#E6E0D6] pb-8 mb-10 gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">03 / FROM THE STUDIO</p>
-              <h2 className="font-serif text-3xl lg:text-5xl text-[#1C1815] mt-2">Live from the desk.</h2>
-              <p className="mt-2 text-sm text-[#6E685E] max-w-lg">Fresh nib videos, first inks of the season, and bespoke commissions — straight from our Panchkula atelier.</p>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">{studioEyebrow}</p>
+              <h2 className="font-serif text-3xl lg:text-5xl text-[#1C1815] mt-2">{studioTitle}</h2>
+              <p className="mt-2 text-sm text-[#6E685E] max-w-lg">{studioSubtitle}</p>
             </div>
             <a href="https://instagram.com/thewlpens" target="_blank" rel="noopener noreferrer" className="hidden sm:inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-[#3D4838] hover:text-[#1C1815] border-b border-[#3D4838] pb-1" data-testid="instagram-follow-link">
               <Instagram size={14}/> @thewlpens

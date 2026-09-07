@@ -234,6 +234,21 @@ class BannerIn(BaseModel):
     secondary_cta_link: Optional[str] = "/new-arrivals"
     enabled: bool = True
 
+    # Section 01: Categories
+    categories_eyebrow: Optional[str] = "01 / CURATED COLLECTIONS"
+    categories_title: Optional[str] = "Shop by category."
+    categories_subtitle: Optional[str] = "Explore fine pens, rich pigment inks, and handcrafted accessories engineered for effortless writing."
+
+    # Section 02: Best Sellers
+    bestsellers_eyebrow: Optional[str] = "02 / BEST SELLERS"
+    bestsellers_title: Optional[str] = "Hallmark editions."
+    bestsellers_subtitle: Optional[str] = "Our most coveted writing instruments, beloved by connoisseurs."
+
+    # Section 03: Studio Feed
+    studio_eyebrow: Optional[str] = "03 / FROM THE STUDIO"
+    studio_title: Optional[str] = "Live from the desk."
+    studio_subtitle: Optional[str] = "Fresh nib videos, first inks of the season, and bespoke commissions — straight from our Panchkula atelier."
+
 
 class StudioPostIn(BaseModel):
     image: str  # /api/files/... or absolute URL
@@ -834,6 +849,15 @@ DEFAULT_BANNER = {
     "secondary_cta_text": "New Arrivals",
     "secondary_cta_link": "/new-arrivals",
     "enabled": True,
+    "categories_eyebrow": "01 / CURATED COLLECTIONS",
+    "categories_title": "Shop by category.",
+    "categories_subtitle": "Explore fine pens, rich pigment inks, and handcrafted accessories engineered for effortless writing.",
+    "bestsellers_eyebrow": "02 / BEST SELLERS",
+    "bestsellers_title": "Hallmark editions.",
+    "bestsellers_subtitle": "Our most coveted writing instruments, beloved by connoisseurs.",
+    "studio_eyebrow": "03 / FROM THE STUDIO",
+    "studio_title": "Live from the desk.",
+    "studio_subtitle": "Fresh nib videos, first inks of the season, and bespoke commissions — straight from our Panchkula atelier.",
 }
 
 
