@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 const CartCtx = createContext(null);
-const KEY = "atelier_cart_v2";  // bumped for engraving field
+const KEY = "atelier_cart_v3";  // bumped for estimated_delivery
 
 export function CartProvider({ children }) {
   const [items, setItems] = useState(() => {
@@ -26,6 +26,7 @@ export function CartProvider({ children }) {
         price, original_price: product.price,
         image: product.images?.[0], quantity: qty,
         engraving: eng || null,
+        estimated_delivery: product.estimated_delivery,
       }];
     });
     setOpen(true);

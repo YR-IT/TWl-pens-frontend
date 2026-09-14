@@ -6,10 +6,13 @@ import { money } from "../lib/format";
 import { useCart } from "../lib/cart";
 import { toast } from "sonner";
 import WishlistButton from "../components/WishlistButton";
+import ProductCard from "../components/ProductCard";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../components/ui/carousel";
 
 export default function ProductDetail() {
   const { id } = useParams();
   const [p, setP] = useState(null);
+  const [related, setRelated] = useState([]);
   const [active, setActive] = useState(0);
   const [qty, setQty] = useState(1);
   const [engraving, setEngraving] = useState("");
@@ -19,6 +22,16 @@ export default function ProductDetail() {
   useEffect(() => {
     api.get(`/products/${id}`).then((r) => { setP(r.data); setActive(0); });
   }, [id]);
+
+  useEffect(() => {
+    if (p) {
+      api.get("/products", { params: { category: p.category, limit: 10 } })
+        .then((r) => {
+            const filtered = (Array.isArray(r.data) ? r.data : []).filter(item => item.id !== p.id);
+            setRelated(filtered);
+        });
+    }
+  }, [p]);
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") setLightbox(false); };
@@ -116,30 +129,82 @@ export default function ProductDetail() {
             </button>
           </div>
 
-          <p className="mt-4 text-xs text-[#6E685E]" data-testid="product-stock">{p.stock > 0 ? `${p.stock} in the atelier · ships within 48 hours` : "Currently sold out"}</p>
+          <p className="mt-4 text-xs text-[#6E685E]" data-testid="product-stock">
+            {p.stock > 0 ? `${p.stock} in the atelier · ${p.estimated_delivery || "ships within 48 hours"}` : "Currently sold out"}
+          </p>
 
-          {p.specs && Object.keys(p.specs).length > 0 && (
-            <div className="mt-12 border-t border-[#E6E0D6] pt-8" data-testid="product-specs">
-              <h3 className="font-serif text-xl text-[#1C1815] mb-4">Specifications</h3>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
-                {Object.entries(p.specs).map(([k, v]) => (
-                  <div key={k} className="flex justify-between border-b border-[#E6E0D6]/50 py-2">
-                    <dt className="text-xs uppercase tracking-[0.15em] text-[#6E685E]">{k}</dt>
-                    <dd className="text-sm text-[#1C1815]">{String(v)}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          )}
+          {/* New Sections */}
+          <div className="mt-12 space-y-12">
+            {p.specs && Object.keys(p.specs).length > 0 && (
+              <div className="border-t border-[#E6E0D6] pt-8" data-testid="product-specs">
+                <h3 className="font-serif text-xl text-[#1C1815] mb-4">Specifications</h3>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+                  {Object.entries(p.specs).map(([k, v]) => (
+                    <div key={k} className="flex justify-between border-b border-[#E6E0D6]/50 py-2">
+                      <dt className="text-xs uppercase tracking-[0.15em] text-[#6E685E]">{k}</dt>
+                      <dd className="text-sm text-[#1C1815]">{String(v)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
-      {lightbox && current && (
+            {/* Full-width Related Products */}
+            <section className="max-w-[1600px] mx-auto px-6 lg:px-12 pb-20" data-testid="product-related">
+            <h3 className="font-serif text-3xl text-[#1C1815] mb-8 border-t border-[#E6E0D6] pt-12">You May Also Like</h3>
+            {related.length > 0 ? (
+              <Carousel opts={{ align: "start", slidesToScroll: 1 }}>
+                <CarouselContent>
+                  {related.map((prod) => (
+                    <CarouselItem key={prod.id} className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+                      <ProductCard p={prod}/>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious />
+                <CarouselNext />
+              </Carousel>
+            ) : (
+              <p className="text-sm text-[#6E685E]">No related products found.</p>
+            )}
+            </section>
+
+            {/* Full-width Reviews */}
+            <section className="max-w-[1600px] mx-auto px-6 lg:px-12 pb-20" data-testid="product-reviews">
+              <h3 className="font-serif text-3xl text-[#1C1815] mb-8 border-t border-[#E6E0D6] pt-12">Reviews</h3>
+              <Carousel opts={{ align: "start", slidesToScroll: 1, loop: true }}>
+                <CarouselContent>
+                  {[
+                    { text: "Excellent pen, the nib is perfectly tuned. Smooth writing experience!", author: "Rajesh K., Bangalore" },
+                    { text: "Very fast delivery to Chandigarh, and the cotton pouch packaging was a lovely touch.", author: "Priya M., New Delhi" },
+                    { text: "The quality of this fountain pen is outstanding, truly a piece of art.", author: "Arjun S., Mumbai" },
+                    { text: "Absolutely loved the personal engraving, makes it such a special gift.", author: "Sneha V., Pune" },
+                    { text: "Great customer service, solved my query regarding nib size promptly.", author: "Vikram R., Chennai" }
+                  ].map((review, i) => (
+                    <CarouselItem key={i} className="md:basis-1/2 lg:basis-1/3">
+                      <div className="p-8 bg-white border border-[#E6E0D6] h-full flex flex-col justify-between hover:border-[#B8860B] transition-colors">
+                        <p className="text-sm text-[#1C1815] leading-relaxed italic">"{review.text}"</p>
+                        <p className="mt-6 text-xs text-[#B8860B] font-medium tracking-[0.1em] uppercase">— {review.author}</p>
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <div className="mt-8 flex justify-end gap-2">
+                  <CarouselPrevious className="relative static" />
+                  <CarouselNext className="relative static" />
+                </div>
+              </Carousel>
+            </section>
+            {lightbox && current && (
         <Lightbox images={images} index={active} onIndex={setActive} onClose={() => setLightbox(false)}/>
       )}
     </div>
   );
 }
+
 
 function ZoomImage({ src, alt, onOpen }) {
   const boxRef = useRef(null);

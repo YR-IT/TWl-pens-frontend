@@ -1,16 +1,24 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { ShoppingBag, User, Menu, Search, X, Heart, Sparkles, ArrowRight } from "lucide-react";
+import { ShoppingBag, User, Menu, Search, X, Heart, Sparkles, ArrowRight, ChevronDown } from "lucide-react";
 import { useCart } from "../lib/cart";
 import { useAuth } from "../lib/auth";
 import { useWishlist } from "../lib/wishlist";
+import { useCategories } from "../lib/categories";
 import { useState } from "react";
 import SearchModal from "./SearchModal";
 import logo from "../logo.png";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 export default function Header() {
   const { count, setOpen } = useCart();
   const { user, logout } = useAuth();
   const { count: wcount } = useWishlist();
+  const cats = useCategories();
   const loc = useLocation();
   const nav = useNavigate();
   const [mobile, setMobile] = useState(false);
@@ -58,8 +66,8 @@ export default function Header() {
 
   return (
     <>
-    <header className="fixed top-0 left-0 right-0 z-40 bg-[#FAF8F5]/85 backdrop-blur-md border-b border-[#E6E0D6]">
-      <div className="max-w-[1600px] mx-auto px-6 lg:px-12 h-[76px] flex items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 z-40 bg-[#FAF8F5]/85 backdrop-blur-md border-b border-[#E6E0D6] w-full">
+      <div className="max-w-[1600px] mx-auto px-6 lg:px-12 h-[76px] flex items-center justify-between w-full">
         <button className="lg:hidden text-[#1C1815]" onClick={() => setMobile(!mobile)} data-testid="mobile-menu-toggle">
           {mobile ? <X size={22}/> : <Menu size={22}/>}
         </button>
@@ -85,17 +93,25 @@ export default function Header() {
           >
             Home
           </Link>
-          <Link
-            to="/products"
-            className={`text-xs uppercase tracking-[0.2em] transition-colors pb-0.5 ${
+          <DropdownMenu>
+            <DropdownMenuTrigger className={`flex items-center gap-1 text-xs uppercase tracking-[0.2em] transition-colors pb-0.5 ${
               loc.pathname === "/products" || loc.pathname === "/shop"
                 ? "text-[#1C1815] font-semibold border-b border-[#1C1815]"
                 : "text-[#6E685E] hover:text-[#1C1815]"
-            }`}
-            data-testid="nav-products"
-          >
-            Products
-          </Link>
+            }`} data-testid="nav-categories">
+              Categories <ChevronDown size={14}/>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 p-2 bg-[#FAF8F5] border border-[#E6E0D6] shadow-xl">
+              <DropdownMenuItem onClick={() => nav("/shop")} className="text-xs uppercase tracking-[0.1em] text-[#6E685E] hover:text-[#1C1815] cursor-pointer">
+                All Products
+              </DropdownMenuItem>
+              {Array.isArray(cats) && cats.map((cat) => (
+                <DropdownMenuItem key={cat.id} onClick={() => nav(`/shop?category=${encodeURIComponent(cat.name)}`)} className="text-xs uppercase tracking-[0.1em] text-[#6E685E] hover:text-[#1C1815] cursor-pointer">
+                  {cat.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Link
             to="/new-arrivals"
             className={`text-xs uppercase tracking-[0.2em] transition-colors pb-0.5 flex items-center gap-1.5 ${
@@ -185,16 +201,15 @@ export default function Header() {
             >
               Home
             </Link>
-            <Link
-              to="/products"
-              onClick={() => setMobile(false)}
-              className={`text-lg font-serif transition-colors ${
-                loc.pathname === "/products" || loc.pathname === "/shop" ? "text-[#B8860B] font-medium" : "text-[#1C1815]"
-              }`}
-              data-testid="mobile-nav-products"
-            >
-              Products
-            </Link>
+            <div className="flex flex-col gap-2">
+              <span className="text-lg font-serif text-[#1C1815]">Categories</span>
+              <Link to="/shop" onClick={() => setMobile(false)} className="text-sm text-[#6E685E] ml-4">All Products</Link>
+              {Array.isArray(cats) && cats.map(c => (
+                <Link to={`/shop?category=${encodeURIComponent(c.name)}`} key={c.id} onClick={() => setMobile(false)} className="text-sm text-[#6E685E] ml-4">
+                  {c.name}
+                </Link>
+              ))}
+            </div>
             <Link
               to="/new-arrivals"
               onClick={() => setMobile(false)}

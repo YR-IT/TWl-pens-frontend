@@ -6,13 +6,16 @@ import os
 import uuid
 import logging
 import asyncio
+# pyrefly: ignore [missing-import]
 import bcrypt
+# pyrefly: ignore [missing-import]
 import jwt
 import requests
-from pathlib import Path
+from pathlib import Path                                                                                
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Response, Header, Query, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from starlette.middleware.cors import CORSMiddleware
@@ -215,6 +218,7 @@ class ProductIn(BaseModel):
     best_seller: bool = False
     engravable: bool = False
     engraving_max_length: int = Field(default=20, ge=1, le=60)
+    estimated_delivery: Optional[str] = None
 
 
 class CategoryIn(BaseModel):
@@ -584,6 +588,9 @@ async def me(user=Depends(current_user)):
 async def list_products(
     category: Optional[str] = None,
     brand: Optional[str] = None,
+    colour: Optional[str] = None,
+    nib_size: Optional[str] = None,
+    in_stock: Optional[bool] = None,
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
     featured: Optional[bool] = None,
@@ -598,6 +605,16 @@ async def list_products(
         query["category"] = category
     if brand:
         query["brand"] = brand
+    if colour:
+        query["specs.Colour"] = colour
+    if nib_size:
+        query["specs.Nib Size"] = nib_size
+    if in_stock is not None:
+        if in_stock:
+            query["stock"] = {"$gt": 0}
+        else:
+            query["stock"] = {"$lte": 0}
+    # ... (rest of query construction)
     if featured is not None:
         query["featured"] = featured
     if new_arrival is not None:
@@ -632,11 +649,15 @@ async def list_products(
 async def product_facets():
     categories = await db.products.distinct("category")
     brands = await db.products.distinct("brand")
+    colours = await db.products.distinct("specs.Colour")
+    nib_sizes = await db.products.distinct("specs.Nib Size")
     prices = await db.products.find({}, {"_id": 0, "price": 1, "discount_price": 1}).to_list(1000)
     all_prices = [(p.get("discount_price") or p["price"]) for p in prices] or [0]
     return {
-        "categories": sorted(categories),
-        "brands": sorted(brands),
+        "categories": sorted([c for c in categories if c]),
+        "brands": sorted([b for b in brands if b]),
+        "colours": sorted([c for c in colours if c]),
+        "nib_sizes": sorted([n for n in nib_sizes if n]),
         "price_min": min(all_prices),
         "price_max": max(all_prices),
     }

@@ -170,12 +170,14 @@ function ProductForm({ product, onClose, onSaved }) {
     best_seller: !!product.best_seller,
     engravable: !!product.engravable,
     engraving_max_length: product.engraving_max_length ?? 20,
+    estimated_delivery: product.estimated_delivery || "",
   } : {
     name: "", brand: "", category: cats[0]?.name || "",
     price: "", discount_price: "",
     description: "", features: "", specs: "", images: [], stock: 10,
     featured: false, new_arrival: true, best_seller: false,
     engravable: true, engraving_max_length: 20,
+    estimated_delivery: "",
   });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -275,6 +277,7 @@ function ProductForm({ product, onClose, onSaved }) {
       best_seller: !!form.best_seller,
       engravable: !!form.engravable,
       engraving_max_length: parseInt(form.engraving_max_length) || 20,
+      estimated_delivery: form.estimated_delivery,
     };
     try {
       if (product) await api.put(`/admin/products/${product.id}`, payload);
@@ -317,6 +320,7 @@ function ProductForm({ product, onClose, onSaved }) {
             <Fld label="Price (original)" type="number" value={form.price} onChange={(v) => set("price", v)} testid="pf-price"/>
             <Fld label="Discount price (optional)" type="number" value={form.discount_price ?? ""} onChange={(v) => set("discount_price", v)} testid="pf-discount"/>
           </div>
+          <Fld label="Estimated Delivery Date" value={form.estimated_delivery} onChange={(v) => set("estimated_delivery", v)} testid="pf-delivery"/>
           <label className="block">
             <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Description</span>
             <textarea rows={4} value={form.description} onChange={(e) => set("description", e.target.value)} className="mt-2 w-full bg-transparent border border-[#E6E0D6] p-3 outline-none focus:border-[#3D4838] resize-y" data-testid="pf-description"/>

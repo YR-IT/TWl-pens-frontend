@@ -53,6 +53,11 @@ export default function CartDrawer() {
                             Engraved · "{it.engraving}"
                           </p>
                         )}
+                        {it.estimated_delivery && (
+                          <p className="mt-1 text-[11px] text-[#6E685E]" data-testid={`cart-delivery-${it.id}`}>
+                            Est. delivery: {it.estimated_delivery}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center justify-between mt-2">
                         <div className="flex items-center gap-2 border border-[#E6E0D6]">
