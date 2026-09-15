@@ -2,12 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+html, body {
     margin: 0;
-    font-family: "Plus Jakarta Sans", sans-serif;
+    padding: 0;
+    width: 100%;
+    background-color: #FAF8F5 !important;
+    color: #1C1815;
+    font-family: "Manrope", -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow-y: scroll; /* Fix for layout shift */
+    overflow-x: hidden;
 }
 
 code {

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import ProductCard from "../components/ProductCard";
-import { Award } from "lucide-react";
+import { Award, SlidersHorizontal, X } from "lucide-react";
 import { motion } from "framer-motion";
 import HorizontalFlowBars from "../components/ui/demo";
 
@@ -15,6 +15,7 @@ export default function BestSellers() {
   const [facets, setFacets] = useState({ categories: [], brands: [], price_min: 0, price_max: 3000 });
   const [priceMax, setPriceMax] = useState(3000);
   const [loading, setLoading] = useState(true);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
     api.get("/products/facets").then((r) => {
@@ -103,7 +104,7 @@ export default function BestSellers() {
       {/* Main Content Area */}
       <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-12 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-12">
         {/* Filter Sidebar */}
-        <aside className="space-y-8" data-testid="best-sellers-filter-sidebar">
+        <aside className="hidden lg:block space-y-8" data-testid="best-sellers-filter-sidebar">
           <div>
             <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4 font-semibold">Category</h3>
             <div className="flex flex-col gap-2">
@@ -163,6 +164,66 @@ export default function BestSellers() {
           </div>
         </aside>
 
+        {/* Mobile filter toggle */}
+        <div className="lg:hidden mb-6 flex items-center justify-between border-b border-[#E6E0D6] pb-4">
+          <button
+            onClick={() => setFilterOpen(true)}
+            className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-[#1C1815] border border-[#E6E0D6] px-4 py-2 hover:border-[#3D4838] transition-colors"
+          >
+            <SlidersHorizontal size={14}/> Filters
+          </button>
+          <select value={sort} onChange={(e) => setSort(e.target.value)}
+            className="bg-transparent border-b border-[#E6E0D6] pb-1 text-xs uppercase tracking-[0.1em] text-[#1C1815] outline-none"
+          >
+            <option value="newest">Featured First</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
+          </select>
+        </div>
+
+        {/* Mobile filter overlay */}
+        {filterOpen && (
+          <div className="lg:hidden fixed inset-0 z-50 flex" onClick={() => setFilterOpen(false)}>
+            <div className="absolute inset-0 bg-[#1C1815]/40 backdrop-blur-sm"/>
+            <div className="relative w-4/5 max-w-[320px] bg-[#FAF8F5] h-full overflow-y-auto p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-6">
+                <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">Filters</p>
+                <button onClick={() => setFilterOpen(false)} className="text-[#1C1815]"><X size={20}/></button>
+              </div>
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4 font-semibold">Category</h3>
+                  <div className="flex flex-col gap-2">
+                    <button onClick={() => { setCategory("All"); setFilterOpen(false); }}
+                      className={`text-left text-xs uppercase tracking-[0.15em] py-1.5 ${category === "All" ? "font-semibold text-[#B8860B] border-l-2 border-[#B8860B] pl-2.5" : "text-[#6E685E] pl-2.5"}`}
+                    >All Best Sellers</button>
+                    {facets.categories.map((c) => (
+                      <button key={c} onClick={() => { setCategory(c); setFilterOpen(false); }}
+                        className={`text-left text-xs uppercase tracking-[0.15em] py-1.5 ${category === c ? "font-semibold text-[#B8860B] border-l-2 border-[#B8860B] pl-2.5" : "text-[#6E685E] pl-2.5"}`}
+                      >{c}</button>
+                    ))}
+                  </div>
+                </div>
+                {facets.brands?.length > 0 && (
+                  <div className="border-t border-[#E6E0D6] pt-6">
+                    <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4 font-semibold">Brand</h3>
+                    <div className="flex flex-col gap-2">
+                      <button onClick={() => setBrand("")}
+                        className={`text-left text-xs uppercase tracking-[0.15em] py-1 ${brand === "" ? "font-semibold text-[#B8860B]" : "text-[#6E685E]"}`}
+                      >All Brands</button>
+                      {facets.brands.map((b) => (
+                        <button key={b} onClick={() => { setBrand(b); setFilterOpen(false); }}
+                          className={`text-left text-xs uppercase tracking-[0.15em] py-1 ${brand === b ? "font-semibold text-[#B8860B]" : "text-[#6E685E]"}`}
+                        >{b}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Product Grid */}
         <div>
           <div className="flex flex-wrap items-center justify-between gap-4 mb-8 pb-4 border-b border-[#E6E0D6]">
@@ -205,7 +266,7 @@ export default function BestSellers() {
             </div>
           ) : (
             <motion.div
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10"
+              className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 lg:gap-10"
               initial="hidden"
               animate="show"
               variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08 } } }}

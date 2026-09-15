@@ -11,7 +11,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 const HERO_IMG = "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600";
 const EDITORIAL_1 = "https://images.unsplash.com/photo-1617177435596-1c9e30d6d608?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200";
 const EDITORIAL_2 = "https://images.unsplash.com/photo-1473186505569-9c61870c11f9?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200";
-const GIFT_IMG = "/Gifting Banner.jpg";
+const GIFT_IMG = "/gifting-banner.jpg";
 
 const DEFAULT_FEATURED_CATS = [
   {
@@ -119,15 +119,15 @@ export default function Home() {
   const brandItems = [...brands, ...brands];
 
   return (
-    <div className="pt-[112px]">
+    <div className="pt-[108px] sm:pt-[108px]">
       {/* Hero Section */}
-      <section className="relative w-full h-[85vh] overflow-hidden">
+      <section className="relative w-full h-[calc(100vh-104px)] sm:h-[calc(100vh-112px)] min-h-[550px] overflow-hidden">
         <img src={heroImage} alt="Hero" className="w-full h-full object-cover"/>
         <div className="absolute inset-0 bg-[#1C1815]/20"/>
-        <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-6">
-          <h1 className="font-serif text-6xl lg:text-8xl text-[#FAF8F5] leading-tight">The Eternal Quill</h1>
-          <p className="text-[#FAF8F5] text-lg lg:text-xl font-serif italic mt-4">Discover the art of writing.</p>
-          <Link to="/shop" className="mt-8 bg-[#FAF8F5] text-[#1C1815] px-10 py-3 rounded-full uppercase tracking-widest text-xs hover:bg-[#E6E0D6] transition-colors">SHOP NOW</Link>
+        <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-4 sm:px-6">
+          <h1 className="font-serif text-4xl sm:text-6xl lg:text-8xl text-[#FAF8F5] leading-tight">The Eternal Quill</h1>
+          <p className="text-[#FAF8F5] text-base sm:text-lg lg:text-xl font-serif italic mt-3 sm:mt-4">Discover the art of writing.</p>
+          <Link to="/shop" className="mt-6 sm:mt-8 bg-[#FAF8F5] text-[#1C1815] px-8 sm:px-10 py-3 rounded-full uppercase tracking-widest text-xs hover:bg-[#E6E0D6] transition-colors">SHOP NOW</Link>
         </div>
       </section>
 
@@ -182,7 +182,7 @@ export default function Home() {
       </section>
 
       {/* Best sellers & hallmark instruments */}
-      <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-20">
+      <section className="max-w-[1600px] mx-auto px-6 lg:px-12">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#E6E0D6] pb-8 mb-10 gap-4">
           <div>
             <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">{bestsellersEyebrow}</p>
@@ -256,7 +256,7 @@ export default function Home() {
       )}
 
       {/* Featured Categories — 3 editorial banners */}
-      <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-20">
+      <section className="max-w-[1600px] mx-auto px-6 lg:px-12">
         <div className="border-b border-[#E6E0D6] pb-8 mb-10">
           <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">05 / FEATURED CATEGORIES</p>
           <h2 className="font-serif text-3xl lg:text-5xl text-[#1C1815] mt-2">Curated for you.</h2>
@@ -287,25 +287,35 @@ export default function Home() {
       </section>
 
       {/* Gift / Promo Banner */}
-      <section className="relative overflow-hidden mx-6 lg:mx-12 mb-20" style={{ height: "500px" }}>
-        <img src={GIFT_IMG} alt="Gift giving" className="absolute inset-0 w-full h-full object-cover object-center"/>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#1C1815]/85 via-[#1C1815]/55 to-transparent"/>
-        <div className="absolute inset-0 flex flex-col justify-center px-12 lg:px-24">
-          <div className="max-w-lg">
-            <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-[#B8860B] mb-4">
-              <Gift size={12}/> Gifting
+      <section className="relative w-full overflow-hidden my-20 bg-[#1C1815]" style={{ minHeight: "420px" }}>
+        <img 
+          src={GIFT_IMG} 
+          alt="Luxury Gift Giving" 
+          className="absolute inset-0 w-full h-full object-cover object-center lg:object-right opacity-90 transition-transform duration-1000 hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1C1815]/95 via-[#1C1815]/75 to-[#1C1815]/30 sm:to-transparent"/>
+        <div className="relative max-w-[1600px] mx-auto px-6 sm:px-12 lg:px-24 py-16 sm:py-20 flex flex-col justify-center min-h-[420px]">
+          <div className="max-w-xl">
+            <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-[#B8860B] mb-3 sm:mb-4 bg-[#FAF8F5]/10 backdrop-blur-sm px-3 py-1 rounded-full w-fit">
+              <Gift size={13}/> Bespoke Gifting
             </span>
-            <h2 className="font-serif text-4xl lg:text-6xl text-[#FAF8F5] leading-tight">
-              The perfect gift,<br/><em>perfectly engraved.</em>
+            <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl text-[#FAF8F5] leading-tight">
+              The perfect gift,<br/><em className="text-[#FAF8F5]/90">perfectly engraved.</em>
             </h2>
-            <p className="text-[#FAF8F5]/75 text-sm mt-4 leading-relaxed max-w-sm">
+            <p className="text-[#FAF8F5]/80 text-sm sm:text-base mt-4 leading-relaxed max-w-md font-light">
               Complimentary bespoke studio engraving on every order. Delivered in a hand-stitched cotton pouch with a wax-sealed note.
             </p>
-            <div className="flex flex-wrap gap-4 mt-8">
-              <Link to="/shop" className="bg-[#B8860B] text-[#FAF8F5] px-8 py-3 rounded-full uppercase text-xs tracking-widest hover:bg-[#96700A] transition-colors">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-8">
+              <Link 
+                to="/shop" 
+                className="bg-[#B8860B] text-[#FAF8F5] px-8 py-3.5 rounded-full uppercase text-xs tracking-[0.2em] font-medium hover:bg-[#96700A] transition-all shadow-lg hover:shadow-xl"
+              >
                 Shop Gifts
               </Link>
-              <Link to="/contact" className="border border-[#FAF8F5]/50 text-[#FAF8F5] px-8 py-3 rounded-full uppercase text-xs tracking-widest hover:border-[#FAF8F5] transition-colors">
+              <Link 
+                to="/contact" 
+                className="border border-[#FAF8F5]/60 text-[#FAF8F5] px-8 py-3.5 rounded-full uppercase text-xs tracking-[0.2em] font-medium hover:border-[#FAF8F5] hover:bg-[#FAF8F5]/10 transition-all backdrop-blur-sm"
+              >
                 Enquire
               </Link>
             </div>

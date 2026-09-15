@@ -71,7 +71,7 @@ export default function SearchModal({ open, onClose }) {
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { commitRecent(q); onClose(); } }}
           placeholder="Search pens, brands, materials…"
-          className="flex-1 bg-transparent text-2xl lg:text-3xl font-serif text-[#1C1815] outline-none placeholder:text-[#6E685E]/50"
+          className="flex-1 bg-transparent text-xl sm:text-2xl lg:text-3xl font-serif text-[#1C1815] outline-none placeholder:text-[#6E685E]/50"
           data-testid="search-input"
         />
         <button onClick={onClose} className="text-[#1C1815] hover:text-[#3D4838]" data-testid="close-search-btn">

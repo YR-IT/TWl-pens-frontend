@@ -73,7 +73,7 @@ export default function ProductDetail() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]" data-testid="product-brand">{p.brand}</p>
-              <h1 className="font-serif text-4xl lg:text-5xl text-[#1C1815] mt-2 leading-[1.05]" data-testid="product-name">{p.name}</h1>
+              <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#1C1815] mt-2 leading-[1.05]" data-testid="product-name">{p.name}</h1>
             </div>
             <div className="mt-2 flex-shrink-0 border border-[#E6E0D6] p-3">
               <WishlistButton productId={p.id} size={20} testId="pdp-wishlist-toggle"/>
@@ -113,8 +113,8 @@ export default function ProductDetail() {
             </div>
           )}
 
-          <div className="mt-8 flex items-center gap-4">
-            <div className="flex items-center border border-[#E6E0D6]">
+          <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="flex items-center border border-[#E6E0D6] self-start">
               <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="w-10 h-11 grid place-items-center hover:bg-[#F3EFEA]" data-testid="qty-decrease"><Minus size={14}/></button>
               <span className="w-10 text-center" data-testid="qty-value">{qty}</span>
               <button onClick={() => setQty((q) => q + 1)} className="w-10 h-11 grid place-items-center hover:bg-[#F3EFEA]" data-testid="qty-increase"><Plus size={14}/></button>
@@ -152,52 +152,52 @@ export default function ProductDetail() {
         </div>
       </section>
 
-            {/* Full-width Related Products */}
-            <section className="max-w-[1600px] mx-auto px-6 lg:px-12 pb-20" data-testid="product-related">
-            <h3 className="font-serif text-3xl text-[#1C1815] mb-8 border-t border-[#E6E0D6] pt-12">You May Also Like</h3>
-            {related.length > 0 ? (
-              <Carousel opts={{ align: "start", slidesToScroll: 1 }}>
-                <CarouselContent>
-                  {related.map((prod) => (
-                    <CarouselItem key={prod.id} className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
-                      <ProductCard p={prod}/>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                <CarouselPrevious />
-                <CarouselNext />
-              </Carousel>
-            ) : (
-              <p className="text-sm text-[#6E685E]">No related products found.</p>
-            )}
-            </section>
+      {/* Full-width Related Products */}
+      <section className="max-w-[1600px] mx-auto px-6 lg:px-12 pb-8 sm:pb-12" data-testid="product-related">
+        <h3 className="font-serif text-2xl sm:text-3xl text-[#1C1815] mb-6 border-t border-[#E6E0D6] pt-8 sm:pt-10">You May Also Like</h3>
+        {related.length > 0 ? (
+          <Carousel opts={{ align: "start", slidesToScroll: 1 }}>
+            <CarouselContent>
+              {related.map((prod) => (
+                <CarouselItem key={prod.id} className="md:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+                  <ProductCard p={prod}/>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+          </Carousel>
+        ) : (
+          <p className="text-sm text-[#6E685E]">No related products found.</p>
+        )}
+      </section>
 
-            {/* Full-width Reviews */}
-            <section className="max-w-[1600px] mx-auto px-6 lg:px-12 pb-20" data-testid="product-reviews">
-              <h3 className="font-serif text-3xl text-[#1C1815] mb-8 border-t border-[#E6E0D6] pt-12">Reviews</h3>
-              <Carousel opts={{ align: "start", slidesToScroll: 1, loop: true }}>
-                <CarouselContent>
-                  {[
-                    { text: "Excellent pen, the nib is perfectly tuned. Smooth writing experience!", author: "Rajesh K., Bangalore" },
-                    { text: "Very fast delivery to Chandigarh, and the cotton pouch packaging was a lovely touch.", author: "Priya M., New Delhi" },
-                    { text: "The quality of this fountain pen is outstanding, truly a piece of art.", author: "Arjun S., Mumbai" },
-                    { text: "Absolutely loved the personal engraving, makes it such a special gift.", author: "Sneha V., Pune" },
-                    { text: "Great customer service, solved my query regarding nib size promptly.", author: "Vikram R., Chennai" }
-                  ].map((review, i) => (
-                    <CarouselItem key={i} className="md:basis-1/2 lg:basis-1/3">
-                      <div className="p-8 bg-white border border-[#E6E0D6] h-full flex flex-col justify-between hover:border-[#B8860B] transition-colors">
-                        <p className="text-sm text-[#1C1815] leading-relaxed italic">"{review.text}"</p>
-                        <p className="mt-6 text-xs text-[#B8860B] font-medium tracking-[0.1em] uppercase">— {review.author}</p>
-                      </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                <div className="mt-8 flex justify-end gap-2">
-                  <CarouselPrevious className="relative static" />
-                  <CarouselNext className="relative static" />
+      {/* Full-width Reviews */}
+      <section className="max-w-[1600px] mx-auto px-6 lg:px-12 pb-4 sm:pb-8" data-testid="product-reviews">
+        <h3 className="font-serif text-2xl sm:text-3xl text-[#1C1815] mb-6 border-t border-[#E6E0D6] pt-8 sm:pt-10">Reviews</h3>
+        <Carousel opts={{ align: "start", slidesToScroll: 1, loop: true }}>
+          <CarouselContent>
+            {[
+              { text: "Excellent pen, the nib is perfectly tuned. Smooth writing experience!", author: "Rajesh K., Bangalore" },
+              { text: "Very fast delivery to Chandigarh, and the cotton pouch packaging was a lovely touch.", author: "Priya M., New Delhi" },
+              { text: "The quality of this fountain pen is outstanding, truly a piece of art.", author: "Arjun S., Mumbai" },
+              { text: "Absolutely loved the personal engraving, makes it such a special gift.", author: "Sneha V., Pune" },
+              { text: "Great customer service, solved my query regarding nib size promptly.", author: "Vikram R., Chennai" }
+            ].map((review, i) => (
+              <CarouselItem key={i} className="md:basis-1/2 lg:basis-1/3">
+                <div className="p-8 bg-white border border-[#E6E0D6] h-full flex flex-col justify-between hover:border-[#B8860B] transition-colors">
+                  <p className="text-sm text-[#1C1815] leading-relaxed italic">"{review.text}"</p>
+                  <p className="mt-6 text-xs text-[#B8860B] font-medium tracking-[0.1em] uppercase">— {review.author}</p>
                 </div>
-              </Carousel>
-            </section>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <div className="mt-4 sm:mt-6 flex justify-end gap-2">
+            <CarouselPrevious className="relative static" />
+            <CarouselNext className="relative static" />
+          </div>
+        </Carousel>
+      </section>
             {lightbox && current && (
         <Lightbox images={images} index={active} onIndex={setActive} onClose={() => setLightbox(false)}/>
       )}

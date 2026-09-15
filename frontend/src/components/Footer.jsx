@@ -16,11 +16,11 @@ const SOCIAL = [
 
 export default function Footer() {
   return (
-    <footer id="contact" className="mt-32 border-t border-[#E6E0D6] bg-[#F3EFEA]">
+    <footer id="contact" className="mt-12 sm:mt-20 border-t border-[#E6E0D6] bg-[#F3EFEA]">
       {/* SEO Tagline Banner */}
       <div className="border-b border-[#E6E0D6] py-14 px-6 lg:px-12 text-center bg-[#FAF8F5]">
         <p className="text-[10px] uppercase tracking-[0.35em] text-[#B8860B] mb-4">{SITE.brand.toUpperCase()} · {SITE.founded.toUpperCase()}</p>
-        <h2 className="font-serif text-4xl lg:text-6xl text-[#1C1815] leading-[1.1] max-w-3xl mx-auto">
+        <h2 className="font-serif text-3xl sm:text-4xl lg:text-6xl text-[#1C1815] leading-[1.1] max-w-3xl mx-auto">
           India's finest writing<br/><em className="text-[#3D4838]">instrument atelier.</em>
         </h2>
         <p className="text-sm text-[#6E685E] mt-5 max-w-xl mx-auto leading-relaxed">
@@ -133,7 +133,7 @@ export default function Footer() {
       </div>
 
       {/* Copyright Bar */}
-      <div className="border-t border-[#E6E0D6] py-6 px-6 lg:px-12 text-xs tracking-[0.15em] text-[#6E685E] flex flex-wrap justify-between items-center gap-4 max-w-[1600px] mx-auto">
+      <div className="border-t border-[#E6E0D6] py-6 px-6 lg:px-12 text-xs tracking-[0.15em] text-[#6E685E] flex flex-col sm:flex-row sm:flex-wrap justify-between items-start sm:items-center gap-3 max-w-[1600px] mx-auto">
         <span className="uppercase">© 2026 {SITE.brand}</span>
         <span className="normal-case tracking-normal text-xs text-[#6E685E]">
           Design and Development by{" "}
@@ -152,7 +152,7 @@ export default function Footer() {
             className="hover:text-[#B8860B] transition-colors"
           >yritsolutions.com</a>)
         </span>
-        <span className="uppercase">{SITE.cities}</span>
+        <span className="uppercase hidden sm:inline">{SITE.cities}</span>
       </div>
     </footer>
   );
