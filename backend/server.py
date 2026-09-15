@@ -253,6 +253,12 @@ class BannerIn(BaseModel):
     studio_title: Optional[str] = "Live from the desk."
     studio_subtitle: Optional[str] = "Fresh nib videos, first inks of the season, and bespoke commissions — straight from our Panchkula atelier."
 
+    # Section 05: Featured Categories (3 editorial banners)
+    featured_cats: Optional[List[dict]] = None
+
+    # Section 06: Exclusive Partners / Brands
+    brands: Optional[List[dict]] = None
+
 
 class StudioPostIn(BaseModel):
     image: str  # /api/files/... or absolute URL
@@ -413,9 +419,78 @@ async def startup():
             "secondary_cta_text": "New Arrivals",
             "secondary_cta_link": "/new-arrivals",
             "enabled": True,
+            "featured_cats": [
+                {
+                    "label": "Fine Fountain Pens",
+                    "sub": "From beginner-friendly to collector-grade nibs.",
+                    "query": "Fountain Pens",
+                    "image": "https://images.unsplash.com/photo-1583195764036-5d2c7b0b5e3f?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+                    "bg": "#1C1815",
+                    "accent": "#B8860B",
+                },
+                {
+                    "label": "Premium Inks",
+                    "sub": "Shimmering, sheening, and waterproof pigments.",
+                    "query": "Inks",
+                    "image": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+                    "bg": "#3D4838",
+                    "accent": "#FAF8F5",
+                },
+                {
+                    "label": "Accessories",
+                    "sub": "Notebooks, cases, converters and care kits.",
+                    "query": "Accessories",
+                    "image": "https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+                    "bg": "#DED6CC",
+                    "accent": "#1C1815",
+                },
+            ],
             "updated_at": datetime.now(timezone.utc).isoformat(),
         })
         logger.info("Seeded default homepage banner")
+
+    # Backfill brands on existing banner documents that lack it
+    _default_brands = [
+        {"name": "Pilot", "image": "", "link": "/shop?brand=Pilot"},
+        {"name": "Namiki", "image": "", "link": "/shop?brand=Namiki"},
+        {"name": "Sailor", "image": "", "link": "/shop?brand=Sailor"},
+        {"name": "Lamy", "image": "", "link": "/shop?brand=Lamy"},
+    ]
+    await db.site_banner.update_many(
+        {"brands": {"$exists": False}},
+        {"$set": {"brands": _default_brands}},
+    )
+
+    # Backfill featured_cats on existing banner documents that lack it
+    await db.site_banner.update_many(
+        {"featured_cats": {"$exists": False}},
+        {"$set": {"featured_cats": [
+            {
+                "label": "Fine Fountain Pens",
+                "sub": "From beginner-friendly to collector-grade nibs.",
+                "query": "Fountain Pens",
+                "image": "https://images.unsplash.com/photo-1583195764036-5d2c7b0b5e3f?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+                "bg": "#1C1815",
+                "accent": "#B8860B",
+            },
+            {
+                "label": "Premium Inks",
+                "sub": "Shimmering, sheening, and waterproof pigments.",
+                "query": "Inks",
+                "image": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+                "bg": "#3D4838",
+                "accent": "#FAF8F5",
+            },
+            {
+                "label": "Accessories",
+                "sub": "Notebooks, cases, converters and care kits.",
+                "query": "Accessories",
+                "image": "https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+                "bg": "#DED6CC",
+                "accent": "#1C1815",
+            },
+        ]}}
+    )
 
     # Init storage (non-blocking)
     init_storage()
@@ -1152,6 +1227,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+
+# ---------------- Partners ----------------
+class PartnerIn(BaseModel):
+    name: str
+    image: str
+    link: Optional[str] = None
+
+@api.get("/partners")
+async def list_partners():
+    partners = await db.partners.find({}, {"_id": 0}).to_list(100)
+    return partners
+
+@api.post("/admin/partners")
+async def add_partner(body: PartnerIn, _admin=Depends(admin_only)):
+    doc = {
+        "id": str(uuid.uuid4()),
+        "name": body.name.strip(),
+        "image": body.image.strip(),
+        "link": body.link,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.partners.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api.delete("/admin/partners/{partner_id}")
+async def delete_partner(partner_id: str, _admin=Depends(admin_only)):
+    r = await db.partners.delete_one({"id": partner_id})
+    if not r.deleted_count:
+        raise HTTPException(404, "Partner not found")
+    return {"ok": True}
 
 @app.on_event("shutdown")
 async def shutdown():

@@ -940,10 +940,23 @@ function BannerTab() {
     studio_eyebrow: "03 / FROM THE STUDIO",
     studio_title: "Live from the desk.",
     studio_subtitle: "Fresh nib videos, first inks of the season, and bespoke commissions — straight from our Panchkula atelier.",
+
+    featured_cats: [
+      { label: "Fine Fountain Pens", sub: "From beginner-friendly to collector-grade nibs.", query: "Fountain Pens", image: "", bg: "#1C1815", accent: "#B8860B" },
+      { label: "Premium Inks", sub: "Shimmering, sheening, and waterproof pigments.", query: "Inks", image: "", bg: "#3D4838", accent: "#FAF8F5" },
+      { label: "Accessories", sub: "Notebooks, cases, converters and care kits.", query: "Accessories", image: "", bg: "#DED6CC", accent: "#1C1815" },
+    ],
+    brands: [
+      { name: "Pilot",  image: "", link: "/shop?brand=Pilot" },
+      { name: "Namiki", image: "", link: "/shop?brand=Namiki" },
+      { name: "Sailor", image: "", link: "/shop?brand=Sailor" },
+      { name: "Lamy",   image: "", link: "/shop?brand=Lamy" },
+    ],
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingCat, setUploadingCat] = useState(null); // index of cat being uploaded
 
   useEffect(() => {
     api.get("/site/banner")
@@ -966,6 +979,33 @@ function BannerTab() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const uploadCatImage = async (file, idx) => {
+    setUploadingCat(idx);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await api.post("/admin/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      setBanner((prev) => {
+        const cats = [...(prev.featured_cats || [])];
+        cats[idx] = { ...cats[idx], image: r.data.url };
+        return { ...prev, featured_cats: cats };
+      });
+      toast.success("Category image uploaded");
+    } catch (err) {
+      toast.error("Upload failed: " + (err.response?.data?.detail || err.message));
+    } finally {
+      setUploadingCat(null);
+    }
+  };
+
+  const updateCat = (idx, field, value) => {
+    setBanner((prev) => {
+      const cats = [...(prev.featured_cats || [])];
+      cats[idx] = { ...cats[idx], [field]: value };
+      return { ...prev, featured_cats: cats };
+    });
   };
 
   const save = async () => {
@@ -1246,6 +1286,222 @@ function BannerTab() {
               className="mt-1 w-full bg-transparent border border-[#E6E0D6] p-2.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
             />
           </label>
+        </div>
+      </div>
+
+      {/* 5. Section 05: Featured Categories Configuration */}
+      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 05</p>
+          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Featured Categories</h2>
+          <p className="text-sm text-[#6E685E] mt-1">Edit the 3 editorial portrait banners shown in the &quot;Curated for you&quot; section. Each card has a heading, subtitle, shop link query, background colour, text colour, and image.</p>
+        </div>
+
+        <div className="space-y-8 pt-4 border-t border-[#E6E0D6]">
+          {(banner.featured_cats || []).map((cat, idx) => (
+            <div key={idx} className="border border-[#E6E0D6] p-6 space-y-4">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">Card {idx + 1}</p>
+
+              {/* Image */}
+              <div className="flex gap-6 items-start">
+                <div className="w-32 h-40 bg-[#F3EFEA] border border-[#E6E0D6] overflow-hidden flex-shrink-0 relative" style={{ background: cat.bg || undefined }}>
+                  {cat.image ? (
+                    <img src={cat.image} alt={cat.label} className="w-full h-full object-cover opacity-40"/>
+                  ) : (
+                    <span className="absolute inset-0 flex items-center justify-center text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">No image</span>
+                  )}
+                </div>
+                <div className="flex-1 space-y-3">
+                  <label className="block">
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Image URL (or upload)</span>
+                    <div className="flex gap-2 mt-1">
+                      <input
+                        type="text"
+                        value={cat.image || ""}
+                        onChange={(e) => updateCat(idx, "image", e.target.value)}
+                        placeholder="https://..."
+                        className="flex-1 bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                      />
+                      <label className="bg-[#1C1815] text-[#FAF8F5] px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:bg-[#3D4838] transition-colors whitespace-nowrap">
+                        {uploadingCat === idx ? "…" : "Upload"}
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadCatImage(e.target.files[0], idx)} disabled={uploadingCat !== null}/>
+                      </label>
+                    </div>
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="block">
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Background Colour</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <input type="color" value={cat.bg || "#1C1815"} onChange={(e) => updateCat(idx, "bg", e.target.value)} className="w-8 h-8 border-0 p-0 cursor-pointer rounded"/>
+                        <input type="text" value={cat.bg || ""} onChange={(e) => updateCat(idx, "bg", e.target.value)} className="flex-1 bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"/>
+                      </div>
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Text / Accent Colour</span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <input type="color" value={cat.accent || "#B8860B"} onChange={(e) => updateCat(idx, "accent", e.target.value)} className="w-8 h-8 border-0 p-0 cursor-pointer rounded"/>
+                        <input type="text" value={cat.accent || ""} onChange={(e) => updateCat(idx, "accent", e.target.value)} className="flex-1 bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"/>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Heading</span>
+                  <input
+                    type="text"
+                    value={cat.label || ""}
+                    onChange={(e) => updateCat(idx, "label", e.target.value)}
+                    className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm font-serif text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Shop link query (category name)</span>
+                  <input
+                    type="text"
+                    value={cat.query || ""}
+                    onChange={(e) => updateCat(idx, "query", e.target.value)}
+                    placeholder="e.g. Fountain Pens"
+                    className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+              </div>
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Subtitle</span>
+                <input
+                  type="text"
+                  value={cat.sub || ""}
+                  onChange={(e) => updateCat(idx, "sub", e.target.value)}
+                  className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                />
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 6. Section 06: Exclusive Partners / Brands */}
+      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 06</p>
+          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Exclusive Partners</h2>
+          <p className="text-sm text-[#6E685E] mt-1">Manage brand logos shown in the &quot;Our writing houses&quot; section. Up to 6 brands display as a grid; 7+ automatically switches to a carousel.</p>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t border-[#E6E0D6]">
+          {(banner.brands || []).map((brand, idx) => (
+            <div key={idx} className="border border-[#E6E0D6] p-4 flex gap-4 items-start">
+              {/* Logo preview */}
+              <div className="w-16 h-16 rounded-full overflow-hidden border border-[#E6E0D6] bg-[#F3EFEA] flex-shrink-0 flex items-center justify-center">
+                {brand.image ? (
+                  <img src={brand.image} alt={brand.name} className="w-full h-full object-cover"/>
+                ) : (
+                  <span className="font-serif text-xl text-[#1C1815]/40">{(brand.name || "?")[0]}</span>
+                )}
+              </div>
+
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Brand Name</span>
+                  <input
+                    type="text"
+                    value={brand.name || ""}
+                    onChange={(e) => {
+                      const b = [...(banner.brands || [])];
+                      b[idx] = { ...b[idx], name: e.target.value };
+                      setBanner((p) => ({ ...p, brands: b }));
+                    }}
+                    className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-sm font-serif text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Link (optional)</span>
+                  <input
+                    type="text"
+                    value={brand.link || ""}
+                    onChange={(e) => {
+                      const b = [...(banner.brands || [])];
+                      b[idx] = { ...b[idx], link: e.target.value };
+                      setBanner((p) => ({ ...p, brands: b }));
+                    }}
+                    placeholder="/shop?brand=Pilot"
+                    className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Logo Image</span>
+                  <div className="flex gap-2 mt-1">
+                    <input
+                      type="text"
+                      value={brand.image || ""}
+                      onChange={(e) => {
+                        const b = [...(banner.brands || [])];
+                        b[idx] = { ...b[idx], image: e.target.value };
+                        setBanner((p) => ({ ...p, brands: b }));
+                      }}
+                      placeholder="https://..."
+                      className="flex-1 bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                    />
+                    <label className="bg-[#1C1815] text-[#FAF8F5] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:bg-[#3D4838] transition-colors whitespace-nowrap">
+                      {uploadingCat === `brand-${idx}` ? "…" : "Upload"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingCat !== null}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setUploadingCat(`brand-${idx}`);
+                          const fd = new FormData();
+                          fd.append("file", file);
+                          try {
+                            const r = await api.post("/admin/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
+                            const b = [...(banner.brands || [])];
+                            b[idx] = { ...b[idx], image: r.data.url };
+                            setBanner((p) => ({ ...p, brands: b }));
+                            toast.success("Brand logo uploaded");
+                          } catch (err) {
+                            toast.error("Upload failed: " + (err.response?.data?.detail || err.message));
+                          } finally {
+                            setUploadingCat(null);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                </label>
+              </div>
+
+              {/* Remove button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const b = [...(banner.brands || [])];
+                  b.splice(idx, 1);
+                  setBanner((p) => ({ ...p, brands: b }));
+                }}
+                className="text-red-400 hover:text-red-700 text-xs uppercase tracking-[0.15em] mt-1 flex-shrink-0"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={() =>
+              setBanner((p) => ({
+                ...p,
+                brands: [...(p.brands || []), { name: "", image: "", link: "" }],
+              }))
+            }
+            className="w-full border border-dashed border-[#3D4838] py-3 text-xs uppercase tracking-[0.2em] text-[#3D4838] hover:bg-[#F3EFEA] transition-colors"
+          >
+            + Add Brand
+          </button>
         </div>
       </div>
 

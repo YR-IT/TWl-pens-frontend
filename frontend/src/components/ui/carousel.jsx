@@ -156,13 +156,13 @@ const CarouselPrevious = React.forwardRef(({ className, variant = "outline", siz
       ref={ref}
       variant={variant}
       size={size}
-      className={cn("absolute  h-8 w-8 rounded-full", orientation === "horizontal"
-        ? "-left-12 top-1/2 -translate-y-1/2"
+      className={cn("absolute h-10 w-10 rounded-full border border-[#E6E0D6] bg-white text-[#1C1815] transition-all duration-300 hover:border-[#B8860B] hover:bg-[#B8860B] hover:text-[#FAF8F5] active:scale-95 disabled:opacity-30 disabled:pointer-events-none", orientation === "horizontal"
+        ? "-left-16 top-1/2 -translate-y-1/2"
         : "-top-12 left-1/2 -translate-x-1/2 rotate-90", className)}
       disabled={!canScrollPrev}
       onClick={scrollPrev}
       {...props}>
-      <ArrowLeft className="h-4 w-4" />
+      <ArrowLeft className="h-5 w-5" />
       <span className="sr-only">Previous slide</span>
     </Button>
   );
@@ -177,13 +177,13 @@ const CarouselNext = React.forwardRef(({ className, variant = "outline", size = 
       ref={ref}
       variant={variant}
       size={size}
-      className={cn("absolute h-8 w-8 rounded-full", orientation === "horizontal"
-        ? "-right-12 top-1/2 -translate-y-1/2"
+      className={cn("absolute h-10 w-10 rounded-full border border-[#E6E0D6] bg-white text-[#1C1815] transition-all duration-300 hover:border-[#B8860B] hover:bg-[#B8860B] hover:text-[#FAF8F5] active:scale-95 disabled:opacity-30 disabled:pointer-events-none", orientation === "horizontal"
+        ? "-right-16 top-1/2 -translate-y-1/2"
         : "-bottom-12 left-1/2 -translate-x-1/2 rotate-90", className)}
       disabled={!canScrollNext}
       onClick={scrollNext}
       {...props}>
-      <ArrowRight className="h-4 w-4" />
+      <ArrowRight className="h-5 w-5" />
       <span className="sr-only">Next slide</span>
     </Button>
   );

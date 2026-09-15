@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
 import { WishlistProvider } from "@/lib/wishlist";
+import ScrollToTop from "@/components/ScrollToTop";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
@@ -68,6 +69,7 @@ export default function App() {
       <WishlistProvider>
         <CartProvider>
           <BrowserRouter>
+            <ScrollToTop/>
             <Splash/>
             <div className="min-h-screen flex flex-col bg-[#FAF8F5] text-[#1C1815] antialiased">
               <Header/>
