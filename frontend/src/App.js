@@ -50,6 +50,7 @@ function AnimatedRoutes() {
         <Route path="/new-arrivals" element={<PageFade><NewArrivals/></PageFade>}/>
         <Route path="/best-sellers" element={<PageFade><BestSellers/></PageFade>}/>
         <Route path="/contact" element={<PageFade><Contact/></PageFade>}/>
+        <Route path="/contact-us" element={<PageFade><Contact/></PageFade>}/>
         <Route path="/product/:id" element={<PageFade><ProductDetail/></PageFade>}/>
         <Route path="/checkout" element={<PageFade><Checkout/></PageFade>}/>
         <Route path="/order/placed" element={<PageFade><OrderPlaced/></PageFade>}/>

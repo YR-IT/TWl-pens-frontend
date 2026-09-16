@@ -34,7 +34,13 @@ export default function Checkout() {
     try {
       const { note, ...shipping } = form;
       const r = await api.post("/orders", {
-        items: items.map((i) => ({ product_id: i.id, quantity: i.quantity, engraving: i.engraving || null })),
+        items: items.map((i) => ({ 
+          product_id: i.id, 
+          quantity: i.quantity, 
+          engraving: i.engraving || null,
+          engraving_font: i.engraving_font || null,
+          engraving_position: i.engraving_position || null,
+        })),
         shipping,
         note: note?.trim() || null,
       });

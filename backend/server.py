@@ -218,6 +218,10 @@ class ProductIn(BaseModel):
     best_seller: bool = False
     engravable: bool = False
     engraving_max_length: int = Field(default=20, ge=1, le=60)
+    engraving_fonts: List[str] = Field(default_factory=lambda: ["Classic Script", "Timeless Serif", "Modern Sans"])
+    engraving_positions: List[str] = Field(default_factory=lambda: ["Engraving on Cap", "Engraving on Barrel", "Engraving on Clip"])
+    engraving_note: Optional[str] = "Hand-etched in our Panchkula studio · adds 2 working days"
+    engraving_whatsapp_note: Optional[str] = "Need logo engraving? Send your logo and Order Number via WhatsApp after ordering."
     estimated_delivery: Optional[str] = None
 
 
@@ -276,6 +280,8 @@ class CartItemIn(BaseModel):
     product_id: str
     quantity: int = Field(ge=1, le=50)
     engraving: Optional[str] = Field(default=None, max_length=60)
+    engraving_font: Optional[str] = Field(default=None, max_length=60)
+    engraving_position: Optional[str] = Field(default=None, max_length=60)
 
 
 class ShippingAddress(BaseModel):
@@ -847,7 +853,13 @@ def _build_whatsapp_url(order: dict) -> str:
     for it in order["items"]:
         line = f"• {it['quantity']} × {it['name']} — Rs {it['unit_price']:,.0f}"
         if it.get("engraving"):
-            line += f"  ↳ engraved: \"{it['engraving']}\""
+            meta = []
+            if it.get("engraving_font"):
+                meta.append(it["engraving_font"])
+            if it.get("engraving_position"):
+                meta.append(it["engraving_position"])
+            meta_str = f" ({' · '.join(meta)})" if meta else ""
+            line += f"  ↳ engraved: \"{it['engraving']}\"{meta_str}"
         lines.append(line)
     lines.append("")
     lines.append(f"*Total · Rs {order['total']:,.0f}*")
@@ -891,6 +903,8 @@ async def place_order(body: OrderPlaceBody, user=Depends(current_user_optional))
             "unit_price": unit,
             "quantity": it.quantity,
             "engraving": (it.engraving or "").strip() or None,
+            "engraving_font": (it.engraving_font or "").strip() or None,
+            "engraving_position": (it.engraving_position or "").strip() or None,
             "image": p["images"][0] if p.get("images") else None,
         })
     total = round(total, 2)

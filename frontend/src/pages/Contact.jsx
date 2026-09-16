@@ -24,13 +24,6 @@ export default function Contact() {
 
   return (
     <div className="pt-[76px] bg-[#FAF8F5] min-h-screen">
-      {/* Breadcrumb */}
-      <div className="max-w-[1600px] mx-auto px-6 lg:px-12 pt-8">
-        <Link to="/" className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-[#6E685E] hover:text-[#1C1815]">
-          <ChevronLeft size={14}/> Back to atelier
-        </Link>
-      </div>
-
       {/* Header */}
       <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-12 lg:py-16">
         <div className="max-w-2xl">

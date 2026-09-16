@@ -38,7 +38,8 @@ export default function CartDrawer() {
           ) : (
             <div className="space-y-6">
               {items.map((it) => {
-                const key = rowKey(it.id, it.engraving);
+                const key = rowKey(it.id, it.engraving, it.engraving_font, it.engraving_position);
+                const engDetails = [it.engraving_font, it.engraving_position].filter(Boolean).join(" · ");
                 return (
                   <div key={key} className="flex gap-4 border-b border-[#E6E0D6] pb-6" data-testid={`cart-item-${it.id}`}>
                     <div className="w-20 h-24 bg-[#F3EFEA] overflow-hidden flex-shrink-0">
@@ -49,9 +50,16 @@ export default function CartDrawer() {
                         <p className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">{it.brand}</p>
                         <h3 className="font-serif text-lg text-[#1C1815] leading-tight">{it.name}</h3>
                         {it.engraving && (
-                          <p className="mt-1 text-[11px] uppercase tracking-[0.15em] text-[#B8860B]" data-testid={`cart-engraving-${it.id}`}>
-                            Engraved · "{it.engraving}"
-                          </p>
+                          <div className="mt-1" data-testid={`cart-engraving-${it.id}`}>
+                            <p className="text-[11px] uppercase tracking-[0.15em] text-[#B8860B] font-medium">
+                              Engraved · "{it.engraving}"
+                            </p>
+                            {engDetails && (
+                              <p className="text-[10px] text-[#6E685E] tracking-wider">
+                                {engDetails}
+                              </p>
+                            )}
+                          </div>
                         )}
                         {it.estimated_delivery && (
                           <p className="mt-1 text-[11px] text-[#6E685E]" data-testid={`cart-delivery-${it.id}`}>

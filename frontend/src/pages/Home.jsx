@@ -121,13 +121,17 @@ export default function Home() {
   return (
     <div className="pt-[108px] sm:pt-[108px]">
       {/* Hero Section */}
-      <section className="relative w-full h-[calc(100vh-104px)] sm:h-[calc(100vh-112px)] min-h-[550px] overflow-hidden">
-        <img src={heroImage} alt="Hero" className="w-full h-full object-cover"/>
-        <div className="absolute inset-0 bg-[#1C1815]/20"/>
+      <section className="relative w-full h-[60vh] sm:h-[68vh] lg:h-[72vh] min-h-[440px] max-h-[720px] overflow-hidden">
+        <img 
+          src={heroImage} 
+          alt="The Eternal Quill" 
+          className="w-full h-full object-cover object-[center_35%] scale-105 transition-transform duration-1000"
+        />
+        <div className="absolute inset-0 bg-[#1C1815]/30"/>
         <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-4 sm:px-6">
-          <h1 className="font-serif text-4xl sm:text-6xl lg:text-8xl text-[#FAF8F5] leading-tight">The Eternal Quill</h1>
-          <p className="text-[#FAF8F5] text-base sm:text-lg lg:text-xl font-serif italic mt-3 sm:mt-4">Discover the art of writing.</p>
-          <Link to="/shop" className="mt-6 sm:mt-8 bg-[#FAF8F5] text-[#1C1815] px-8 sm:px-10 py-3 rounded-full uppercase tracking-widest text-xs hover:bg-[#E6E0D6] transition-colors">SHOP NOW</Link>
+          <h1 className="font-serif text-3xl sm:text-5xl lg:text-7xl text-[#FAF8F5] leading-tight drop-shadow-sm">The Eternal Quill</h1>
+          <p className="text-[#FAF8F5]/90 text-sm sm:text-base lg:text-lg font-serif italic mt-2 sm:mt-3">Discover the art of writing.</p>
+          <Link to="/shop" className="mt-5 sm:mt-6 bg-[#FAF8F5] text-[#1C1815] px-8 sm:px-10 py-3 rounded-full uppercase tracking-widest text-xs font-medium hover:bg-[#E6E0D6] transition-colors shadow-md">SHOP NOW</Link>
         </div>
       </section>
 
@@ -207,6 +211,9 @@ export default function Home() {
           ))}
         </motion.div>
       </section>
+
+      {/* Bespoke Personalization / Engraving Preview Showcase */}
+      <EngravingPreviewSection/>
 
       {/* Secondary Banner Grid */}
       <section className="grid grid-cols-1 md:grid-cols-2">
@@ -358,6 +365,9 @@ export default function Home() {
           <Link to="/brands" className="text-[#B8860B] underline uppercase text-xs">Explore All Brands &rarr;</Link>
         </div>
       </section>
+
+      {/* Founder Story Block — Exclusive to Homepage */}
+      <FounderStorySection />
     </div>
   );
 }
@@ -378,3 +388,162 @@ function BrandCard({ b }) {
   if (b.link) return <Link to={b.link}>{inner}</Link>;
   return inner;
 }
+
+function EngravingPreviewSection() {
+  const [sampleText, setSampleText] = useState("Aryan Kumar");
+  const [activeFont, setActiveFont] = useState("script");
+
+  const fontStyles = {
+    script: { name: "Classic Script", fontClass: "font-serif italic", sample: "Aryan Kumar" },
+    serif: { name: "Timeless Roman", fontClass: "font-serif tracking-[0.2em] uppercase font-medium", sample: "ARYAN KUMAR" },
+    sans: { name: "Modern Minimalist", fontClass: "font-sans tracking-[0.25em] uppercase font-bold", sample: "ARYAN KUMAR" },
+  };
+
+  return (
+    <section className="w-full bg-[#1C1815] text-[#FAF8F5] py-20 px-6 lg:px-12 my-12 overflow-hidden">
+      <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        {/* Left Column: Interactive Engraving Showcase Preview */}
+        <div className="relative aspect-[16/10] sm:aspect-[16/9] rounded-sm overflow-hidden bg-[#241F1B] border border-[#3D4838] shadow-2xl group">
+          <img 
+            src="/engraving-showcase.jpg" 
+            alt="Craft Your Identity - Bespoke Engraving" 
+            className="w-full h-full object-cover opacity-90 transition-transform duration-700 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1C1815]/90 via-[#1C1815]/40 to-transparent"/>
+          
+          {/* Live Dynamic Engraving Overlay Banner on Pen */}
+          <div className="absolute bottom-6 left-6 right-6 p-4 bg-[#1C1815]/85 backdrop-blur-md border border-[#B8860B]/40 rounded flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.25em] text-[#B8860B]">Simulated Studio Etching</p>
+              <p className={`text-xl sm:text-2xl text-[#E6C687] drop-shadow-md mt-0.5 ${fontStyles[activeFont].fontClass}`}>
+                {sampleText.trim() || "Your Name Here"}
+              </p>
+            </div>
+            <span className="text-[10px] uppercase tracking-wider text-[#FAF8F5]/60 bg-[#FAF8F5]/10 px-2 py-1 rounded">
+              {fontStyles[activeFont].name}
+            </span>
+          </div>
+        </div>
+
+        {/* Right Column: Information & Interactive Font Picker */}
+        <div className="space-y-6">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.35em] text-[#B8860B]">03 / BESPOKE PERSONALIZATION</p>
+            <h2 className="font-serif text-3xl sm:text-5xl text-[#FAF8F5] mt-2 leading-tight">
+              Craft Your Identity.
+            </h2>
+            <p className="text-[#FAF8F5]/75 text-sm sm:text-base mt-4 leading-relaxed font-light">
+              Every fine pen tells a story, but an engraved instrument immortalizes it. Our master nibsmiths in Panchkula precision-etch names, monograms, and landmark dates in your chosen calligraphy font.
+            </p>
+          </div>
+
+          {/* Interactive Font Selector */}
+          <div className="space-y-3 pt-2">
+            <label className="block text-[11px] uppercase tracking-[0.2em] text-[#B8860B] font-medium">
+              1. Choose a Calligraphy Style
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {Object.entries(fontStyles).map(([key, item]) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveFont(key)}
+                  className={`p-3 text-center border transition-all rounded-sm ${
+                    activeFont === key
+                      ? "border-[#B8860B] bg-[#B8860B]/15 text-[#FAF8F5]"
+                      : "border-[#3D4838] bg-[#FAF8F5]/5 text-[#FAF8F5]/70 hover:border-[#FAF8F5]/40"
+                  }`}
+                >
+                  <p className="text-[10px] uppercase tracking-wider font-medium">{item.name}</p>
+                  <p className={`text-xs mt-1 text-[#B8860B] ${item.fontClass}`}>Sample</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Interactive Live Name Tester */}
+          <div className="space-y-2 pt-1">
+            <label className="block text-[11px] uppercase tracking-[0.2em] text-[#B8860B] font-medium">
+              2. Test Your Custom Inscription
+            </label>
+            <input
+              type="text"
+              value={sampleText}
+              maxLength={24}
+              onChange={(e) => setSampleText(e.target.value)}
+              placeholder="Type your name or monogram…"
+              className="w-full bg-[#FAF8F5]/10 border border-[#3D4838] px-4 py-3 text-base text-[#FAF8F5] outline-none placeholder:text-[#FAF8F5]/40 focus:border-[#B8860B] transition-colors rounded-sm"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="pt-4 flex flex-wrap items-center gap-4">
+            <Link
+              to="/shop"
+              className="bg-[#B8860B] text-[#FAF8F5] px-8 py-3.5 rounded-full uppercase text-xs tracking-[0.2em] font-medium hover:bg-[#96700A] transition-all shadow-lg hover:shadow-xl"
+            >
+              Shop Engravable Pens &rarr;
+            </Link>
+            <a
+              href="https://wa.me/919351996272?text=Hello%20The%20WL%20Pens%20Studio%2C%20I%20would%20like%20to%20know%20more%20about%20bespoke%20pen%20engraving"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs uppercase tracking-[0.2em] text-[#FAF8F5]/70 hover:text-[#FAF8F5] border-b border-[#FAF8F5]/30 pb-1 transition-colors"
+            >
+              Enquire Custom Logo
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FounderStorySection() {
+  return (
+    <section className="border-t border-[#E6E0D6] bg-[#FAF8F5] overflow-hidden" data-testid="founder-story-section">
+      <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 min-h-[460px]">
+        {/* Founder Photo Column */}
+        <div className="lg:col-span-6 relative aspect-[16/10] lg:aspect-auto min-h-[340px] bg-[#EFE9DF] overflow-hidden">
+          <img 
+            src="/founder-placeholder.jpg" 
+            alt="Manjeet Singh - Founder of The WL Pens" 
+            className="w-full h-full object-cover object-center lg:object-top"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1C1815]/60 via-transparent to-transparent lg:hidden"/>
+          <div className="absolute bottom-4 left-6 text-[#FAF8F5] lg:hidden">
+            <p className="font-serif text-xl font-medium">Manjeet Singh</p>
+            <p className="text-xs text-[#FAF8F5]/80 uppercase tracking-widest">Founder &amp; Nibsmith</p>
+          </div>
+        </div>
+
+        {/* Story Narrative Column */}
+        <div className="lg:col-span-6 p-8 sm:p-12 lg:p-16 flex flex-col justify-center bg-[#FAF8F5]">
+          <span className="text-[10px] uppercase tracking-[0.35em] text-[#B8860B] font-semibold mb-3">
+            PEOPLE OF THE WL PENS · FOUNDER'S NOTE
+          </span>
+          <h2 className="font-serif text-2xl sm:text-4xl text-[#1C1815] leading-tight mb-4">
+            "A pen should never just write. It should remember."
+          </h2>
+          <div className="space-y-3.5 text-sm sm:text-base text-[#6E685E] leading-relaxed font-light">
+            <p>
+              Founded in 2019 at the foothills of the Shivaliks, <strong className="text-[#1C1815] font-medium">The WL Pens</strong> was born from a singular obsession: reviving the intimacy and deliberate grace of fine fountain pen writing in India.
+            </p>
+            <p>
+              Every writing instrument that leaves our Panchkula studio is hand-inspected, nib-tested, and individually engraved with precision diamond tools to become a personal heirloom.
+            </p>
+          </div>
+
+          <div className="mt-6 pt-5 border-t border-[#E6E0D6] flex items-center justify-between">
+            <div>
+              <p className="font-serif text-lg sm:text-xl text-[#1C1815] font-medium">Manjeet Singh</p>
+              <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-[#B8860B]">Founder &amp; Master Nibsmith</p>
+            </div>
+            <span className="font-serif italic text-xs sm:text-sm text-[#6E685E]">Panchkula Atelier</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+

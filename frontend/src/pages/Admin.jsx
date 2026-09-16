@@ -170,6 +170,10 @@ function ProductForm({ product, onClose, onSaved }) {
     best_seller: !!product.best_seller,
     engravable: !!product.engravable,
     engraving_max_length: product.engraving_max_length ?? 20,
+    engraving_fonts: product.engraving_fonts?.join(", ") || "Classic Script, Timeless Serif, Modern Sans",
+    engraving_positions: product.engraving_positions?.join(", ") || "Engraving on Cap, Engraving on Barrel, Engraving on Clip",
+    engraving_note: product.engraving_note || "Hand-etched in our Panchkula studio · adds 2 working days",
+    engraving_whatsapp_note: product.engraving_whatsapp_note || "Need logo engraving? Send your logo and Order Number via WhatsApp after ordering.",
     estimated_delivery: product.estimated_delivery || "",
   } : {
     name: "", brand: "", category: cats[0]?.name || "",
@@ -177,6 +181,10 @@ function ProductForm({ product, onClose, onSaved }) {
     description: "", features: "", specs: "", images: [], stock: 10,
     featured: false, new_arrival: true, best_seller: false,
     engravable: true, engraving_max_length: 20,
+    engraving_fonts: "Classic Script, Timeless Serif, Modern Sans",
+    engraving_positions: "Engraving on Cap, Engraving on Barrel, Engraving on Clip",
+    engraving_note: "Hand-etched in our Panchkula studio · adds 2 working days",
+    engraving_whatsapp_note: "Need logo engraving? Send your logo and Order Number via WhatsApp after ordering.",
     estimated_delivery: "",
   });
   const [uploading, setUploading] = useState(false);
@@ -277,6 +285,10 @@ function ProductForm({ product, onClose, onSaved }) {
       best_seller: !!form.best_seller,
       engravable: !!form.engravable,
       engraving_max_length: parseInt(form.engraving_max_length) || 20,
+      engraving_fonts: form.engraving_fonts ? form.engraving_fonts.split(",").map((s) => s.trim()).filter(Boolean) : ["Classic Script", "Timeless Serif", "Modern Sans"],
+      engraving_positions: form.engraving_positions ? form.engraving_positions.split(",").map((s) => s.trim()).filter(Boolean) : ["Engraving on Cap", "Engraving on Barrel", "Engraving on Clip"],
+      engraving_note: form.engraving_note?.trim() || null,
+      engraving_whatsapp_note: form.engraving_whatsapp_note?.trim() || null,
       estimated_delivery: form.estimated_delivery,
     };
     try {
@@ -425,16 +437,34 @@ function ProductForm({ product, onClose, onSaved }) {
             </label>
           </div>
 
-          <div className="border-t border-[#E6E0D6] pt-5">
-            <label className="flex items-center gap-3 text-sm text-[#1C1815]">
+          <div className="border-t border-[#E6E0D6] pt-5 space-y-4">
+            <label className="flex items-center gap-3 text-sm text-[#1C1815] cursor-pointer">
               <input type="checkbox" checked={form.engravable} onChange={(e) => set("engravable", e.target.checked)} data-testid="pf-engravable"/>
-              Allow engraving on this product
+              Allow bespoke studio engraving on this product
             </label>
             {form.engravable && (
-              <label className="block mt-3">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Max engraving length (1–60)</span>
-                <input type="number" min="1" max="60" value={form.engraving_max_length} onChange={(e) => set("engraving_max_length", e.target.value)} className="mt-2 w-32 bg-transparent border-b border-[#E6E0D6] py-2 text-[#1C1815] outline-none focus:border-[#3D4838]" data-testid="pf-engraving-max"/>
-              </label>
+              <div className="space-y-4 bg-[#F3EFEA]/50 p-4 border border-[#E6E0D6] mt-2">
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Max engraving length (1–60 chars)</span>
+                  <input type="number" min="1" max="60" value={form.engraving_max_length} onChange={(e) => set("engraving_max_length", e.target.value)} className="mt-1 w-32 bg-white border border-[#E6E0D6] px-3 py-1.5 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]" data-testid="pf-engraving-max"/>
+                </label>
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Allowed Font Styles (comma-separated)</span>
+                  <input type="text" value={form.engraving_fonts} onChange={(e) => set("engraving_fonts", e.target.value)} placeholder="Classic Script, Timeless Serif, Modern Sans" className="mt-1 w-full bg-white border border-[#E6E0D6] px-3 py-1.5 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]" data-testid="pf-engraving-fonts"/>
+                </label>
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Allowed Engraving Positions (comma-separated)</span>
+                  <input type="text" value={form.engraving_positions} onChange={(e) => set("engraving_positions", e.target.value)} placeholder="Engraving on Cap, Engraving on Barrel, Engraving on Clip" className="mt-1 w-full bg-white border border-[#E6E0D6] px-3 py-1.5 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]" data-testid="pf-engraving-positions"/>
+                </label>
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Engraving Studio Disclaimer / Lead Time Note</span>
+                  <input type="text" value={form.engraving_note} onChange={(e) => set("engraving_note", e.target.value)} placeholder="Hand-etched in our Panchkula studio · adds 2 working days" className="mt-1 w-full bg-white border border-[#E6E0D6] px-3 py-1.5 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]" data-testid="pf-engraving-note"/>
+                </label>
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">WhatsApp Custom Logo Engraving Prompt</span>
+                  <input type="text" value={form.engraving_whatsapp_note} onChange={(e) => set("engraving_whatsapp_note", e.target.value)} placeholder="Need logo engraving? Send your logo and Order Number via WhatsApp after ordering." className="mt-1 w-full bg-white border border-[#E6E0D6] px-3 py-1.5 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]" data-testid="pf-engraving-whatsapp-note"/>
+                </label>
+              </div>
             )}
           </div>
 
