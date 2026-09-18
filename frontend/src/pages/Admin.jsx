@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Package, ShoppingBag, Users, DollarSign, Truck, Upload, Trash2, Edit3, Plus, X, Tag, Instagram } from "lucide-react";
+import { Package, ShoppingBag, Users, DollarSign, Truck, Upload, Trash2, Edit3, Plus, X, Tag, Instagram, ArrowUp, ArrowDown, Sparkles, Layers, ChevronRight, Image as ImageIcon } from "lucide-react";
 import { api, fileUrl } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { money } from "../lib/format";
@@ -947,6 +947,42 @@ function ShipmentForm({ order, onUpdate }) {
   );
 }
 
+const DEFAULT_HERO_SLIDES = [
+  {
+    id: "slide-1",
+    image: "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+    eyebrow: "PANCHKULA ATELIER · SS/26",
+    title: "The Eternal Quill",
+    subtitle: "Discover the art of handcrafted writing instruments, engineered for generations of prose.",
+    cta_text: "Shop Now",
+    cta_link: "/shop",
+    secondary_cta_text: "New Arrivals",
+    secondary_cta_link: "/new-arrivals",
+  },
+  {
+    id: "slide-2",
+    image: "https://images.unsplash.com/photo-1583195764036-5d2c7b0b5e3f?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+    eyebrow: "HAND-TUNED NIBS & ENGRAVING",
+    title: "Bespoke Personalization",
+    subtitle: "Complimentary hand-etched initials, custom nib tuning, and cotton presentation pouch with every fine pen.",
+    cta_text: "Fountain Pens",
+    cta_link: "/shop?category=Fountain%20Pens",
+    secondary_cta_text: "Studio Services",
+    secondary_cta_link: "/contact",
+  },
+  {
+    id: "slide-3",
+    image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+    eyebrow: "ARCHIVAL PIGMENTS & SHIMMER",
+    title: "Rich Inks of the Season",
+    subtitle: "From shimmering sheen to waterproof archival formulations, curated from master ink houses worldwide.",
+    cta_text: "Explore Inks",
+    cta_link: "/shop?category=Inks",
+    secondary_cta_text: "Best Sellers",
+    secondary_cta_link: "/best-sellers",
+  },
+];
+
 function BannerTab() {
   const [banner, setBanner] = useState({
     image: "",
@@ -958,6 +994,7 @@ function BannerTab() {
     secondary_cta_text: "New Arrivals",
     secondary_cta_link: "/new-arrivals",
     enabled: true,
+    slides: DEFAULT_HERO_SLIDES,
 
     categories_eyebrow: "01 / CURATED COLLECTIONS",
     categories_title: "Shop by category.",
@@ -982,33 +1019,124 @@ function BannerTab() {
       { name: "Sailor", image: "", link: "/shop?brand=Sailor" },
       { name: "Lamy",   image: "", link: "/shop?brand=Lamy" },
     ],
+    contact_inquiry_types: [
+      "General Studio Inquiry",
+      "Bespoke Nib Tuning & Engraving",
+      "Corporate & Wedding Gifting",
+      "Order Status & Dispatch",
+      "Private Studio Consultation (Panchkula)",
+    ],
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [uploadingCat, setUploadingCat] = useState(null); // index of cat being uploaded
+  const [activeSlideIdx, setActiveSlideIdx] = useState(0);
+  const [uploadingSlide, setUploadingSlide] = useState(null);
 
   useEffect(() => {
     api.get("/site/banner")
       .then((r) => {
-        if (r.data) setBanner((prev) => ({ ...prev, ...r.data }));
+        if (r.data) {
+          setBanner((prev) => ({
+            ...prev,
+            ...r.data,
+            contact_inquiry_types: (Array.isArray(r.data.contact_inquiry_types) && r.data.contact_inquiry_types.length > 0)
+              ? r.data.contact_inquiry_types
+              : prev.contact_inquiry_types,
+            slides: (Array.isArray(r.data.slides) && r.data.slides.length > 0)
+              ? r.data.slides
+              : (r.data.image ? [{
+                  id: "slide-1",
+                  image: r.data.image,
+                  eyebrow: r.data.eyebrow || "PANCHKULA ATELIER · SS/26",
+                  title: r.data.title || "The Eternal Quill",
+                  subtitle: r.data.subtitle || "",
+                  cta_text: r.data.cta_text || "Shop Now",
+                  cta_link: r.data.cta_link || "/shop",
+                  secondary_cta_text: r.data.secondary_cta_text || "New Arrivals",
+                  secondary_cta_link: r.data.secondary_cta_link || "/new-arrivals",
+                }] : DEFAULT_HERO_SLIDES),
+          }));
+        }
       })
       .finally(() => setLoading(false));
   }, []);
 
-  const upload = async (file) => {
-    setUploading(true);
+  const currentSlides = banner.slides && banner.slides.length > 0 ? banner.slides : DEFAULT_HERO_SLIDES;
+  const safeActiveSlideIdx = Math.min(activeSlideIdx, currentSlides.length - 1);
+  const currentSlide = currentSlides[safeActiveSlideIdx] || currentSlides[0];
+
+  const uploadSlideImage = async (file, idx) => {
+    setUploadingSlide(idx);
     const fd = new FormData();
     fd.append("file", file);
     try {
       const r = await api.post("/admin/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
-      setBanner((prev) => ({ ...prev, image: r.data.url }));
-      toast.success("Banner image uploaded");
+      setBanner((prev) => {
+        const slides = [...(prev.slides || DEFAULT_HERO_SLIDES)];
+        slides[idx] = { ...slides[idx], image: r.data.url };
+        return { ...prev, slides };
+      });
+      toast.success(`Slide ${idx + 1} image uploaded`);
     } catch (err) {
       toast.error("Upload failed: " + (err.response?.data?.detail || err.message));
     } finally {
-      setUploading(false);
+      setUploadingSlide(null);
     }
+  };
+
+  const updateSlide = (idx, field, value) => {
+    setBanner((prev) => {
+      const slides = [...(prev.slides || DEFAULT_HERO_SLIDES)];
+      slides[idx] = { ...slides[idx], [field]: value };
+      return { ...prev, slides };
+    });
+  };
+
+  const addSlide = () => {
+    const newSlide = {
+      id: `slide-${Date.now()}`,
+      image: "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+      eyebrow: "PANCHKULA ATELIER · NEW",
+      title: "Handcrafted Luxury",
+      subtitle: "Bespoke writing instruments crafted for precision, balance, and lifelong elegance.",
+      cta_text: "Explore Now",
+      cta_link: "/shop",
+      secondary_cta_text: "Custom Engraving",
+      secondary_cta_link: "/contact",
+    };
+    setBanner((prev) => {
+      const slides = [...(prev.slides || DEFAULT_HERO_SLIDES), newSlide];
+      setActiveSlideIdx(slides.length - 1);
+      return { ...prev, slides };
+    });
+    toast.success("New hero slide added");
+  };
+
+  const removeSlide = (idx) => {
+    if (currentSlides.length <= 1) {
+      toast.error("At least one hero slide is required");
+      return;
+    }
+    setBanner((prev) => {
+      const slides = (prev.slides || DEFAULT_HERO_SLIDES).filter((_, i) => i !== idx);
+      setActiveSlideIdx((prevIdx) => Math.max(0, Math.min(prevIdx, slides.length - 1)));
+      return { ...prev, slides };
+    });
+    toast.success("Slide removed");
+  };
+
+  const moveSlide = (idx, direction) => {
+    const targetIdx = idx + direction;
+    if (targetIdx < 0 || targetIdx >= currentSlides.length) return;
+    setBanner((prev) => {
+      const slides = [...(prev.slides || DEFAULT_HERO_SLIDES)];
+      const temp = slides[idx];
+      slides[idx] = slides[targetIdx];
+      slides[targetIdx] = temp;
+      setActiveSlideIdx(targetIdx);
+      return { ...prev, slides };
+    });
   };
 
   const uploadCatImage = async (file, idx) => {
@@ -1041,8 +1169,21 @@ function BannerTab() {
   const save = async () => {
     setSaving(true);
     try {
-      await api.put("/admin/banner", banner);
-      toast.success("Homepage sections & banner updated");
+      // Keep legacy fields in sync with slide 1 for backward compatibility
+      const payload = {
+        ...banner,
+        slides: currentSlides,
+        image: currentSlides[0]?.image || banner.image,
+        eyebrow: currentSlides[0]?.eyebrow || banner.eyebrow,
+        title: currentSlides[0]?.title || banner.title,
+        subtitle: currentSlides[0]?.subtitle || banner.subtitle,
+        cta_text: currentSlides[0]?.cta_text || banner.cta_text,
+        cta_link: currentSlides[0]?.cta_link || banner.cta_link,
+        secondary_cta_text: currentSlides[0]?.secondary_cta_text || banner.secondary_cta_text,
+        secondary_cta_link: currentSlides[0]?.secondary_cta_link || banner.secondary_cta_link,
+      };
+      await api.put("/admin/banner", payload);
+      toast.success("Homepage moving carousel & sections updated successfully");
     } catch (err) {
       toast.error("Save failed: " + (err.response?.data?.detail || err.message));
     } finally {
@@ -1054,137 +1195,223 @@ function BannerTab() {
 
   return (
     <div className="max-w-4xl space-y-8" data-testid="admin-banner-tab">
-      {/* 1. Hero Banner Configuration */}
+      {/* 1. Hero Moving Carousel Configuration */}
       <div className="bg-white border border-[#E6E0D6] p-8 space-y-6">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">HERO SECTION</p>
-          <h2 className="font-serif text-3xl text-[#1C1815] mt-1">Hero Banner Configuration</h2>
-          <p className="text-sm text-[#6E685E] mt-1">Manage the top hero banner image, headline, subtitle, and call-to-action buttons.</p>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-[#B8860B] text-[10px] uppercase tracking-[0.25em]">
+              <Sparkles size={12} />
+              <span>HERO MOVING CAROUSEL</span>
+            </div>
+            <h2 className="font-serif text-3xl text-[#1C1815] mt-1">Hero Carousel Slides ({currentSlides.length})</h2>
+            <p className="text-sm text-[#6E685E] mt-1">
+              Manage the rotating auto-play slides on your homepage. Each slide has its own image, title, and actions.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={addSlide}
+            className="inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-4 py-2.5 text-xs uppercase tracking-[0.15em] hover:bg-[#3D4838] transition-colors"
+          >
+            <Plus size={14} /> Add New Slide
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-[#E6E0D6]">
-          <div>
-            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-2 font-medium">Banner Image</span>
-            <div className="aspect-[4/3] bg-[#F3EFEA] border border-[#E6E0D6] overflow-hidden relative group flex items-center justify-center">
-              {banner.image ? (
-                <img src={fileUrl(banner.image)} alt="Banner preview" className="w-full h-full object-cover"/>
-              ) : (
-                <span className="text-xs text-[#6E685E] uppercase tracking-[0.15em]">No banner image</span>
-              )}
-            </div>
-            <div className="mt-4 flex items-center gap-3">
-              <label className="bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] cursor-pointer hover:bg-[#3D4838] transition-colors">
-                {uploading ? "Uploading…" : "Upload New Image"}
-                <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
-              </label>
-              {banner.image && (
+        {/* Slide Selection Strip */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#E6E0D6]">
+          {currentSlides.map((slide, idx) => (
+            <button
+              key={slide.id || idx}
+              type="button"
+              onClick={() => setActiveSlideIdx(idx)}
+              className={`flex items-center gap-2 px-4 py-2 text-xs uppercase tracking-[0.15em] border transition-all whitespace-nowrap ${
+                idx === safeActiveSlideIdx
+                  ? "border-[#1C1815] bg-[#1C1815] text-[#FAF8F5] shadow-sm"
+                  : "border-[#E6E0D6] bg-[#FAF8F5] text-[#6E685E] hover:border-[#3D4838]"
+              }`}
+            >
+              <Layers size={13} />
+              <span>Slide {idx + 1}: {slide.title ? (slide.title.length > 18 ? slide.title.slice(0, 18) + "…" : slide.title) : "Untitled"}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Active Slide Editor Form */}
+        {currentSlide && (
+          <div className="p-6 bg-[#FAF8F5] border border-[#E6E0D6] space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E6E0D6] pb-4">
+              <span className="font-serif text-xl text-[#1C1815]">
+                Editing Slide #{safeActiveSlideIdx + 1}
+              </span>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setBanner((prev) => ({ ...prev, image: "" }))}
-                  className="text-xs text-red-700 hover:underline uppercase tracking-[0.15em]"
+                  disabled={safeActiveSlideIdx === 0}
+                  onClick={() => moveSlide(safeActiveSlideIdx, -1)}
+                  className="p-1.5 border border-[#E6E0D6] bg-white text-[#1C1815] disabled:opacity-30 hover:border-[#1C1815] transition-colors"
+                  title="Move slide left / earlier"
                 >
-                  Clear Image
+                  <ArrowUp size={14} className="-rotate-90" />
                 </button>
-              )}
+                <button
+                  type="button"
+                  disabled={safeActiveSlideIdx === currentSlides.length - 1}
+                  onClick={() => moveSlide(safeActiveSlideIdx, 1)}
+                  className="p-1.5 border border-[#E6E0D6] bg-white text-[#1C1815] disabled:opacity-30 hover:border-[#1C1815] transition-colors"
+                  title="Move slide right / later"
+                >
+                  <ArrowDown size={14} className="-rotate-90" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeSlide(safeActiveSlideIdx)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-700 hover:bg-red-50 border border-red-200 transition-colors uppercase tracking-[0.1em]"
+                >
+                  <Trash2 size={13} /> Remove
+                </button>
+              </div>
             </div>
-            <label className="block mt-4">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Or Direct Image URL</span>
-              <input
-                type="text"
-                value={banner.image || ""}
-                onChange={(e) => setBanner((prev) => ({ ...prev, image: e.target.value }))}
-                placeholder="https://..."
-                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-              />
-            </label>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Slide Image Upload / URL */}
+              <div>
+                <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-2 font-medium">
+                  Slide Image
+                </span>
+                <div className="aspect-[16/9] bg-[#F3EFEA] border border-[#E6E0D6] overflow-hidden relative group flex items-center justify-center">
+                  {currentSlide.image ? (
+                    <img
+                      src={fileUrl(currentSlide.image)}
+                      alt="Slide preview"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="text-center p-4">
+                      <ImageIcon size={28} className="mx-auto text-[#6E685E]/50 mb-1" />
+                      <span className="text-xs text-[#6E685E] uppercase tracking-[0.15em]">
+                        No slide image
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-4 flex items-center gap-3">
+                  <label className="bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] cursor-pointer hover:bg-[#3D4838] transition-colors">
+                    {uploadingSlide === safeActiveSlideIdx ? "Uploading…" : "Upload New Image"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => e.target.files?.[0] && uploadSlideImage(e.target.files[0], safeActiveSlideIdx)}
+                    />
+                  </label>
+                  {currentSlide.image && (
+                    <button
+                      type="button"
+                      onClick={() => updateSlide(safeActiveSlideIdx, "image", "")}
+                      className="text-xs text-red-700 hover:underline uppercase tracking-[0.15em]"
+                    >
+                      Clear Image
+                    </button>
+                  )}
+                </div>
+                <label className="block mt-4">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">
+                    Or Direct Image URL
+                  </span>
+                  <input
+                    type="text"
+                    value={currentSlide.image || ""}
+                    onChange={(e) => updateSlide(safeActiveSlideIdx, "image", e.target.value)}
+                    placeholder="https://..."
+                    className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+              </div>
+
+              {/* Slide Text Content */}
+              <div className="space-y-4">
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Eyebrow Label</span>
+                  <input
+                    type="text"
+                    value={currentSlide.eyebrow || ""}
+                    onChange={(e) => updateSlide(safeActiveSlideIdx, "eyebrow", e.target.value)}
+                    placeholder="e.g. PANCHKULA ATELIER · SS/26"
+                    className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Main Headline</span>
+                  <input
+                    type="text"
+                    value={currentSlide.title || ""}
+                    onChange={(e) => updateSlide(safeActiveSlideIdx, "title", e.target.value)}
+                    placeholder="e.g. The Eternal Quill"
+                    className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm font-serif text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Subtitle / Description</span>
+                  <textarea
+                    rows={2}
+                    value={currentSlide.subtitle || ""}
+                    onChange={(e) => updateSlide(safeActiveSlideIdx, "subtitle", e.target.value)}
+                    placeholder="Descriptive caption for this slide…"
+                    className="mt-1 w-full bg-transparent border border-[#E6E0D6] p-2 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Primary Button Text</span>
+                    <input
+                      type="text"
+                      value={currentSlide.cta_text || ""}
+                      onChange={(e) => updateSlide(safeActiveSlideIdx, "cta_text", e.target.value)}
+                      placeholder="Shop Now"
+                      className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Primary Button Link</span>
+                    <input
+                      type="text"
+                      value={currentSlide.cta_link || ""}
+                      onChange={(e) => updateSlide(safeActiveSlideIdx, "cta_link", e.target.value)}
+                      placeholder="/shop"
+                      className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block">
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Secondary Button Text</span>
+                    <input
+                      type="text"
+                      value={currentSlide.secondary_cta_text || ""}
+                      onChange={(e) => updateSlide(safeActiveSlideIdx, "secondary_cta_text", e.target.value)}
+                      placeholder="New Arrivals"
+                      className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Secondary Button Link</span>
+                    <input
+                      type="text"
+                      value={currentSlide.secondary_cta_link || ""}
+                      onChange={(e) => updateSlide(safeActiveSlideIdx, "secondary_cta_link", e.target.value)}
+                      placeholder="/new-arrivals"
+                      className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
           </div>
-
-          <div className="space-y-4">
-            <label className="block">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Eyebrow text</span>
-              <input
-                type="text"
-                value={banner.eyebrow || ""}
-                onChange={(e) => setBanner((prev) => ({ ...prev, eyebrow: e.target.value }))}
-                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
-              />
-            </label>
-
-            <label className="block">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Main Headline</span>
-              <input
-                type="text"
-                value={banner.title || ""}
-                onChange={(e) => setBanner((prev) => ({ ...prev, title: e.target.value }))}
-                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm font-serif text-[#1C1815] outline-none focus:border-[#3D4838]"
-              />
-            </label>
-
-            <label className="block">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Subtitle / Description</span>
-              <textarea
-                rows={3}
-                value={banner.subtitle || ""}
-                onChange={(e) => setBanner((prev) => ({ ...prev, subtitle: e.target.value }))}
-                className="mt-1 w-full bg-transparent border border-[#E6E0D6] p-2.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-              />
-            </label>
-
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Primary Button Text</span>
-                <input
-                  type="text"
-                  value={banner.cta_text || ""}
-                  onChange={(e) => setBanner((prev) => ({ ...prev, cta_text: e.target.value }))}
-                  className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                />
-              </label>
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Primary Button Link</span>
-                <input
-                  type="text"
-                  value={banner.cta_link || ""}
-                  onChange={(e) => setBanner((prev) => ({ ...prev, cta_link: e.target.value }))}
-                  className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                />
-              </label>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Secondary Button Text</span>
-                <input
-                  type="text"
-                  value={banner.secondary_cta_text || ""}
-                  onChange={(e) => setBanner((prev) => ({ ...prev, secondary_cta_text: e.target.value }))}
-                  className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                />
-              </label>
-              <label className="block">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Secondary Button Link</span>
-                <input
-                  type="text"
-                  value={banner.secondary_cta_link || ""}
-                  onChange={(e) => setBanner((prev) => ({ ...prev, secondary_cta_link: e.target.value }))}
-                  className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                />
-              </label>
-            </div>
-
-            <div className="pt-2">
-              <label className="flex items-center gap-2.5 text-xs text-[#1C1815] cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={banner.enabled}
-                  onChange={(e) => setBanner((prev) => ({ ...prev, enabled: e.target.checked }))}
-                  className="accent-[#3D4838]"
-                />
-                <span>Enable banner on homepage</span>
-              </label>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* 2. Section 01: Categories Configuration */}
@@ -1535,6 +1762,81 @@ function BannerTab() {
         </div>
       </div>
 
+      {/* 6. Contact Form Inquiry Topics Configuration */}
+      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">CONTACT PAGE</p>
+            <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Contact Form Inquiry Topics</h2>
+            <p className="text-sm text-[#6E685E] mt-1">
+              Customize the selectable dropdown topics on the Contact Us form. Users can pick these when reaching out via Email or WhatsApp.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setBanner((prev) => ({
+                ...prev,
+                contact_inquiry_types: [
+                  ...(prev.contact_inquiry_types || [
+                    "General Studio Inquiry",
+                    "Bespoke Nib Tuning & Engraving",
+                    "Corporate & Wedding Gifting",
+                    "Order Status & Dispatch",
+                    "Private Studio Consultation (Panchkula)",
+                  ]),
+                  "New Inquiry Topic",
+                ],
+              }));
+            }}
+            className="inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-[#3D4838] transition-colors"
+          >
+            <Plus size={14} /> Add Topic
+          </button>
+        </div>
+
+        <div className="space-y-3 pt-4 border-t border-[#E6E0D6]">
+          {(banner.contact_inquiry_types || [
+            "General Studio Inquiry",
+            "Bespoke Nib Tuning & Engraving",
+            "Corporate & Wedding Gifting",
+            "Order Status & Dispatch",
+            "Private Studio Consultation (Panchkula)",
+          ]).map((topic, idx) => (
+            <div key={idx} className="flex items-center gap-3">
+              <span className="text-xs text-[#6E685E] w-6 text-right font-medium">{idx + 1}.</span>
+              <input
+                type="text"
+                value={topic}
+                onChange={(e) => {
+                  const updated = [...(banner.contact_inquiry_types || [])];
+                  updated[idx] = e.target.value;
+                  setBanner((prev) => ({ ...prev, contact_inquiry_types: updated }));
+                }}
+                placeholder="Inquiry topic name..."
+                className="flex-1 bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const current = banner.contact_inquiry_types || [];
+                  if (current.length <= 1) {
+                    toast.error("At least one inquiry topic is required");
+                    return;
+                  }
+                  const updated = current.filter((_, i) => i !== idx);
+                  setBanner((prev) => ({ ...prev, contact_inquiry_types: updated }));
+                }}
+                className="text-red-400 hover:text-red-700 p-2 text-xs uppercase tracking-[0.1em]"
+                title="Remove topic"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Save Button Sticky Bar */}
       <div className="pt-4 flex justify-end">
         <button
@@ -1543,7 +1845,7 @@ function BannerTab() {
           className="bg-[#1C1815] text-[#FAF8F5] px-10 py-4 text-xs uppercase tracking-[0.2em] hover:bg-[#3D4838] transition-colors disabled:opacity-50 shadow-md"
           data-testid="save-banner-btn"
         >
-          {saving ? "Saving…" : "Save All Homepage Changes"}
+          {saving ? "Saving…" : "Save All Homepage & Site Changes"}
         </button>
       </div>
     </div>

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Gift } from "lucide-react";
-import { motion } from "framer-motion";
+import { ArrowRight, Gift, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { api, fileUrl } from "../lib/api";
 import { useCategories } from "../lib/categories";
 import { SITE } from "../lib/site";
@@ -12,6 +12,42 @@ const HERO_IMG = "https://images.unsplash.com/photo-1455390582262-044cdead277a?c
 const EDITORIAL_1 = "https://images.unsplash.com/photo-1617177435596-1c9e30d6d608?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200";
 const EDITORIAL_2 = "https://images.unsplash.com/photo-1473186505569-9c61870c11f9?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200";
 const GIFT_IMG = "/gifting-banner.jpg";
+
+const DEFAULT_SLIDES = [
+  {
+    id: "slide-1",
+    image: "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+    eyebrow: "PANCHKULA ATELIER · SS/26",
+    title: "The Eternal Quill",
+    subtitle: "Discover the art of handcrafted writing instruments, engineered for generations of prose.",
+    cta_text: "Shop Now",
+    cta_link: "/shop",
+    secondary_cta_text: "New Arrivals",
+    secondary_cta_link: "/new-arrivals",
+  },
+  {
+    id: "slide-2",
+    image: "https://images.unsplash.com/photo-1583195764036-5d2c7b0b5e3f?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+    eyebrow: "HAND-TUNED NIBS & ENGRAVING",
+    title: "Bespoke Personalization",
+    subtitle: "Complimentary hand-etched initials, custom nib tuning, and cotton presentation pouch with every fine pen.",
+    cta_text: "Fountain Pens",
+    cta_link: "/shop?category=Fountain%20Pens",
+    secondary_cta_text: "Studio Services",
+    secondary_cta_link: "/contact",
+  },
+  {
+    id: "slide-3",
+    image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+    eyebrow: "ARCHIVAL PIGMENTS & SHIMMER",
+    title: "Rich Inks of the Season",
+    subtitle: "From shimmering sheen to waterproof archival formulations, curated from master ink houses worldwide.",
+    cta_text: "Explore Inks",
+    cta_link: "/shop?category=Inks",
+    secondary_cta_text: "Best Sellers",
+    secondary_cta_link: "/best-sellers",
+  },
+];
 
 const DEFAULT_FEATURED_CATS = [
   {
@@ -52,6 +88,8 @@ export default function Home() {
   const [newArrivals, setNewArrivals] = useState([]);
   const [studio, setStudio] = useState([]);
   const [banner, setBanner] = useState(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const cats = useCategories();
 
   useEffect(() => {
@@ -80,18 +118,42 @@ export default function Home() {
       .catch(() => setStudio([]));
   }, []);
 
+  // Compute active slides list
+  const slides = (Array.isArray(banner?.slides) && banner.slides.length > 0)
+    ? banner.slides
+    : (banner?.image
+        ? [{
+            id: "default-banner",
+            image: banner.image,
+            eyebrow: banner.eyebrow || `${SITE.brand.toUpperCase()} · SS/26 ARRIVALS`,
+            title: banner.title || "The quiet art of writing well.",
+            subtitle: banner.subtitle || `${SITE.brand} — a small studio of writing instruments in the shadow of the Shivaliks.`,
+            cta_text: banner.cta_text || "Enter the atelier",
+            cta_link: banner.cta_link || "/shop",
+            secondary_cta_text: banner.secondary_cta_text || "New Arrivals",
+            secondary_cta_link: banner.secondary_cta_link || "/new-arrivals",
+          }]
+        : DEFAULT_SLIDES);
+
+  // Auto-play timer (5.5s) with pause-on-hover
+  useEffect(() => {
+    if (slides.length <= 1 || isPaused) return;
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 5500);
+    return () => clearInterval(interval);
+  }, [slides.length, isPaused]);
+
+  // Keep index within bounds if slides length changes
+  const activeSlideIndex = currentSlide % (slides.length || 1);
+  const activeSlide = slides[activeSlideIndex] || slides[0] || DEFAULT_SLIDES[0];
+
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+
   const safeCats = Array.isArray(cats) ? cats : [];
   const safeFeatured = Array.isArray(featured) ? featured : [];
   const safeNewArrivals = Array.isArray(newArrivals) ? newArrivals : [];
-
-  const heroImage = banner?.image ? fileUrl(banner.image) : HERO_IMG;
-  const eyebrow = banner?.eyebrow || `${SITE.brand.toUpperCase()} · SS/26 ARRIVALS`;
-  const title = banner?.title || "The quiet art of writing well.";
-  const subtitle = banner?.subtitle || `${SITE.brand} — a small studio of writing instruments in the shadow of the Shivaliks.`;
-  const ctaText = banner?.cta_text || "Enter the atelier";
-  const ctaLink = banner?.cta_link || "/shop";
-  const secondaryCtaText = banner?.secondary_cta_text || "New Arrivals";
-  const secondaryCtaLink = banner?.secondary_cta_link || "/new-arrivals";
 
   const categoriesEyebrow = banner?.categories_eyebrow || "01 / CURATED COLLECTIONS";
   const categoriesTitle = banner?.categories_title || "Shop by category.";
@@ -120,19 +182,116 @@ export default function Home() {
 
   return (
     <div className="pt-[108px] sm:pt-[108px]">
-      {/* Hero Section */}
-      <section className="relative w-full h-[60vh] sm:h-[68vh] lg:h-[72vh] min-h-[440px] max-h-[720px] overflow-hidden">
-        <img 
-          src={heroImage} 
-          alt="The Eternal Quill" 
-          className="w-full h-full object-cover object-[center_35%] scale-105 transition-transform duration-1000"
-        />
-        <div className="absolute inset-0 bg-[#1C1815]/30"/>
-        <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-4 sm:px-6">
-          <h1 className="font-serif text-3xl sm:text-5xl lg:text-7xl text-[#FAF8F5] leading-tight drop-shadow-sm">The Eternal Quill</h1>
-          <p className="text-[#FAF8F5]/90 text-sm sm:text-base lg:text-lg font-serif italic mt-2 sm:mt-3">Discover the art of writing.</p>
-          <Link to="/shop" className="mt-5 sm:mt-6 bg-[#FAF8F5] text-[#1C1815] px-8 sm:px-10 py-3 rounded-full uppercase tracking-widest text-xs font-medium hover:bg-[#E6E0D6] transition-colors shadow-md">SHOP NOW</Link>
+      {/* Hero Moving Carousel Section */}
+      <section 
+        className="relative w-full h-[60vh] sm:h-[68vh] lg:h-[72vh] min-h-[440px] max-h-[720px] overflow-hidden bg-[#1C1815]"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeSlide.id || activeSlideIndex}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+            className="absolute inset-0"
+          >
+            <img 
+              src={activeSlide.image ? fileUrl(activeSlide.image) : HERO_IMG} 
+              alt={activeSlide.title || "The WL Pens Atelier"} 
+              className="w-full h-full object-cover object-[center_35%] scale-105 transition-transform duration-1000"
+            />
+            {/* Cinematic Gradient Overlays */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#1C1815]/80 via-[#1C1815]/40 to-[#1C1815]/20" />
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Slide Content Layer */}
+        <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-4 sm:px-6 z-10">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`content-${activeSlide.id || activeSlideIndex}`}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.55, ease: "easeOut" }}
+              className="max-w-3xl flex flex-col items-center"
+            >
+              {activeSlide.eyebrow && (
+                <div className="flex items-center gap-2 text-[#B8860B] text-[11px] sm:text-xs uppercase tracking-[0.3em] mb-3 drop-shadow">
+                  <Sparkles size={13} />
+                  <span>{activeSlide.eyebrow}</span>
+                </div>
+              )}
+              <h1 className="font-serif text-3xl sm:text-5xl lg:text-7xl text-[#FAF8F5] leading-tight drop-shadow-md">
+                {activeSlide.title || "The Eternal Quill"}
+              </h1>
+              {activeSlide.subtitle && (
+                <p className="text-[#FAF8F5]/90 text-sm sm:text-base lg:text-lg font-serif italic mt-3 sm:mt-4 max-w-2xl leading-relaxed drop-shadow">
+                  {activeSlide.subtitle}
+                </p>
+              )}
+              <div className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center gap-4">
+                {activeSlide.cta_text && (
+                  <Link
+                    to={activeSlide.cta_link || "/shop"}
+                    className="bg-[#FAF8F5] text-[#1C1815] px-8 sm:px-10 py-3.5 rounded-full uppercase tracking-widest text-xs font-semibold hover:bg-[#E6E0D6] transition-all shadow-lg hover:shadow-xl hover:scale-105 duration-200"
+                  >
+                    {activeSlide.cta_text}
+                  </Link>
+                )}
+                {activeSlide.secondary_cta_text && (
+                  <Link
+                    to={activeSlide.secondary_cta_link || "/new-arrivals"}
+                    className="border border-[#FAF8F5]/80 text-[#FAF8F5] bg-black/20 backdrop-blur-sm px-6 sm:px-8 py-3.5 rounded-full uppercase tracking-widest text-xs font-medium hover:bg-[#FAF8F5] hover:text-[#1C1815] transition-all duration-200"
+                  >
+                    {activeSlide.secondary_cta_text}
+                  </Link>
+                )}
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </div>
+
+        {/* Carousel Navigation Arrows (only if multiple slides) */}
+        {slides.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={prevSlide}
+              aria-label="Previous Slide"
+              className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/30 hover:bg-black/60 text-white/90 hover:text-white flex items-center justify-center backdrop-blur-sm border border-white/10 transition-all hover:scale-110"
+            >
+              <ChevronLeft size={22} />
+            </button>
+            <button
+              type="button"
+              onClick={nextSlide}
+              aria-label="Next Slide"
+              className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/30 hover:bg-black/60 text-white/90 hover:text-white flex items-center justify-center backdrop-blur-sm border border-white/10 transition-all hover:scale-110"
+            >
+              <ChevronRight size={22} />
+            </button>
+
+            {/* Slide Indicator Bars / Dots */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 sm:gap-3 bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+              {slides.map((s, idx) => (
+                <button
+                  key={s.id || idx}
+                  type="button"
+                  onClick={() => setCurrentSlide(idx)}
+                  aria-label={`Go to slide ${idx + 1}`}
+                  className={`h-1.5 transition-all duration-300 rounded-full ${
+                    idx === activeSlideIndex
+                      ? "w-8 bg-[#B8860B]"
+                      : "w-2 bg-white/40 hover:bg-white/70"
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </section>
 
       {/* Brand Strip Marquee — uses live brands list */}

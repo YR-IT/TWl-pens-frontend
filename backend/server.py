@@ -257,11 +257,17 @@ class BannerIn(BaseModel):
     studio_title: Optional[str] = "Live from the desk."
     studio_subtitle: Optional[str] = "Fresh nib videos, first inks of the season, and bespoke commissions — straight from our Panchkula atelier."
 
+    # Hero Carousel Slides
+    slides: Optional[List[dict]] = None
+
     # Section 05: Featured Categories (3 editorial banners)
     featured_cats: Optional[List[dict]] = None
 
     # Section 06: Exclusive Partners / Brands
     brands: Optional[List[dict]] = None
+
+    # Contact Form Inquiry Types
+    contact_inquiry_types: Optional[List[str]] = None
 
 
 class StudioPostIn(BaseModel):
@@ -959,6 +965,41 @@ DEFAULT_BANNER = {
     "secondary_cta_text": "New Arrivals",
     "secondary_cta_link": "/new-arrivals",
     "enabled": True,
+    "slides": [
+        {
+            "id": "slide-1",
+            "image": "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+            "eyebrow": "PANCHKULA ATELIER · SS/26",
+            "title": "The Eternal Quill",
+            "subtitle": "Discover the art of handcrafted writing instruments, engineered for generations of prose.",
+            "cta_text": "Shop Now",
+            "cta_link": "/shop",
+            "secondary_cta_text": "New Arrivals",
+            "secondary_cta_link": "/new-arrivals",
+        },
+        {
+            "id": "slide-2",
+            "image": "https://images.unsplash.com/photo-1583195764036-5d2c7b0b5e3f?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+            "eyebrow": "HAND-TUNED NIBS & ENGRAVING",
+            "title": "Bespoke Personalization",
+            "subtitle": "Complimentary hand-etched initials, custom nib tuning, and cotton presentation pouch with every fine pen.",
+            "cta_text": "Fountain Pens",
+            "cta_link": "/shop?category=Fountain%20Pens",
+            "secondary_cta_text": "Studio Services",
+            "secondary_cta_link": "/contact",
+        },
+        {
+            "id": "slide-3",
+            "image": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+            "eyebrow": "ARCHIVAL PIGMENTS & SHIMMER",
+            "title": "Rich Inks of the Season",
+            "subtitle": "From shimmering sheen to waterproof archival formulations, curated from master ink houses worldwide.",
+            "cta_text": "Explore Inks",
+            "cta_link": "/shop?category=Inks",
+            "secondary_cta_text": "Best Sellers",
+            "secondary_cta_link": "/best-sellers",
+        },
+    ],
     "categories_eyebrow": "01 / CURATED COLLECTIONS",
     "categories_title": "Shop by category.",
     "categories_subtitle": "Explore fine pens, rich pigment inks, and handcrafted accessories engineered for effortless writing.",
@@ -968,6 +1009,13 @@ DEFAULT_BANNER = {
     "studio_eyebrow": "03 / FROM THE STUDIO",
     "studio_title": "Live from the desk.",
     "studio_subtitle": "Fresh nib videos, first inks of the season, and bespoke commissions — straight from our Panchkula atelier.",
+    "contact_inquiry_types": [
+        "General Studio Inquiry",
+        "Bespoke Nib Tuning & Engraving",
+        "Corporate & Wedding Gifting",
+        "Order Status & Dispatch",
+        "Private Studio Consultation (Panchkula)",
+    ],
 }
 
 

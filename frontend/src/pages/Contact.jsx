@@ -1,19 +1,45 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import emailjs from "@emailjs/browser";
 import { MapPin, Phone, Mail, MessageCircle, Clock, Send, Sparkles, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 import { SITE } from "../lib/site";
+import { api } from "../lib/api";
 import { toast } from "sonner";
 
+const DEFAULT_INQUIRY_TYPES = [
+  "General Studio Inquiry",
+  "Bespoke Nib Tuning & Engraving",
+  "Corporate & Wedding Gifting",
+  "Order Status & Dispatch",
+  "Private Studio Consultation (Panchkula)",
+];
+
 export default function Contact() {
+  const [inquiryTypes, setInquiryTypes] = useState(DEFAULT_INQUIRY_TYPES);
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
-    inquiryType: "General Inquiry",
+    inquiryType: DEFAULT_INQUIRY_TYPES[0],
     message: "",
   });
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    api.get("/site/banner")
+      .then((r) => {
+        if (Array.isArray(r.data?.contact_inquiry_types) && r.data.contact_inquiry_types.length > 0) {
+          setInquiryTypes(r.data.contact_inquiry_types);
+          setForm((prev) => ({
+            ...prev,
+            inquiryType: r.data.contact_inquiry_types.includes(prev.inquiryType)
+              ? prev.inquiryType
+              : r.data.contact_inquiry_types[0],
+          }));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // EmailJS configuration via environment variables with fallback defaults
   const EMAILJS_SERVICE_ID = process.env.REACT_APP_EMAILJS_SERVICE_ID || "service_wlpens";
@@ -274,11 +300,11 @@ export default function Contact() {
                     onChange={(e) => setForm({ ...form, inquiryType: e.target.value })}
                     className="w-full bg-transparent border-b border-[#E6E0D6] py-2.5 text-sm text-[#1C1815] outline-none focus:border-[#1C1815]"
                   >
-                    <option value="General Inquiry">General Studio Inquiry</option>
-                    <option value="Bespoke Nib Tuning & Engraving">Bespoke Nib Tuning &amp; Engraving</option>
-                    <option value="Corporate & Wedding Gifting">Corporate &amp; Wedding Gifting</option>
-                    <option value="Order Support & Dispatch">Order Status &amp; Dispatch</option>
-                    <option value="Private Consultation">Private Studio Consultation (Panchkula)</option>
+                    {inquiryTypes.map((type, idx) => (
+                      <option key={idx} value={type}>
+                        {type}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
