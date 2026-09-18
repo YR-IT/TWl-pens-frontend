@@ -28,7 +28,7 @@ body {
 }
 #root {
   width: 100%;
-  min-h: 100vh;
+  min-height: 100vh;
   overflow-x: hidden;
 }
 .font-serif { font-family: 'Cormorant Garamond', Georgia, serif; }
@@ -55,7 +55,7 @@ body::before {
 ::-webkit-scrollbar-thumb:hover { background: var(--ink-muted); }
 
 /* Range input */
-input[type="range"] { -webkit-appearance: none; height: 2px; background: var(--line); }
+input[type="range"] { -webkit-appearance: none; appearance: none; height: 2px; background: var(--line); }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none; width: 14px; height: 14px;
   background: var(--ink); border-radius: 50%; cursor: pointer;
