@@ -156,3 +156,62 @@ def test_admin_update_order_status(client, admin_headers):
     assert updated_order["shipment"]["carrier"] == "BlueDart"
     assert updated_order["shipment"]["tracking_number"] == "BD99887766"
 
+
+def test_catalog_search_exact_and_fuzzy_fallback(client):
+    """Verify GET /api/products returns items and sets X-Search-Fuzzy header on typos."""
+    # 1. Exact catalog search
+    r_exact = client.get("/api/products", params={"q": "Pilot"})
+    assert r_exact.status_code == 200
+    assert isinstance(r_exact.json(), list)
+    assert r_exact.headers.get("X-Search-Fuzzy") is None
+
+    # 2. Misspelled/typo search fallback
+    r_typo = client.get("/api/products", params={"q": "pilott"})
+    assert r_typo.status_code == 200
+    items = r_typo.json()
+    assert isinstance(items, list)
+    if len(items) > 0:
+        assert r_typo.headers.get("X-Search-Fuzzy") == "true"
+        names = [p["name"] + " " + p.get("brand", "") for p in items]
+        assert any("pilot" in n.lower() for n in names)
+
+
+def test_product_cache_invalidation_lifecycle(client, admin_headers):
+    """Verify in-memory product cache is updated immediately on create/delete."""
+    unique_name = f"Test Pen {uuid.uuid4().hex[:8]}"
+    
+    # 1. Search before creation (must be empty)
+    r1 = client.get("/api/products/search", params={"q": unique_name})
+    assert r1.status_code == 200
+    assert len(r1.json()["results"]) == 0
+
+    # 2. Create product
+    r_create = client.post("/api/admin/products", headers=admin_headers, json={
+        "name": unique_name,
+        "brand": "CustomBrand",
+        "category": "Fountain Pens",
+        "price": 150.0,
+        "description": "Exclusive test pen for cache verification",
+        "stock": 10,
+        "features": ["Feature 1"],
+        "specs": {"Colour": "Blue"},
+        "images": []
+    })
+    assert r_create.status_code == 200
+    prod_id = r_create.json()["id"]
+
+    # 3. Search immediately after creation (cache must be fresh)
+    r2 = client.get("/api/products/search", params={"q": unique_name})
+    assert r2.status_code == 200
+    assert any(p["id"] == prod_id for p in r2.json()["results"])
+
+    # 4. Delete product
+    r_del = client.delete(f"/api/admin/products/{prod_id}", headers=admin_headers)
+    assert r_del.status_code == 200
+
+    # 5. Search immediately after deletion (must not find deleted item)
+    r3 = client.get("/api/products/search", params={"q": unique_name})
+    assert r3.status_code == 200
+    assert not any(p["id"] == prod_id for p in r3.json()["results"])
+
+

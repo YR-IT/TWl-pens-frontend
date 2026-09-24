@@ -137,6 +137,7 @@ export default function Catalog() {
   const [nibSize, setNibSize] = useState(sp.get("nibSize") || "");
   const [inStock, setInStock] = useState(sp.get("inStock") === "true" ? true : null);
   const [products, setProducts] = useState([]);
+  const [isFuzzy, setIsFuzzy] = useState(false);
   const [facets, setFacets] = useState({ categories: [], brands: [], colours: [], nib_sizes: [], price_min: 0, price_max: 3000 });
   const [priceMax, setPriceMax] = useState(3000);
   const [loading, setLoading] = useState(true);
@@ -168,6 +169,8 @@ export default function Catalog() {
     api.get("/products", { params, signal: ctrl.signal })
       .then((r) => {
         setProducts(Array.isArray(r.data) ? r.data : (r.data?.products || []));
+        const fuzzyHeader = r.headers?.["x-search-fuzzy"] === "true" || r.headers?.["X-Search-Fuzzy"] === "true";
+        setIsFuzzy(Boolean(fuzzyHeader && q));
         setLoading(false);
       })
       .catch((err) => {
@@ -294,6 +297,14 @@ export default function Catalog() {
               </select>
             </div>
           </div>
+
+          {isFuzzy && q && (
+            <div className="mb-6 p-4 bg-[#B8860B]/10 border border-[#B8860B]/30 rounded-sm" data-testid="catalog-fuzzy-banner">
+              <p className="font-serif italic text-base text-[#1C1815]">
+                No exact match for "{q}" — displaying closest matches:
+              </p>
+            </div>
+          )}
 
           {loading ? (
             <div className="text-center py-16 text-[#6E685E]" data-testid="catalog-loading">Loading atelier…</div>

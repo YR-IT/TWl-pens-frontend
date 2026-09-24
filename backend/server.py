@@ -11,6 +11,7 @@ import bcrypt
 # pyrefly: ignore [missing-import]
 import jwt
 import requests
+import time
 from pathlib import Path                                                                                
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
@@ -35,6 +36,62 @@ except ImportError:
         if not text:
             return 0.0
         return difflib.SequenceMatcher(None, query.lower(), text.lower()).ratio() * 100.0
+
+# ---------------- In-Memory Product Cache for High-Speed Search ----------------
+_product_cache: list = []
+_product_cache_time: float = 0.0
+PRODUCT_CACHE_TTL: float = 300.0  # 5 minutes, invalidated automatically on mutations
+
+async def get_cached_products() -> list:
+    global _product_cache, _product_cache_time
+    now = time.time()
+    if not _product_cache or (now - _product_cache_time) > PRODUCT_CACHE_TTL:
+        cursor = db.products.find({}, {"_id": 0})
+        _product_cache = await cursor.to_list(5000)
+        _product_cache_time = now
+    return _product_cache
+
+def invalidate_product_cache():
+    global _product_cache, _product_cache_time
+    _product_cache = []
+    _product_cache_time = 0.0
+
+async def find_fuzzy_products(
+    q_str: str,
+    limit: int = 8,
+    category: Optional[str] = None,
+    brand: Optional[str] = None,
+    colour: Optional[str] = None,
+    nib_size: Optional[str] = None,
+    in_stock: Optional[bool] = None,
+) -> list:
+    cached = await get_cached_products()
+    scored = []
+    for p in cached:
+        if category and category != "All" and p.get("category") != category:
+            continue
+        if brand and p.get("brand") != brand:
+            continue
+        if colour and p.get("specs", {}).get("Colour") != colour:
+            continue
+        if nib_size and p.get("specs", {}).get("Nib Size") != nib_size:
+            continue
+        if in_stock is not None:
+            stock = p.get("stock", 0)
+            if in_stock and stock <= 0:
+                continue
+            if not in_stock and stock > 0:
+                continue
+        name_score = _fuzzy_score(q_str, p.get("name", ""))
+        brand_score = _fuzzy_score(q_str, p.get("brand", ""))
+        category_score = _fuzzy_score(q_str, p.get("category", ""))
+        desc_score = _fuzzy_score(q_str, (p.get("description") or "")[:250]) * 0.85
+        best_score = max(name_score * 1.15, brand_score * 1.1, category_score, desc_score)
+        if best_score >= 50.0:
+            scored.append((best_score, p))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [p for _, p in scored[:limit]]
 
 # ---------------- Setup ----------------
 ROOT_DIR = Path(__file__).parent
@@ -371,6 +428,21 @@ async def startup():
     await db.events.create_index([("product_id", 1)])
     await db.events.create_index([("created_at", -1)])
 
+    # Compound text index for full-text search
+    try:
+        await db.products.create_index(
+            [
+                ("name", "text"),
+                ("brand", "text"),
+                ("category", "text"),
+                ("description", "text"),
+            ],
+            weights={"name": 10, "brand": 5, "category": 3, "description": 1},
+            name="product_text_search",
+        )
+    except Exception as e:
+        logger.warning(f"Could not create product text index: {e}")
+
     # Seed admin
     if ADMIN_EMAIL and ADMIN_PASSWORD:
         existing = await db.users.find_one({"email": ADMIN_EMAIL})
@@ -661,6 +733,7 @@ async def _seed_products():
         s.setdefault("new_arrival", True)
     docs = [{"id": str(uuid.uuid4()), "created_at": now, **s} for s in seeds]
     await db.products.insert_many(docs)
+    invalidate_product_cache()
 
 
 # ---------------- Auth routes ----------------
@@ -707,6 +780,7 @@ async def me(user=Depends(current_user)):
 # ---------------- Product routes ----------------
 @api.get("/products")
 async def list_products(
+    response: Response,
     category: Optional[str] = None,
     brand: Optional[str] = None,
     colour: Optional[str] = None,
@@ -735,7 +809,6 @@ async def list_products(
             query["stock"] = {"$gt": 0}
         else:
             query["stock"] = {"$lte": 0}
-    # ... (rest of query construction)
     if featured is not None:
         query["featured"] = featured
     if new_arrival is not None:
@@ -750,6 +823,22 @@ async def list_products(
         ]
     cursor = db.products.find(query, {"_id": 0}).limit(limit)
     items = await cursor.to_list(limit)
+
+    is_fuzzy = False
+    if q and not items:
+        # Fallback to high-speed in-memory fuzzy search if exact regex matched 0 results
+        items = await find_fuzzy_products(
+            q_str=q.strip(),
+            limit=limit,
+            category=category,
+            brand=brand,
+            colour=colour,
+            nib_size=nib_size,
+            in_stock=in_stock,
+        )
+        if items:
+            is_fuzzy = True
+
     # Effective price for filter/sort
     def eff(p):
         return p["discount_price"] if p.get("discount_price") else p["price"]
@@ -763,6 +852,10 @@ async def list_products(
         items.sort(key=eff, reverse=True)
     else:
         items.sort(key=lambda p: p.get("created_at", ""), reverse=True)
+
+    if is_fuzzy:
+        response.headers["X-Search-Fuzzy"] = "true"
+
     return items
 
 
@@ -805,23 +898,8 @@ async def search_products(q: str = Query(..., min_length=1), limit: int = 8):
     if exact_items:
         return {"results": exact_items, "fuzzy": False}
 
-    # 2. In-memory fuzzy scan fallback
-    all_cursor = db.products.find({}, {"_id": 0})
-    all_products = await all_cursor.to_list(1000)
-
-    scored = []
-    for p in all_products:
-        name_score = _fuzzy_score(q_str, p.get("name", ""))
-        brand_score = _fuzzy_score(q_str, p.get("brand", ""))
-        category_score = _fuzzy_score(q_str, p.get("category", ""))
-        desc_score = _fuzzy_score(q_str, (p.get("description") or "")[:250]) * 0.85
-        best_score = max(name_score * 1.15, brand_score * 1.1, category_score, desc_score)
-        if best_score >= 50.0:
-            scored.append((best_score, p))
-
-    scored.sort(key=lambda x: x[0], reverse=True)
-    fuzzy_results = [p for _, p in scored[:limit]]
-
+    # 2. In-memory fuzzy scan fallback (zero DB query bottleneck)
+    fuzzy_results = await find_fuzzy_products(q_str, limit=limit)
     return {"results": fuzzy_results, "fuzzy": len(fuzzy_results) > 0}
 
 
@@ -840,6 +918,7 @@ async def admin_create_product(body: ProductIn, _admin=Depends(admin_only)):
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     await db.products.insert_one(doc)
     doc.pop("_id", None)
+    invalidate_product_cache()
     return doc
 
 
@@ -849,6 +928,7 @@ async def admin_update_product(product_id: str, body: ProductIn, _admin=Depends(
     result = await db.products.update_one({"id": product_id}, {"$set": upd})
     if not result.matched_count:
         raise HTTPException(404, "Product not found")
+    invalidate_product_cache()
     p = await db.products.find_one({"id": product_id}, {"_id": 0})
     return p
 
@@ -858,6 +938,7 @@ async def admin_delete_product(product_id: str, _admin=Depends(admin_only)):
     r = await db.products.delete_one({"id": product_id})
     if not r.deleted_count:
         raise HTTPException(404, "Product not found")
+    invalidate_product_cache()
     return {"ok": True}
 
 
@@ -1484,6 +1565,7 @@ async def update_category(cat_id: str, body: CategoryIn, _admin=Depends(admin_on
     # Cascade rename on products
     if new_name != old["name"]:
         await db.products.update_many({"category": old["name"]}, {"$set": {"category": new_name}})
+        invalidate_product_cache()
     return await db.categories.find_one({"id": cat_id}, {"_id": 0})
 
 
