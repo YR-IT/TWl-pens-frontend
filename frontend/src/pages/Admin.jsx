@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { Package, ShoppingBag, Users, DollarSign, Truck, Upload, Trash2, Edit3, Plus, X, Tag, Instagram, ArrowUp, ArrowDown, Sparkles, Layers, ChevronRight, Image as ImageIcon } from "lucide-react";
+import { Package, ShoppingBag, Users, DollarSign, Truck, Upload, Trash2, Edit3, Plus, X, Tag, Instagram, ArrowUp, ArrowDown, Sparkles, Layers, ChevronRight, Image as ImageIcon, Eye, Activity, ArrowDownRight } from "lucide-react";
 import { api, fileUrl } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { money } from "../lib/format";
@@ -8,6 +8,7 @@ import { useCategories, refreshCategories } from "../lib/categories";
 import { toast } from "sonner";
 
 const SHIPMENT_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"];
+const PAYMENT_STATUSES = ["pending_whatsapp", "paid", "pending", "cancelled", "refunded"];
 
 export default function Admin() {
   const { user, ready } = useAuth();
@@ -65,14 +66,260 @@ function Dashboard() {
     { label: "Customers", value: stats.total_customers, icon: Users, testid: "stat-customers" },
   ];
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4" data-testid="admin-dashboard">
-      {cards.map((c) => (
-        <div key={c.label} className="border border-[#E6E0D6] bg-white p-5" data-testid={c.testid}>
-          <c.icon size={16} className="text-[#B8860B]"/>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] mt-3">{c.label}</p>
-          <p className="font-serif text-2xl text-[#1C1815] mt-1">{c.value}</p>
+    <div className="space-y-10" data-testid="admin-dashboard">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {cards.map((c) => (
+          <div key={c.label} className="border border-[#E6E0D6] bg-white p-5 shadow-xs" data-testid={c.testid}>
+            <c.icon size={16} className="text-[#B8860B]"/>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] mt-3">{c.label}</p>
+            <p className="font-serif text-2xl text-[#1C1815] mt-1">{c.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Analytics Funnel Section */}
+      <FunnelWidget />
+
+      {/* Most Viewed & Most Abandoned Products */}
+      <ProductEngagementWidget />
+    </div>
+  );
+}
+
+function FunnelWidget() {
+  const [funnel, setFunnel] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get("/analytics/funnel")
+      .then((r) => setFunnel(r.data))
+      .catch(() => setFunnel(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="border border-[#E6E0D6] bg-white p-6 rounded-xs" data-testid="funnel-loading">
+        <p className="text-xs text-[#6E685E]">Loading cart & conversion funnel…</p>
+      </div>
+    );
+  }
+
+  if (!funnel || !funnel.steps) return null;
+
+  const maxSessions = Math.max(...funnel.steps.map((s) => s.sessions), 1);
+
+  return (
+    <div className="border border-[#E6E0D6] bg-white p-6 lg:p-8" data-testid="analytics-funnel-widget">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-[#E6E0D6] gap-4">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold flex items-center gap-1.5">
+            <Activity size={13} /> ATELIER CONVERSION FUNNEL
+          </p>
+          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">E-Commerce Flow & Drop-offs</h2>
+          <p className="text-xs text-[#6E685E] mt-1">
+            Tracking customer progression from product discovery to WhatsApp checkout completion.
+          </p>
         </div>
-      ))}
+        <div className="bg-[#FAF8F5] border border-[#E6E0D6] px-4 py-2.5 rounded-sm flex items-center gap-3 self-start sm:self-auto">
+          <div>
+            <span className="text-[9px] uppercase tracking-[0.2em] text-[#6E685E] block">Overall Conversion</span>
+            <span className="font-serif text-xl text-[#3D4838] font-medium" data-testid="overall-conversion-rate">
+              {funnel.overall_conversion_pct}%
+            </span>
+          </div>
+          <span className="text-xs text-[#6E685E] border-l border-[#E6E0D6] pl-3">
+            {funnel.total_unique_sessions} total sessions
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 lg:gap-6 mt-6">
+        {funnel.steps.map((step, idx) => {
+          const barWidthPct = Math.max(8, Math.round((step.sessions / maxSessions) * 100));
+          return (
+            <div key={step.stage} className="bg-[#FAF8F5] border border-[#E6E0D6] p-5 flex flex-col justify-between" data-testid={`funnel-step-${step.stage}`}>
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wider text-[#6E685E] font-medium">
+                    0{idx + 1} · {step.name}
+                  </span>
+                  {idx > 0 && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white border border-[#E6E0D6] text-[#B8860B]">
+                      {step.conversion_from_prev}% of prev
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3 flex items-baseline gap-2">
+                  <span className="font-serif text-3xl text-[#1C1815]">{step.sessions}</span>
+                  <span className="text-xs text-[#6E685E]">sessions</span>
+                </div>
+                <p className="text-[11px] text-[#6E685E] mt-0.5 font-mono">
+                  {step.raw_count} total events
+                </p>
+
+                {/* Funnel relative bar */}
+                <div className="mt-4 w-full bg-[#E6E0D6] h-2 rounded-full overflow-hidden">
+                  <div
+                    className="bg-[#1C1815] h-full rounded-full transition-all duration-500"
+                    style={{ width: `${barWidthPct}%` }}
+                  />
+                </div>
+              </div>
+
+              {idx > 0 && (
+                <div className="mt-4 pt-3 border-t border-[#E6E0D6] flex items-center justify-between text-xs">
+                  <span className="text-[#6E685E] flex items-center gap-1 text-[11px]">
+                    <ArrowDownRight size={13} className="text-rose-600" /> Drop-off
+                  </span>
+                  <span className="font-medium text-rose-700 font-mono text-[11px]">
+                    {step.drop_off_pct}%
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ProductEngagementWidget() {
+  const [data, setData] = useState(null);
+  const [viewTab, setViewTab] = useState("viewed"); // 'viewed' | 'abandoned'
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get("/analytics/product-views")
+      .then((r) => setData(r.data))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="border border-[#E6E0D6] bg-white p-6 rounded-xs">
+        <p className="text-xs text-[#6E685E]">Loading product engagement metrics…</p>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const displayList = viewTab === "viewed" ? (data.most_viewed || []) : (data.most_abandoned || []);
+
+  return (
+    <div className="border border-[#E6E0D6] bg-white p-6 lg:p-8" data-testid="product-engagement-widget">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-[#E6E0D6] gap-4">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold flex items-center gap-1.5">
+            <Eye size={13} /> PRODUCT INTELLIGENCE
+          </p>
+          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">
+            {viewTab === "viewed" ? "Most Viewed Instruments" : "High Cart Abandonment Instruments"}
+          </h2>
+          <p className="text-xs text-[#6E685E] mt-1">
+            Analyze which writing instruments capture the highest interest versus cart drop-offs.
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => setViewTab("viewed")}
+            className={`px-4 py-2 text-xs uppercase tracking-[0.15em] border transition-colors ${
+              viewTab === "viewed"
+                ? "border-[#1C1815] bg-[#1C1815] text-[#FAF8F5]"
+                : "border-[#E6E0D6] text-[#6E685E] hover:border-[#3D4838]"
+            }`}
+            data-testid="tab-most-viewed"
+          >
+            Most Viewed
+          </button>
+          <button
+            onClick={() => setViewTab("abandoned")}
+            className={`px-4 py-2 text-xs uppercase tracking-[0.15em] border transition-colors ${
+              viewTab === "abandoned"
+                ? "border-[#1C1815] bg-[#1C1815] text-[#FAF8F5]"
+                : "border-[#E6E0D6] text-[#6E685E] hover:border-[#3D4838]"
+            }`}
+            data-testid="tab-most-abandoned"
+          >
+            Most Abandoned
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto mt-6">
+        <table className="w-full text-left text-sm" data-testid="product-analytics-table">
+          <thead>
+            <tr className="border-b border-[#E6E0D6] text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">
+              <th className="py-3 px-4">Instrument</th>
+              <th className="py-3 px-4">Brand</th>
+              <th className="py-3 px-4">Price</th>
+              <th className="py-3 px-4 text-center">Views</th>
+              <th className="py-3 px-4 text-center">Cart Adds</th>
+              <th className="py-3 px-4 text-center">Orders</th>
+              <th className="py-3 px-4 text-right">Abandonment Rate</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#E6E0D6]">
+            {displayList.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="py-8 text-center text-[#6E685E] italic">
+                  No engagement recorded for this segment yet.
+                </td>
+              </tr>
+            ) : (
+              displayList.map((item) => (
+                <tr key={item.product_id} className="hover:bg-[#FAF8F5] transition-colors">
+                  <td className="py-3.5 px-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#F3EFEA] border border-[#E6E0D6] overflow-hidden shrink-0">
+                        {item.image && (
+                          <img
+                            src={fileUrl(item.image)}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            width={40}
+                            height={40}
+                          />
+                        )}
+                      </div>
+                      <Link
+                        to={`/product/${item.product_id}`}
+                        target="_blank"
+                        className="font-serif text-[#1C1815] hover:text-[#B8860B] transition-colors line-clamp-1"
+                      >
+                        {item.name}
+                      </Link>
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4 text-xs text-[#6E685E]">{item.brand || "—"}</td>
+                  <td className="py-3.5 px-4 text-xs font-medium text-[#1C1815]">{money(item.price)}</td>
+                  <td className="py-3.5 px-4 text-center font-mono text-xs">{item.views}</td>
+                  <td className="py-3.5 px-4 text-center font-mono text-xs">{item.cart_adds}</td>
+                  <td className="py-3.5 px-4 text-center font-mono text-xs">{item.orders}</td>
+                  <td className="py-3.5 px-4 text-right">
+                    <span
+                      className={`inline-block px-2.5 py-1 text-[11px] font-mono rounded ${
+                        item.abandonment_rate > 70
+                          ? "bg-rose-100 text-rose-800"
+                          : item.abandonment_rate > 30
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-emerald-100 text-emerald-800"
+                      }`}
+                    >
+                      {item.abandonment_rate}%
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -853,8 +1100,8 @@ function OrdersTab() {
 
   const update = async (id, patch) => {
     try {
-      await api.patch(`/admin/orders/${id}/shipment`, patch);
-      toast.success("Shipment updated");
+      await api.patch(`/admin/orders/${id}`, patch);
+      toast.success("Order updated");
       load();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Update failed");
@@ -873,9 +1120,24 @@ function OrdersTab() {
               <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">ORDER {o.id}</p>
               <p className="text-xs text-[#6E685E] mt-1">{new Date(o.created_at).toLocaleString()} · {o.shipping?.full_name} · {o.shipping?.email}</p>
             </div>
-            <div className="flex items-center gap-4">
-              <span className={`text-[10px] uppercase tracking-[0.2em] ${o.payment_status === "paid" ? "text-[#3D4838]" : "text-[#B8860B]"}`}>
-                {o.payment_status}
+            <div className="flex flex-wrap items-center gap-3">
+              <span className={`px-2 py-0.5 text-[10px] uppercase tracking-[0.15em] font-medium rounded border ${
+                o.payment_status === "paid" 
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-300" 
+                  : o.payment_status === "pending_whatsapp" 
+                  ? "bg-amber-50 text-amber-800 border-amber-300" 
+                  : "bg-stone-50 text-stone-700 border-stone-300"
+              }`} data-testid={`order-payment-status-badge-${o.id}`}>
+                {o.payment_status?.replace(/_/g, " ")}
+              </span>
+              <span className={`px-2 py-0.5 text-[10px] uppercase tracking-[0.15em] font-medium rounded border ${
+                (o.shipment?.status || o.order_status) === "delivered" 
+                  ? "bg-blue-50 text-blue-800 border-blue-300" 
+                  : (o.shipment?.status || o.order_status) === "shipped" 
+                  ? "bg-indigo-50 text-indigo-800 border-indigo-300" 
+                  : "bg-stone-50 text-stone-600 border-stone-200"
+              }`} data-testid={`order-shipment-status-badge-${o.id}`}>
+                Ship: {o.shipment?.status || o.order_status || "pending"}
               </span>
               <span className="font-serif text-xl text-[#1C1815]">{money(o.total)}</span>
               <button onClick={() => setExpanded(expanded === o.id ? null : o.id)} className="text-xs uppercase tracking-[0.15em] underline text-[#3D4838]" data-testid={`toggle-order-${o.id}`}>
@@ -903,6 +1165,20 @@ function OrdersTab() {
                   {o.shipping?.city}, {o.shipping?.state} {o.shipping?.postal_code}<br/>
                   {o.shipping?.country} · {o.shipping?.phone}
                 </p>
+                {o.shipping?.phone && (
+                  <div className="mt-3">
+                    <a
+                      href={`https://wa.me/${o.shipping.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                        `Hello ${o.shipping.full_name || ""}, this is TWL Pens regarding your order #${o.id} (${money(o.total)}).`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-[#1C1815] hover:text-[#3D4838] underline"
+                    >
+                      💬 Contact Customer on WhatsApp
+                    </a>
+                  </div>
+                )}
               </div>
               <ShipmentForm order={o} onUpdate={update}/>
             </div>
@@ -915,32 +1191,89 @@ function OrdersTab() {
 
 function ShipmentForm({ order, onUpdate }) {
   const [f, setF] = useState({
-    status: order.shipment?.status || "pending",
+    payment_status: order.payment_status || "pending_whatsapp",
+    shipment_status: order.shipment?.status || "pending",
     tracking_number: order.shipment?.tracking_number || "",
     carrier: order.shipment?.carrier || "",
   });
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    setSaving(true);
+    try {
+      await onUpdate(order.id, {
+        payment_status: f.payment_status,
+        shipment_status: f.shipment_status,
+        tracking_number: f.tracking_number,
+        carrier: f.carrier,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div>
-      <h4 className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] mb-2">Shipment</h4>
+      <h4 className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] mb-2">Manage Status & Shipment</h4>
       <div className="space-y-3">
-        <label className="block">
-          <span className="text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">Status</span>
-          <select value={f.status} onChange={(e) => setF({...f, status: e.target.value})} className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 outline-none focus:border-[#3D4838]" data-testid={`shipment-status-${order.id}`}>
-            {SHIPMENT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">Payment Status</span>
+            <select
+              value={f.payment_status}
+              onChange={(e) => setF({...f, payment_status: e.target.value})}
+              className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-sm outline-none focus:border-[#3D4838]"
+              data-testid={`payment-status-${order.id}`}
+            >
+              {PAYMENT_STATUSES.map((s) => (
+                <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">Shipment Status</span>
+            <select
+              value={f.shipment_status}
+              onChange={(e) => setF({...f, shipment_status: e.target.value})}
+              className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-sm outline-none focus:border-[#3D4838]"
+              data-testid={`shipment-status-${order.id}`}
+            >
+              {SHIPMENT_STATUSES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </label>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <label className="block">
             <span className="text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">Carrier</span>
-            <input value={f.carrier} onChange={(e) => setF({...f, carrier: e.target.value})} placeholder="DHL, FedEx…" className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 outline-none focus:border-[#3D4838]" data-testid={`shipment-carrier-${order.id}`}/>
+            <input
+              value={f.carrier}
+              onChange={(e) => setF({...f, carrier: e.target.value})}
+              placeholder="DHL, FedEx, BlueDart…"
+              className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-sm outline-none focus:border-[#3D4838]"
+              data-testid={`shipment-carrier-${order.id}`}
+            />
           </label>
           <label className="block">
             <span className="text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">Tracking #</span>
-            <input value={f.tracking_number} onChange={(e) => setF({...f, tracking_number: e.target.value})} className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 outline-none focus:border-[#3D4838]" data-testid={`shipment-tracking-${order.id}`}/>
+            <input
+              value={f.tracking_number}
+              onChange={(e) => setF({...f, tracking_number: e.target.value})}
+              placeholder="e.g. TRK123456789"
+              className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-sm outline-none focus:border-[#3D4838]"
+              data-testid={`shipment-tracking-${order.id}`}
+            />
           </label>
         </div>
-        <button onClick={() => onUpdate(order.id, f)} className="mt-2 bg-[#1C1815] text-[#FAF8F5] px-5 py-2.5 text-xs uppercase tracking-[0.2em] hover:bg-[#3D4838]" data-testid={`save-shipment-${order.id}`}>
-          Save shipment
+        <button
+          onClick={handleSubmit}
+          disabled={saving}
+          className="mt-2 bg-[#1C1815] text-[#FAF8F5] px-5 py-2.5 text-xs uppercase tracking-[0.2em] hover:bg-[#3D4838] transition-colors disabled:opacity-50"
+          data-testid={`save-shipment-${order.id}`}
+        >
+          {saving ? "Saving…" : "Save Changes"}
         </button>
       </div>
     </div>

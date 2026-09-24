@@ -23,6 +23,19 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
+try:
+    from rapidfuzz import fuzz
+    def _fuzzy_score(query: str, text: str) -> float:
+        if not text:
+            return 0.0
+        return float(fuzz.token_set_ratio(query.lower(), text.lower()))
+except ImportError:
+    import difflib
+    def _fuzzy_score(query: str, text: str) -> float:
+        if not text:
+            return 0.0
+        return difflib.SequenceMatcher(None, query.lower(), text.lower()).ratio() * 100.0
+
 # ---------------- Setup ----------------
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -312,6 +325,15 @@ class ShipmentUpdate(BaseModel):
     status: str  # processing, shipped, delivered, cancelled
     tracking_number: Optional[str] = None
     carrier: Optional[str] = None
+    payment_status: Optional[str] = None
+
+
+class OrderAdminUpdate(BaseModel):
+    payment_status: Optional[str] = None  # paid, pending_whatsapp, pending, cancelled, refunded
+    order_status: Optional[str] = None    # pending_confirmation, confirmed, processing, shipped, delivered, cancelled
+    shipment_status: Optional[str] = None # pending, processing, shipped, delivered, cancelled
+    tracking_number: Optional[str] = None
+    carrier: Optional[str] = None
 
 
 class WishlistToggle(BaseModel):
@@ -322,6 +344,14 @@ class OrderPlaceBody(BaseModel):
     items: List[CartItemIn]
     shipping: ShippingAddress
     note: Optional[str] = Field(default=None, max_length=500)
+    session_id: Optional[str] = None
+
+
+class EventCreate(BaseModel):
+    event_type: str = Field(..., description="product_view | add_to_cart | checkout_started")
+    product_id: Optional[str] = None
+    session_id: str
+    metadata: Optional[dict] = None
 
 
 # ---------------- Startup ----------------
@@ -332,10 +362,14 @@ async def startup():
     await db.users.create_index("id", unique=True)
     await db.products.create_index("id", unique=True)
     await db.orders.create_index("id", unique=True)
+    await db.orders.create_index("session_id", sparse=True)
     await db.wishlists.create_index("user_id", unique=True)
     await db.wishlists.create_index("share_token", unique=True, sparse=True)
     await db.categories.create_index("name", unique=True)
     await db.studio_posts.create_index("id", unique=True)
+    await db.events.create_index([("event_type", 1), ("session_id", 1)])
+    await db.events.create_index([("product_id", 1)])
+    await db.events.create_index([("created_at", -1)])
 
     # Seed admin
     if ADMIN_EMAIL and ADMIN_PASSWORD:
@@ -750,6 +784,47 @@ async def product_facets():
     }
 
 
+@api.get("/products/search")
+async def search_products(q: str = Query(..., min_length=1), limit: int = 8):
+    q_str = q.strip()
+    if not q_str:
+        return {"results": [], "fuzzy": False}
+
+    # 1. Exact regex match across name, brand, category, description
+    exact_query = {
+        "$or": [
+            {"name": {"$regex": q_str, "$options": "i"}},
+            {"brand": {"$regex": q_str, "$options": "i"}},
+            {"category": {"$regex": q_str, "$options": "i"}},
+            {"description": {"$regex": q_str, "$options": "i"}},
+        ]
+    }
+    cursor = db.products.find(exact_query, {"_id": 0}).limit(limit)
+    exact_items = await cursor.to_list(limit)
+
+    if exact_items:
+        return {"results": exact_items, "fuzzy": False}
+
+    # 2. In-memory fuzzy scan fallback
+    all_cursor = db.products.find({}, {"_id": 0})
+    all_products = await all_cursor.to_list(1000)
+
+    scored = []
+    for p in all_products:
+        name_score = _fuzzy_score(q_str, p.get("name", ""))
+        brand_score = _fuzzy_score(q_str, p.get("brand", ""))
+        category_score = _fuzzy_score(q_str, p.get("category", ""))
+        desc_score = _fuzzy_score(q_str, (p.get("description") or "")[:250]) * 0.85
+        best_score = max(name_score * 1.15, brand_score * 1.1, category_score, desc_score)
+        if best_score >= 50.0:
+            scored.append((best_score, p))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    fuzzy_results = [p for _, p in scored[:limit]]
+
+    return {"results": fuzzy_results, "fuzzy": len(fuzzy_results) > 0}
+
+
 @api.get("/products/{product_id}")
 async def get_product(product_id: str):
     p = await db.products.find_one({"id": product_id}, {"_id": 0})
@@ -919,6 +994,7 @@ async def place_order(body: OrderPlaceBody, user=Depends(current_user_optional))
     order_doc = {
         "id": order_id,
         "user_id": user["id"] if user else None,
+        "session_id": body.session_id,
         "items": order_items,
         "shipping": body.shipping.model_dump(),
         "note": (body.note or "").strip() or None,
@@ -1058,18 +1134,41 @@ async def admin_orders(_admin=Depends(admin_only)):
     return orders
 
 
+@api.patch("/admin/orders/{order_id}")
+async def admin_update_order(order_id: str, upd: OrderAdminUpdate, _admin=Depends(admin_only)):
+    set_dict = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if upd.payment_status is not None:
+        set_dict["payment_status"] = upd.payment_status
+    if upd.order_status is not None:
+        set_dict["order_status"] = upd.order_status
+    if upd.shipment_status is not None:
+        set_dict["shipment.status"] = upd.shipment_status
+        if not upd.order_status:
+            set_dict["order_status"] = upd.shipment_status if upd.shipment_status in ("shipped", "delivered", "cancelled") else "processing"
+    if upd.tracking_number is not None:
+        set_dict["shipment.tracking_number"] = upd.tracking_number
+    if upd.carrier is not None:
+        set_dict["shipment.carrier"] = upd.carrier
+
+    r = await db.orders.update_one({"id": order_id}, {"$set": set_dict})
+    if not r.matched_count:
+        raise HTTPException(404, "Order not found")
+    updated = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    return {"ok": True, "order": updated}
+
+
 @api.patch("/admin/orders/{order_id}/shipment")
 async def admin_update_shipment(order_id: str, upd: ShipmentUpdate, _admin=Depends(admin_only)):
-    r = await db.orders.update_one(
-        {"id": order_id},
-        {"$set": {
-            "shipment.status": upd.status,
-            "shipment.tracking_number": upd.tracking_number,
-            "shipment.carrier": upd.carrier,
-            "order_status": upd.status if upd.status in ("shipped", "delivered", "cancelled") else "processing",
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }},
-    )
+    set_dict = {
+        "shipment.status": upd.status,
+        "shipment.tracking_number": upd.tracking_number,
+        "shipment.carrier": upd.carrier,
+        "order_status": upd.status if upd.status in ("shipped", "delivered", "cancelled") else "processing",
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if upd.payment_status is not None:
+        set_dict["payment_status"] = upd.payment_status
+    r = await db.orders.update_one({"id": order_id}, {"$set": set_dict})
     if not r.matched_count:
         raise HTTPException(404, "Order not found")
     return {"ok": True}
@@ -1095,6 +1194,162 @@ async def admin_stats(_admin=Depends(admin_only)):
         "total_products": products,
         "total_customers": users,
         "revenue": revenue,
+    }
+
+
+# ---------------- Analytics ----------------
+@api.post("/events")
+async def track_event(body: EventCreate):
+    valid_types = {"product_view", "add_to_cart", "checkout_started"}
+    if body.event_type not in valid_types:
+        raise HTTPException(400, f"Invalid event_type. Must be one of {valid_types}")
+    doc = {
+        "id": str(uuid.uuid4()),
+        "event_type": body.event_type,
+        "product_id": body.product_id,
+        "session_id": body.session_id,
+        "metadata": body.metadata or {},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.events.insert_one(doc)
+    return {"ok": True, "id": doc["id"]}
+
+
+@api.get("/analytics/funnel")
+async def get_analytics_funnel(_admin=Depends(admin_only)):
+    # Unique sessions at each stage
+    view_sessions = set(await db.events.distinct("session_id", {"event_type": "product_view"}))
+    cart_sessions = set(await db.events.distinct("session_id", {"event_type": "add_to_cart"}))
+    checkout_sessions = set(await db.events.distinct("session_id", {"event_type": "checkout_started"}))
+    
+    order_sessions = set(await db.orders.distinct("session_id", {"session_id": {"$exists": True, "$ne": None}}))
+    total_orders = await db.orders.count_documents({})
+
+    total_views = await db.events.count_documents({"event_type": "product_view"})
+    total_cart_adds = await db.events.count_documents({"event_type": "add_to_cart"})
+    total_checkouts = await db.events.count_documents({"event_type": "checkout_started"})
+
+    n_views = len(view_sessions)
+    n_carts = len(cart_sessions)
+    n_checkouts = len(checkout_sessions)
+    order_step_count = len(order_sessions) if len(order_sessions) > 0 else total_orders
+
+    def pct_conv(cur, prev):
+        if prev <= 0:
+            return 100.0 if cur > 0 else 0.0
+        return round((cur / prev) * 100.0, 1)
+
+    def drop_off(cur, prev):
+        if prev <= 0:
+            return 0.0
+        return round(max(0.0, (1.0 - (cur / prev)) * 100.0), 1)
+
+    steps = [
+        {
+            "stage": "product_view",
+            "name": "Product Views",
+            "sessions": n_views,
+            "raw_count": total_views,
+            "conversion_from_prev": 100.0,
+            "drop_off_pct": 0.0,
+        },
+        {
+            "stage": "add_to_cart",
+            "name": "Added to Cart",
+            "sessions": n_carts,
+            "raw_count": total_cart_adds,
+            "conversion_from_prev": pct_conv(n_carts, n_views),
+            "drop_off_pct": drop_off(n_carts, n_views),
+        },
+        {
+            "stage": "checkout_started",
+            "name": "Checkout Started",
+            "sessions": n_checkouts,
+            "raw_count": total_checkouts,
+            "conversion_from_prev": pct_conv(n_checkouts, n_carts),
+            "drop_off_pct": drop_off(n_checkouts, n_carts),
+        },
+        {
+            "stage": "order_placed",
+            "name": "Orders Placed",
+            "sessions": order_step_count,
+            "raw_count": total_orders,
+            "conversion_from_prev": pct_conv(order_step_count, n_checkouts),
+            "drop_off_pct": drop_off(order_step_count, n_checkouts),
+        },
+    ]
+
+    overall_conversion = pct_conv(order_step_count, n_views) if n_views > 0 else (100.0 if order_step_count > 0 else 0.0)
+
+    return {
+        "steps": steps,
+        "overall_conversion_pct": overall_conversion,
+        "total_unique_sessions": len(view_sessions | cart_sessions | checkout_sessions | order_sessions),
+    }
+
+
+@api.get("/analytics/product-views")
+async def get_product_analytics(_admin=Depends(admin_only)):
+    # Group views by product_id
+    pipeline_views = [
+        {"$match": {"event_type": "product_view", "product_id": {"$ne": None}}},
+        {"$group": {"_id": "$product_id", "views": {"$sum": 1}, "unique_viewers": {"$addToSet": "$session_id"}}},
+        {"$project": {"product_id": "$_id", "views": 1, "unique_views": {"$size": "$unique_viewers"}, "_id": 0}}
+    ]
+    views_res = await db.events.aggregate(pipeline_views).to_list(500)
+    views_map = {item["product_id"]: item for item in views_res}
+
+    # Group cart adds by product_id
+    pipeline_cart = [
+        {"$match": {"event_type": "add_to_cart", "product_id": {"$ne": None}}},
+        {"$group": {"_id": "$product_id", "cart_adds": {"$sum": 1}, "unique_carters": {"$addToSet": "$session_id"}}},
+        {"$project": {"product_id": "$_id", "cart_adds": 1, "unique_cart_adds": {"$size": "$unique_carters"}, "_id": 0}}
+    ]
+    cart_res = await db.events.aggregate(pipeline_cart).to_list(500)
+    cart_map = {item["product_id"]: item for item in cart_res}
+
+    # Group ordered items by product_id
+    pipeline_orders = [
+        {"$unwind": "$items"},
+        {"$group": {"_id": "$items.product_id", "orders_count": {"$sum": "$items.quantity"}}},
+        {"$project": {"product_id": "$_id", "orders_count": 1, "_id": 0}}
+    ]
+    orders_res = await db.orders.aggregate(pipeline_orders).to_list(500)
+    orders_map = {item["product_id"]: item["orders_count"] for item in orders_res}
+
+    all_product_ids = set(views_map.keys()) | set(cart_map.keys()) | set(orders_map.keys())
+    prods = await db.products.find({"id": {"$in": list(all_product_ids)}}, {"_id": 0, "id": 1, "name": 1, "brand": 1, "price": 1, "discount_price": 1, "images": 1}).to_list(500)
+    prods_map = {p["id"]: p for p in prods}
+
+    product_stats = []
+    for pid in all_product_ids:
+        p_info = prods_map.get(pid, {"name": f"Product {pid}", "brand": "", "price": 0})
+        v = views_map.get(pid, {}).get("views", 0)
+        c = cart_map.get(pid, {}).get("cart_adds", 0)
+        o = orders_map.get(pid, 0)
+        
+        # Abandonment: cart adds that didn't convert to orders
+        abandoned_rate = round(((c - o) / c) * 100.0, 1) if c > o and c > 0 else (0.0 if c > 0 else 0.0)
+
+        product_stats.append({
+            "product_id": pid,
+            "name": p_info.get("name", pid),
+            "brand": p_info.get("brand", ""),
+            "price": p_info.get("discount_price") or p_info.get("price", 0),
+            "image": p_info.get("images", [None])[0] if p_info.get("images") else None,
+            "views": v,
+            "cart_adds": c,
+            "orders": o,
+            "abandonment_rate": abandoned_rate,
+        })
+
+    most_viewed = sorted(product_stats, key=lambda x: x["views"], reverse=True)
+    most_abandoned = sorted([p for p in product_stats if p["cart_adds"] > 0], key=lambda x: (x["abandonment_rate"], x["cart_adds"]), reverse=True)
+
+    return {
+        "products": most_viewed,
+        "most_viewed": most_viewed[:10],
+        "most_abandoned": most_abandoned[:10],
     }
 
 

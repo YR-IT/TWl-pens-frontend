@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import WishlistButton from "../components/WishlistButton";
 import ProductCard from "../components/ProductCard";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../components/ui/carousel";
+import { trackEvent } from "../lib/analytics";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -38,12 +39,16 @@ export default function ProductDetail() {
   const { add } = useCart();
 
   useEffect(() => {
+    let active = true;
     api.get(`/products/${id}`).then((r) => { 
+      if (!active || !r.data) return;
       setP(r.data); 
       setActive(0);
       if (r.data.engraving_fonts?.length) setEngravingFont(r.data.engraving_fonts[0]);
       if (r.data.engraving_positions?.length) setEngravingPosition(r.data.engraving_positions[0]);
+      trackEvent("product_view", r.data.id, { name: r.data.name, price: r.data.discount_price || r.data.price });
     });
+    return () => { active = false; };
   }, [id]);
 
   useEffect(() => {
@@ -87,7 +92,15 @@ export default function ProductDetail() {
             <div className="grid grid-cols-5 gap-3">
               {images.map((img, i) => (
                 <button key={i} onClick={() => setActive(i)} className={`aspect-square overflow-hidden bg-[#F3EFEA] border-2 transition-colors ${active === i ? "border-[#1C1815]" : "border-transparent hover:border-[#E6E0D6]"}`} data-testid={`thumb-${i}`}>
-                  <img src={fileUrl(img)} alt="" className="w-full h-full object-cover"/>
+                  <img
+                    src={fileUrl(img)}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    width={120}
+                    height={120}
+                    className="w-full h-full object-cover"
+                  />
                 </button>
               ))}
             </div>
@@ -236,6 +249,11 @@ export default function ProductDetail() {
                 const selectedFont = engravingFont || availableFonts[0];
                 const selectedPos = engravingPosition || availablePositions[0];
                 add(p, qty, engraving, engraving ? selectedFont : "", engraving ? selectedPos : ""); 
+                trackEvent("add_to_cart", p.id, {
+                  quantity: qty,
+                  price,
+                  engraving: Boolean(engraving),
+                });
                 toast.success(`${p.name} added to cart${engraving ? ` · "${engraving}"` : ""}`); 
               }}
               className="flex-1 bg-[#1C1815] text-[#FAF8F5] py-4 text-xs uppercase tracking-[0.25em] hover:bg-[#3D4838] disabled:bg-[#6E685E] flex items-center justify-center gap-3 transition-colors"
@@ -324,6 +342,10 @@ function ZoomImage({ src, alt, onOpen }) {
         <img
           src={src}
           alt={alt}
+          loading="eager"
+          decoding="async"
+          width={600}
+          height={600}
           className="w-full h-full object-cover transition-transform duration-300"
           style={hover ? { transform: `scale(2)`, transformOrigin: `${pos.x}% ${pos.y}%` } : {}}
         />
@@ -369,74 +391,6 @@ function Lightbox({ images, index, onIndex, onClose }) {
   );
 }
 
-const INITIAL_REVIEWS = [
-  {
-    id: 1,
-    rating: 5,
-    tag: "Nib Performance",
-    headline: "Butter-smooth nib flow right out of the wax seal",
-    text: "The nib grind is remarkable. Even with drier archival inks, it glides across Tomoe River and Midori paper with zero hard starts or railroading. Easily rivals custom bespoke nibmeister grinds.",
-    author: "Rajesh K.",
-    city: "Bangalore",
-    spec: "Fine Nib · Iroshizuku Inked",
-    date: "3 days ago",
-    verified: true,
-    helpful: 24,
-  },
-  {
-    id: 2,
-    rating: 5,
-    tag: "Bespoke Engraving",
-    headline: "The diamond engraving made our anniversary unforgettable",
-    text: "I ordered this with custom Roman date engraving on the barrel. The precision of the diamond etching against the lacquered metal is breathtaking. Delivered in a wax-sealed cotton pouch.",
-    author: "Priya M.",
-    city: "New Delhi",
-    spec: "Medium Nib · Timeless Serif Engraved",
-    date: "1 week ago",
-    verified: true,
-    helpful: 19,
-  },
-  {
-    id: 3,
-    rating: 5,
-    tag: "Heirloom Build",
-    headline: "True heirloom craftsmanship at an honest price",
-    text: "The balance in hand when posted is sublime. The feed keeps up even during rapid journaling sessions. A true collector's piece that feels like it will last generations.",
-    author: "Arjun S.",
-    city: "Mumbai",
-    spec: "Broad Nib · Panchkula Studio Tuned",
-    date: "2 weeks ago",
-    verified: true,
-    helpful: 31,
-  },
-  {
-    id: 4,
-    rating: 5,
-    tag: "Gifting Experience",
-    headline: "Impeccable gifting experience from Panchkula",
-    text: "Sent this as a milestone gift for my father. The presentation box, personalized studio calligraphy card, and brass weight felt extraordinarily premium. He hasn't stopped writing with it.",
-    author: "Sneha V.",
-    city: "Pune",
-    spec: "Fine Nib · Classic Script Inscription",
-    date: "3 weeks ago",
-    verified: true,
-    helpful: 14,
-  },
-  {
-    id: 5,
-    rating: 5,
-    tag: "Studio Service",
-    headline: "Responsive atelier concierge and swift 48hr dispatch",
-    text: "Reached out via WhatsApp to clarify ink converter compatibility. The team responded within minutes with photos. Arrived securely packaged in 48 hours.",
-    author: "Vikram R.",
-    city: "Chennai",
-    spec: "Extra Fine Nib · Studio Tested",
-    date: "1 month ago",
-    verified: true,
-    helpful: 27,
-  },
-];
-
 const RATING_DESCRIPTIONS = {
   5: "Masterpiece · Highest atelier praise",
   4: "Exceptional · Very pleased",
@@ -446,7 +400,7 @@ const RATING_DESCRIPTIONS = {
 };
 
 function ProductReviewsSection({ productName }) {
-  const [reviews, setReviews] = useState(INITIAL_REVIEWS);
+  const [reviews, setReviews] = useState([]);
   const [activeTag, setActiveTag] = useState("All");
   const [isWriting, setIsWriting] = useState(false);
   const [helpfulMap, setHelpfulMap] = useState({});
@@ -468,6 +422,11 @@ function ProductReviewsSection({ productName }) {
   const filteredReviews = activeTag === "All"
     ? reviews
     : reviews.filter((r) => r.tag === activeTag);
+
+  const totalReviews = reviews.length;
+  const avgRating = totalReviews > 0
+    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / totalReviews).toFixed(1)
+    : "5.0";
 
   const handleHelpful = (id) => {
     if (helpfulMap[id]) {
@@ -543,76 +502,70 @@ function ProductReviewsSection({ productName }) {
       </div>
 
       {/* Atelier Score & Highlights Showcase Bar */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 py-8 border-b border-[#E6E0D6] bg-[#FAF8F5] my-2 items-center">
-        {/* Overall Rating Block */}
-        <div className="lg:col-span-4 flex items-center gap-6 pr-6 lg:border-r border-[#E6E0D6]">
-          <div className="text-center">
-            <div className="font-serif text-5xl sm:text-6xl text-[#1C1815] font-medium leading-none">
-              4.9
+      {totalReviews > 0 ? (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 py-8 border-b border-[#E6E0D6] bg-[#FAF8F5] my-2 items-center">
+          {/* Overall Rating Block */}
+          <div className="lg:col-span-4 flex items-center gap-6 pr-6 lg:border-r border-[#E6E0D6]">
+            <div className="text-center">
+              <div className="font-serif text-5xl sm:text-6xl text-[#1C1815] font-medium leading-none">
+                {avgRating}
+              </div>
+              <div className="flex items-center justify-center gap-1 mt-2 text-[#B8860B]">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} size={15} className="fill-[#B8860B] text-[#B8860B]"/>
+                ))}
+              </div>
+              <p className="text-[10px] uppercase tracking-[0.15em] text-[#6E685E] mt-1.5 font-medium">
+                {totalReviews} Verified {totalReviews === 1 ? "Review" : "Reviews"}
+              </p>
             </div>
-            <div className="flex items-center justify-center gap-1 mt-2 text-[#B8860B]">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} size={15} className="fill-[#B8860B] text-[#B8860B]"/>
-              ))}
+
+            {/* Mini Percentage Bars */}
+            <div className="flex-1 space-y-1.5 text-xs text-[#6E685E]">
+              {[5, 4, 3, 2, 1].map((star) => {
+                const count = reviews.filter((r) => r.rating === star).length;
+                const pct = Math.round((count / totalReviews) * 100);
+                return (
+                  <div key={star} className="flex items-center gap-2">
+                    <span className="w-10 text-[10px] uppercase tracking-wider">{star} Star</span>
+                    <div className="flex-1 h-1.5 bg-[#E6E0D6] rounded-full overflow-hidden">
+                      <div className="h-full bg-[#B8860B] rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-[10px] w-6 text-right">{pct}%</span>
+                  </div>
+                );
+              })}
             </div>
-            <p className="text-[10px] uppercase tracking-[0.15em] text-[#6E685E] mt-1.5 font-medium">
-              48 Verified Reviews
-            </p>
           </div>
 
-          {/* Mini Percentage Bars */}
-          <div className="flex-1 space-y-1.5 text-xs text-[#6E685E]">
-            <div className="flex items-center gap-2">
-              <span className="w-10 text-[10px] uppercase tracking-wider">5 Star</span>
-              <div className="flex-1 h-1.5 bg-[#E6E0D6] rounded-full overflow-hidden">
-                <div className="w-[96%] h-full bg-[#B8860B] rounded-full"/>
+          {/* 3 Hallmark Studio Guarantees */}
+          <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 bg-[#FFFFFF] border border-[#E6E0D6] rounded-sm flex items-start gap-3 shadow-xs">
+              <PenTool size={18} className="text-[#B8860B] shrink-0 mt-0.5"/>
+              <div>
+                <p className="font-serif text-sm text-[#1C1815] font-medium">Hand-Tuned Nib</p>
+                <p className="text-[11px] text-[#6E685E] mt-0.5 leading-snug">Tested &amp; smoothed for uninterrupted capillary flow.</p>
               </div>
-              <span className="text-[10px] w-6 text-right">96%</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-10 text-[10px] uppercase tracking-wider">4 Star</span>
-              <div className="flex-1 h-1.5 bg-[#E6E0D6] rounded-full overflow-hidden">
-                <div className="w-[4%] h-full bg-[#B8860B]/70 rounded-full"/>
+
+            <div className="p-4 bg-[#FFFFFF] border border-[#E6E0D6] rounded-sm flex items-start gap-3 shadow-xs">
+              <Award size={18} className="text-[#B8860B] shrink-0 mt-0.5"/>
+              <div>
+                <p className="font-serif text-sm text-[#1C1815] font-medium">Diamond Inscribed</p>
+                <p className="text-[11px] text-[#6E685E] mt-0.5 leading-snug">Crisp optical laser &amp; diamond tip personalization.</p>
               </div>
-              <span className="text-[10px] w-6 text-right">4%</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-10 text-[10px] uppercase tracking-wider">3 Star</span>
-              <div className="flex-1 h-1.5 bg-[#E6E0D6] rounded-full overflow-hidden">
-                <div className="w-[0%] h-full bg-[#B8860B]/30 rounded-full"/>
+
+            <div className="p-4 bg-[#FFFFFF] border border-[#E6E0D6] rounded-sm flex items-start gap-3 shadow-xs">
+              <Gift size={18} className="text-[#B8860B] shrink-0 mt-0.5"/>
+              <div>
+                <p className="font-serif text-sm text-[#1C1815] font-medium">Heirloom Pouch</p>
+                <p className="text-[11px] text-[#6E685E] mt-0.5 leading-snug">Wax-sealed archival pouch &amp; certification card.</p>
               </div>
-              <span className="text-[10px] w-6 text-right">0%</span>
             </div>
           </div>
         </div>
-
-        {/* 3 Hallmark Studio Guarantees */}
-        <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 bg-[#FFFFFF] border border-[#E6E0D6] rounded-sm flex items-start gap-3 shadow-xs">
-            <PenTool size={18} className="text-[#B8860B] shrink-0 mt-0.5"/>
-            <div>
-              <p className="font-serif text-sm text-[#1C1815] font-medium">Hand-Tuned Nib</p>
-              <p className="text-[11px] text-[#6E685E] mt-0.5 leading-snug">Tested &amp; smoothed for uninterrupted capillary flow.</p>
-            </div>
-          </div>
-
-          <div className="p-4 bg-[#FFFFFF] border border-[#E6E0D6] rounded-sm flex items-start gap-3 shadow-xs">
-            <Award size={18} className="text-[#B8860B] shrink-0 mt-0.5"/>
-            <div>
-              <p className="font-serif text-sm text-[#1C1815] font-medium">Diamond Inscribed</p>
-              <p className="text-[11px] text-[#6E685E] mt-0.5 leading-snug">Crisp optical laser &amp; diamond tip personalization.</p>
-            </div>
-          </div>
-
-          <div className="p-4 bg-[#FFFFFF] border border-[#E6E0D6] rounded-sm flex items-start gap-3 shadow-xs">
-            <Gift size={18} className="text-[#B8860B] shrink-0 mt-0.5"/>
-            <div>
-              <p className="font-serif text-sm text-[#1C1815] font-medium">Heirloom Pouch</p>
-              <p className="text-[11px] text-[#6E685E] mt-0.5 leading-snug">Wax-sealed archival pouch &amp; certification card.</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      ) : null}
 
       {/* Expandable Review Composer Form */}
       {isWriting && (
@@ -880,12 +833,16 @@ function ProductReviewsSection({ productName }) {
           </Carousel>
         ) : (
           <div className="p-12 text-center bg-[#FFFFFF] border border-[#E6E0D6] rounded">
-            <p className="font-serif text-lg text-[#1C1815]">No stories found under this category.</p>
+            <Sparkles size={24} className="mx-auto text-[#B8860B] mb-3 opacity-75" />
+            <p className="font-serif text-lg text-[#1C1815]">No collector impressions recorded yet.</p>
+            <p className="text-xs text-[#6E685E] mt-1 max-w-md mx-auto">
+              Be the first connoisseur to share an impression for {productName || "this instrument"}.
+            </p>
             <button
-              onClick={() => setActiveTag("All")}
-              className="mt-3 text-xs uppercase tracking-wider text-[#B8860B] underline"
+              onClick={() => setIsWriting(true)}
+              className="mt-4 inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-6 py-2.5 text-xs uppercase tracking-[0.2em] font-medium hover:bg-[#3D4838] transition-colors rounded-sm shadow-xs"
             >
-              View all reviews
+              + Write First Review
             </button>
           </div>
         )}

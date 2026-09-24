@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { api, fileUrl } from "../lib/api";
 import { money } from "../lib/format";
 import { useCart } from "../lib/cart";
 import { useAuth } from "../lib/auth";
+import { trackEvent, getSessionId } from "../lib/analytics";
 import { toast } from "sonner";
 
 export default function Checkout() {
@@ -25,6 +26,12 @@ export default function Checkout() {
     note: "",
   });
 
+  useEffect(() => {
+    if (count > 0) {
+      trackEvent("checkout_started", null, { total, count, items_count: items.length });
+    }
+  }, [count, total, items.length]);
+
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   const submit = async (e) => {
@@ -43,6 +50,7 @@ export default function Checkout() {
         })),
         shipping,
         note: note?.trim() || null,
+        session_id: getSessionId(),
       });
       clear();
       // Hand off to WhatsApp in a new tab so the customer keeps the confirmation page

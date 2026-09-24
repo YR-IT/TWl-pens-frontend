@@ -200,6 +200,11 @@ export default function Home() {
             <img 
               src={activeSlide.image ? fileUrl(activeSlide.image) : HERO_IMG} 
               alt={activeSlide.title || "The WL Pens Atelier"} 
+              loading="eager"
+              fetchpriority="high"
+              decoding="async"
+              width={1600}
+              height={720}
               className="w-full h-full object-cover object-[center_35%] scale-105 transition-transform duration-1000"
             />
             {/* Cinematic Gradient Overlays */}
@@ -294,22 +299,9 @@ export default function Home() {
         )}
       </section>
 
-      {/* Brand Strip Marquee — uses live brands list */}
-      <section className="bg-[#F3EFEA] py-10 overflow-hidden border-y border-[#E6E0D6]">
-        <div className="animate-marquee-infinite flex items-center">
-          {brandItems.map((b, i) => (
-            <div key={i} className="flex items-center gap-10 px-10 shrink-0">
-              <span className="font-serif text-2xl tracking-[0.2em] text-[#1C1815]/40 select-none whitespace-nowrap">
-                {b.name}
-              </span>
-              <span className="w-1 h-1 rounded-full bg-[#B8860B]/40 shrink-0"/>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* Category Cards Section */}
-      <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-20">
+      <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-16">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#E6E0D6] pb-8 mb-10 gap-4">
           <div>
             <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">{categoriesEyebrow}</p>
@@ -327,7 +319,15 @@ export default function Home() {
                 <Link to={`/shop?category=${encodeURIComponent(cat.name)}`} className="group block">
                   <div className="bg-[#FFFFFF] border border-[#E6E0D6] overflow-hidden hover:border-[#B8860B] transition-all duration-300 shadow-sm hover:shadow-md">
                     <div className="aspect-square overflow-hidden bg-[#F3EFEA]">
-                      <img src={fileUrl(cat.image)} alt={cat.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+                      <img
+                        src={fileUrl(cat.image)}
+                        alt={cat.name}
+                        loading="lazy"
+                        decoding="async"
+                        width={300}
+                        height={300}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
                     </div>
                     <div className="p-5 text-center">
                       <h3 className="font-serif text-lg text-[#1C1815]">{cat.name}</h3>
@@ -377,14 +377,14 @@ export default function Home() {
       {/* Secondary Banner Grid */}
       <section className="grid grid-cols-1 md:grid-cols-2">
         <div className="relative aspect-[16/9] md:aspect-[4/5] flex items-end p-12 overflow-hidden bg-[#D1D9D1]">
-          <img src={EDITORIAL_1} alt="Timeless Elegance" className="absolute inset-0 w-full h-full object-cover opacity-70"/>
+          <img src={EDITORIAL_1} alt="Timeless Elegance" loading="lazy" decoding="async" width={800} height={600} className="absolute inset-0 w-full h-full object-cover opacity-70"/>
           <div className="relative text-[#FAF8F5]">
             <h3 className="font-serif text-4xl drop-shadow">Timeless Elegance</h3>
             <Link to="/shop" className="mt-4 inline-block bg-[#FAF8F5] text-[#1C1815] px-8 py-3 rounded-full uppercase text-xs hover:bg-white transition-colors">Discover</Link>
           </div>
         </div>
         <div className="relative aspect-[16/9] md:aspect-[4/5] flex items-end p-12 overflow-hidden bg-[#DED6CC]">
-          <img src={EDITORIAL_2} alt="Modern Precision" className="absolute inset-0 w-full h-full object-cover opacity-70"/>
+          <img src={EDITORIAL_2} alt="Modern Precision" loading="lazy" decoding="async" width={800} height={600} className="absolute inset-0 w-full h-full object-cover opacity-70"/>
           <div className="relative text-[#FAF8F5]">
             <h3 className="font-serif text-4xl drop-shadow">Modern Precision</h3>
             <Link to="/shop" className="mt-4 inline-block bg-[#1C1815] text-[#FAF8F5] px-8 py-3 rounded-full uppercase text-xs hover:bg-[#3D4838] transition-colors">Explore</Link>
@@ -457,6 +457,10 @@ export default function Home() {
         <img 
           src={GIFT_IMG} 
           alt="Luxury Gift Giving" 
+          loading="lazy"
+          decoding="async"
+          width={1600}
+          height={420}
           className="absolute inset-0 w-full h-full object-cover object-center lg:object-right opacity-90 transition-transform duration-1000 hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-[#1C1815]/95 via-[#1C1815]/75 to-[#1C1815]/30 sm:to-transparent"/>
@@ -536,7 +540,7 @@ function BrandCard({ b }) {
     <div className="flex flex-col items-center gap-4 group cursor-pointer">
       <div className="w-36 h-36 rounded-full overflow-hidden border border-[#E6E0D6] group-hover:border-[#B8860B] transition-colors duration-300 bg-[#F3EFEA] flex items-center justify-center">
         {b.image ? (
-          <img src={b.image} alt={b.name} className="w-full h-full object-cover"/>
+          <img src={b.image} alt={b.name} loading="lazy" decoding="async" width={144} height={144} className="w-full h-full object-cover"/>
         ) : (
           <span className="font-serif text-2xl tracking-wider text-[#1C1815]/60 group-hover:text-[#1C1815] transition-colors">{b.name[0]}</span>
         )}
@@ -666,6 +670,10 @@ function FounderStorySection() {
           <img 
             src="/founder-placeholder.jpg" 
             alt="Manjeet Singh - Founder of The WL Pens" 
+            loading="lazy"
+            decoding="async"
+            width={600}
+            height={460}
             className="w-full h-full object-cover object-center lg:object-top"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1C1815]/60 via-transparent to-transparent lg:hidden"/>

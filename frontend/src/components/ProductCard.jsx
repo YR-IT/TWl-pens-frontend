@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Link } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { motion } from "framer-motion";
@@ -6,25 +7,34 @@ import { fileUrl } from "../lib/api";
 import { money } from "../lib/format";
 import WishlistButton from "./WishlistButton";
 
-export default function ProductCard({ p: propP, product }) {
+function ProductCard({ p: propP, product }) {
   const p = propP || product;
   const { add } = useCart();
   if (!p) return null;
-  const hasDiscount = !!p.discount_price;
+  const hasDiscount = Boolean(p.discount_price);
   const price = hasDiscount ? p.discount_price : p.price;
   const off = hasDiscount ? Math.round(((p.price - p.discount_price) / p.price) * 100) : 0;
 
   return (
     <motion.article
       whileHover={{ y: -4 }}
-      transition={{ duration: 0.4, ease: [0.22, 0.9, 0.3, 1] }}
+      transition={{ duration: 0.35, ease: [0.22, 0.9, 0.3, 1] }}
       className="group"
       data-testid={`product-card-${p.id}`}
     >
       <Link to={`/product/${p.id}`} className="block">
         <div className="relative aspect-[4/5] bg-[#F3EFEA] overflow-hidden">
           {p.images?.[0] && (
-            <img src={fileUrl(p.images[0])} alt={p.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"/>
+            <img
+              src={fileUrl(p.images[0])}
+              alt={p.name}
+              loading="lazy"
+              decoding="async"
+              width={400}
+              height={500}
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+            />
           )}
           {hasDiscount && (
             <span className="absolute top-3 left-3 bg-[#1C1815] text-[#FAF8F5] px-2.5 py-1 text-[10px] uppercase tracking-[0.2em]" data-testid={`discount-badge-${p.id}`}>
@@ -64,3 +74,5 @@ export default function ProductCard({ p: propP, product }) {
     </motion.article>
   );
 }
+
+export default memo(ProductCard);

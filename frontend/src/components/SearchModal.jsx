@@ -10,6 +10,7 @@ const MAX_RECENT = 6;
 export default function SearchModal({ open, onClose }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
+  const [isFuzzy, setIsFuzzy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [recent, setRecent] = useState(() => {
     try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch { return []; }
@@ -22,7 +23,7 @@ export default function SearchModal({ open, onClose }) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
-      setQ(""); setResults([]);
+      setQ(""); setResults([]); setIsFuzzy(false);
     }
     return () => { document.body.style.overflow = ""; };
   }, [open]);
@@ -30,13 +31,22 @@ export default function SearchModal({ open, onClose }) {
   useEffect(() => {
     if (!open) return;
     const term = q.trim();
-    if (term.length < 2) { setResults([]); return; }
+    if (term.length < 2) { setResults([]); setIsFuzzy(false); return; }
     setLoading(true);
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const r = await api.get("/products", { params: { q: term, limit: 8 }, signal: ctrl.signal });
-        setResults(r.data);
+        const r = await api.get("/products/search", { params: { q: term, limit: 8 }, signal: ctrl.signal });
+        if (r.data && Array.isArray(r.data.results)) {
+          setResults(r.data.results);
+          setIsFuzzy(Boolean(r.data.fuzzy));
+        } else if (Array.isArray(r.data)) {
+          setResults(r.data);
+          setIsFuzzy(false);
+        } else {
+          setResults([]);
+          setIsFuzzy(false);
+        }
       } catch { /* aborted */ }
       finally { setLoading(false); }
     }, 220);
@@ -117,7 +127,15 @@ export default function SearchModal({ open, onClose }) {
           <p className="font-serif italic text-2xl text-[#6E685E]" data-testid="search-no-results">No matches for "{q}". Try broader words.</p>
         ) : (
           <div>
-            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] mb-4">{results.length} result{results.length === 1 ? "" : "s"}</p>
+            {isFuzzy ? (
+              <div className="mb-6 p-4 bg-[#B8860B]/10 border border-[#B8860B]/30 rounded-sm" data-testid="search-fuzzy-banner">
+                <p className="font-serif italic text-base text-[#1C1815]">
+                  No exact match for "{q}" — here's what's close:
+                </p>
+              </div>
+            ) : (
+              <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] mb-4">{results.length} result{results.length === 1 ? "" : "s"}</p>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="search-results">
               {results.map((p) => {
                 const price = p.discount_price || p.price;

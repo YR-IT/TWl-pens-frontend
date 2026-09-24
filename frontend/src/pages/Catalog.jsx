@@ -1,9 +1,131 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, memo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import ProductCard from "../components/ProductCard";
 import { X, ChevronDown, SlidersHorizontal } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../components/ui/collapsible";
+
+const FilterSidebar = memo(function FilterSidebar({
+  facets,
+  category,
+  setCategory,
+  brand,
+  setBrand,
+  colour,
+  setColour,
+  nibSize,
+  setNibSize,
+  inStock,
+  setInStock,
+  priceMax,
+  setPriceMax,
+  onCloseMobile,
+}) {
+  return (
+    <aside className="space-y-8" data-testid="filter-sidebar">
+      <Collapsible defaultOpen>
+        <CollapsibleTrigger className="flex items-center justify-between w-full text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4">
+          Category <ChevronDown size={14}/>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-2">
+          {["All", ...(facets.categories || [])].map((c) => (
+            <button
+              key={c}
+              onClick={() => { setCategory(c); if (onCloseMobile) onCloseMobile(); }}
+              className={`block text-sm text-left w-full py-1 ${category === c ? "text-[#1C1815] font-medium border-l-2 border-[#B8860B] pl-3" : "text-[#6E685E] hover:text-[#1C1815] pl-3"}`}
+            >
+              {c}
+            </button>
+          ))}
+        </CollapsibleContent>
+      </Collapsible>
+      
+      <Collapsible defaultOpen>
+        <CollapsibleTrigger className="flex items-center justify-between w-full text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4">
+          Availability <ChevronDown size={14}/>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={inStock === true}
+              onChange={(e) => setInStock(e.target.checked ? true : null)}
+              className="accent-[#3D4838]"
+            />
+            <span className="text-sm text-[#6E685E]">In Stock</span>
+          </label>
+        </CollapsibleContent>
+      </Collapsible>
+
+      <Collapsible defaultOpen>
+        <CollapsibleTrigger className="flex items-center justify-between w-full text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4">
+          Maker <ChevronDown size={14}/>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <select
+            value={brand}
+            onChange={(e) => setBrand(e.target.value)}
+            className="w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+          >
+            <option value="">All makers</option>
+            {(facets.brands || []).map((b) => <option key={b} value={b}>{b}</option>)}
+          </select>
+        </CollapsibleContent>
+      </Collapsible>
+
+      <Collapsible defaultOpen>
+        <CollapsibleTrigger className="flex items-center justify-between w-full text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4">
+          Colour <ChevronDown size={14}/>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <select
+            value={colour}
+            onChange={(e) => setColour(e.target.value)}
+            className="w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+          >
+            <option value="">All colours</option>
+            {(facets.colours || []).map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </CollapsibleContent>
+      </Collapsible>
+
+      <Collapsible defaultOpen>
+        <CollapsibleTrigger className="flex items-center justify-between w-full text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4">
+          Nib Size <ChevronDown size={14}/>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <select
+            value={nibSize}
+            onChange={(e) => setNibSize(e.target.value)}
+            className="w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+          >
+            <option value="">All sizes</option>
+            {(facets.nib_sizes || []).map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </CollapsibleContent>
+      </Collapsible>
+
+      <Collapsible defaultOpen>
+        <CollapsibleTrigger className="flex items-center justify-between w-full text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4">
+          Price <ChevronDown size={14}/>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4">
+            Up to Rs {(priceMax || 3000).toLocaleString("en-IN")}
+          </p>
+          <input
+            type="range"
+            min={facets.price_min || 0}
+            max={facets.price_max || 3000}
+            value={priceMax}
+            onChange={(e) => setPriceMax(parseFloat(e.target.value))}
+            className="w-full accent-[#3D4838]"
+          />
+        </CollapsibleContent>
+      </Collapsible>
+    </aside>
+  );
+});
 
 export default function Catalog() {
   const [sp, setSp] = useSearchParams();
@@ -21,14 +143,18 @@ export default function Catalog() {
   const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
+    let active = true;
     api.get("/products/facets").then((r) => {
+      if (!active || !r.data) return;
       setFacets(r.data);
-      setPriceMax(r.data.price_max);
+      if (r.data.price_max) setPriceMax(r.data.price_max);
     });
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
     setLoading(true);
+    const ctrl = new AbortController();
     const params = {};
     if (category !== "All") params.category = category;
     if (brand) params.brand = brand;
@@ -38,7 +164,19 @@ export default function Catalog() {
     if (q) params.q = q;
     params.sort = sort;
     params.max_price = priceMax;
-    api.get("/products", { params }).then((r) => { setProducts(r.data); setLoading(false); });
+
+    api.get("/products", { params, signal: ctrl.signal })
+      .then((r) => {
+        setProducts(Array.isArray(r.data) ? r.data : (r.data?.products || []));
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (err.name !== "CanceledError" && err.code !== "ERR_CANCELED") {
+          setLoading(false);
+        }
+      });
+
+    return () => { ctrl.abort(); };
   }, [category, brand, colour, nibSize, inStock, q, sort, priceMax]);
 
   const activeFilters = useMemo(() => {
@@ -49,88 +187,15 @@ export default function Catalog() {
     return f;
   }, [category, brand, q, setSp]);
 
-  const setCategory = (c) => setSp((s) => { if (c === "All") s.delete("category"); else s.set("category", c); return s; });
+  const setCategory = useCallback((c) => {
+    setSp((s) => {
+      if (c === "All") s.delete("category");
+      else s.set("category", c);
+      return s;
+    });
+  }, [setSp]);
 
-  const FilterContent = () => (
-    <aside className="space-y-8" data-testid="filter-sidebar">
-      <Collapsible defaultOpen>
-        <CollapsibleTrigger className="flex items-center justify-between w-full text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4">
-          Category <ChevronDown size={14}/>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2">
-          {["All", ...facets.categories].map((c) => (
-            <button
-              key={c}
-              onClick={() => { setCategory(c); setFilterOpen(false); }}
-              className={`block text-sm text-left w-full py-1 ${category === c ? "text-[#1C1815] font-medium border-l-2 border-[#B8860B] pl-3" : "text-[#6E685E] hover:text-[#1C1815] pl-3"}`}
-            >
-              {c}
-            </button>
-          ))}
-        </CollapsibleContent>
-      </Collapsible>
-      
-      <Collapsible defaultOpen>
-        <CollapsibleTrigger className="flex items-center justify-between w-full text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4">
-          Availability <ChevronDown size={14}/>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={inStock === true} onChange={(e) => setInStock(e.target.checked ? true : null)} className="accent-[#3D4838]" />
-            <span className="text-sm text-[#6E685E]">In Stock</span>
-          </label>
-        </CollapsibleContent>
-      </Collapsible>
-
-      <Collapsible defaultOpen>
-        <CollapsibleTrigger className="flex items-center justify-between w-full text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4">
-          Maker <ChevronDown size={14}/>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <select value={brand} onChange={(e) => setBrand(e.target.value)} className="w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]">
-            <option value="">All makers</option>
-            {facets.brands.map((b) => <option key={b} value={b}>{b}</option>)}
-          </select>
-        </CollapsibleContent>
-      </Collapsible>
-
-      <Collapsible defaultOpen>
-        <CollapsibleTrigger className="flex items-center justify-between w-full text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4">
-          Colour <ChevronDown size={14}/>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <select value={colour} onChange={(e) => setColour(e.target.value)} className="w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]">
-            <option value="">All colours</option>
-            {facets.colours.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </CollapsibleContent>
-      </Collapsible>
-
-      <Collapsible defaultOpen>
-        <CollapsibleTrigger className="flex items-center justify-between w-full text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4">
-          Nib Size <ChevronDown size={14}/>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <select value={nibSize} onChange={(e) => setNibSize(e.target.value)} className="w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]">
-            <option value="">All sizes</option>
-            {facets.nib_sizes.map((n) => <option key={n} value={n}>{n}</option>)}
-          </select>
-        </CollapsibleContent>
-      </Collapsible>
-
-      <Collapsible defaultOpen>
-        <CollapsibleTrigger className="flex items-center justify-between w-full text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4">
-          Price <ChevronDown size={14}/>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#1C1815] mb-4">Up to Rs {priceMax.toLocaleString("en-IN")}</p>
-          <input type="range" min={facets.price_min} max={facets.price_max} value={priceMax}
-            onChange={(e) => setPriceMax(parseFloat(e.target.value))} className="w-full accent-[#3D4838]"
-          />
-        </CollapsibleContent>
-      </Collapsible>
-    </aside>
-  );
+  const handleCloseMobile = useCallback(() => setFilterOpen(false), []);
 
   return (
     <div className="pt-[76px] bg-[#FAF8F5] min-h-screen">
@@ -164,14 +229,29 @@ export default function Catalog() {
 
       {/* Mobile filter overlay */}
       {filterOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex" onClick={() => setFilterOpen(false)}>
+        <div className="lg:hidden fixed inset-0 z-50 flex" onClick={handleCloseMobile}>
           <div className="absolute inset-0 bg-[#1C1815]/40 backdrop-blur-sm"/>
           <div className="relative w-4/5 max-w-[320px] bg-[#FAF8F5] h-full overflow-y-auto p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">Filters</p>
-              <button onClick={() => setFilterOpen(false)} className="text-[#1C1815]"><X size={20}/></button>
+              <button onClick={handleCloseMobile} className="text-[#1C1815]"><X size={20}/></button>
             </div>
-            <FilterContent/>
+            <FilterSidebar
+              facets={facets}
+              category={category}
+              setCategory={setCategory}
+              brand={brand}
+              setBrand={setBrand}
+              colour={colour}
+              setColour={setColour}
+              nibSize={nibSize}
+              setNibSize={setNibSize}
+              inStock={inStock}
+              setInStock={setInStock}
+              priceMax={priceMax}
+              setPriceMax={setPriceMax}
+              onCloseMobile={handleCloseMobile}
+            />
           </div>
         </div>
       )}
@@ -179,7 +259,21 @@ export default function Catalog() {
       <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-10 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-10">
         {/* Desktop sidebar */}
         <div className="hidden lg:block">
-          <FilterContent/>
+          <FilterSidebar
+            facets={facets}
+            category={category}
+            setCategory={setCategory}
+            brand={brand}
+            setBrand={setBrand}
+            colour={colour}
+            setColour={setColour}
+            nibSize={nibSize}
+            setNibSize={setNibSize}
+            inStock={inStock}
+            setInStock={setInStock}
+            priceMax={priceMax}
+            setPriceMax={setPriceMax}
+          />
         </div>
 
         <main>
@@ -218,4 +312,3 @@ export default function Catalog() {
     </div>
   );
 }
-
