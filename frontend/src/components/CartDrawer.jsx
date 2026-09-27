@@ -38,7 +38,7 @@ export default function CartDrawer() {
           ) : (
             <div className="space-y-6">
               {items.map((it) => {
-                const key = rowKey(it.id, it.engraving, it.engraving_font, it.engraving_position);
+                const key = rowKey(it.id, it.color, it.engraving, it.engraving_font, it.engraving_position);
                 const engDetails = [it.engraving_font, it.engraving_position].filter(Boolean).join(" · ");
                 return (
                   <div key={key} className="flex gap-4 border-b border-[#E6E0D6] pb-6" data-testid={`cart-item-${it.id}`}>
@@ -47,8 +47,15 @@ export default function CartDrawer() {
                     </div>
                     <div className="flex-1 flex flex-col justify-between">
                       <div>
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">{it.brand}</p>
-                        <h3 className="font-serif text-lg text-[#1C1815] leading-tight">{it.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">{it.brand}</p>
+                          {it.color && (
+                            <span className="text-[9px] uppercase tracking-wider text-[#3D4838] bg-[#FAF8F5] border border-[#E6E0D6] px-1.5 py-0.5 rounded font-medium">
+                              {it.color}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="font-serif text-lg text-[#1C1815] leading-tight mt-0.5">{it.name}</h3>
                         {it.engraving && (
                           <div className="mt-1" data-testid={`cart-engraving-${it.id}`}>
                             <p className="text-[11px] uppercase tracking-[0.15em] text-[#B8860B] font-medium">

@@ -282,6 +282,7 @@ class ProductIn(BaseModel):
     features: List[str] = Field(default_factory=list)
     specs: dict = Field(default_factory=dict)  # brand, form, colour, ink_colour, age_range, material
     images: List[str] = Field(default_factory=list)  # URLs (from storage or external)
+    colors: Optional[List[dict]] = Field(default_factory=list)  # [{name, hex, swatch_image, images: [], price, discount_price, stock}]
     stock: int = Field(default=10, ge=0)
     featured: bool = False
     new_arrival: bool = True
@@ -336,6 +337,19 @@ class BannerIn(BaseModel):
     # Section 06: Exclusive Partners / Brands
     brands: Optional[List[dict]] = None
 
+    # USP / Trust Bar (4-item row)
+    trust_bar: Optional[List[dict]] = None
+
+    # Bulk Orders & Corporate Gifts Cards
+    bulk_orders_card: Optional[dict] = None
+    corporate_gifts_card: Optional[dict] = None
+
+    # Minimal Engraving Section
+    engraving_section: Optional[dict] = None
+
+    # Signature Collections (2 luxury cards)
+    signature_collections: Optional[dict] = None
+
     # Contact Form Inquiry Types
     contact_inquiry_types: Optional[List[str]] = None
 
@@ -355,6 +369,8 @@ class ProductOut(ProductIn):
 class CartItemIn(BaseModel):
     product_id: str
     quantity: int = Field(ge=1, le=50)
+    color: Optional[str] = Field(default=None, max_length=60)
+    color_image: Optional[str] = None
     engraving: Optional[str] = Field(default=None, max_length=60)
     engraving_font: Optional[str] = Field(default=None, max_length=60)
     engraving_position: Optional[str] = Field(default=None, max_length=60)
@@ -608,6 +624,79 @@ async def startup():
                 "accent": "#1C1815",
             },
         ]}}
+    )
+
+    # Backfill trust_bar on existing banner documents that lack it
+    _default_trust_bar = [
+        {"icon": "Truck", "title": "Free Shipping", "subtext": "Free delivery on orders above ₹1499"},
+        {"icon": "Sparkles", "title": "Complimentary Refill", "subtext": "Extra refill with selected pens"},
+        {"icon": "ShieldCheck", "title": "100% Genuine Products", "subtext": "Authentic products from trusted brands"},
+        {"icon": "Award", "title": "Expertly Curated", "subtext": "Pens selected for every kind of writer"},
+    ]
+    await db.site_banner.update_many(
+        {"trust_bar": {"$exists": False}},
+        {"$set": {"trust_bar": _default_trust_bar}},
+    )
+
+    # Backfill bulk_orders_card on existing banner documents that lack it
+    _default_bulk_card = {
+        "title": "Bulk Orders",
+        "description": "Looking to stock up? Exclusive discounts on bulk purchases — perfect for retailers, offices, or events.",
+        "email": "bulkorders@wlpens.com",
+        "image": "https://images.unsplash.com/photo-1583195764036-5d2c7b0b5e3f?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+    }
+    await db.site_banner.update_many(
+        {"bulk_orders_card": {"$exists": False}},
+        {"$set": {"bulk_orders_card": _default_bulk_card}},
+    )
+
+    # Backfill corporate_gifts_card on existing banner documents that lack it
+    _default_corp_card = {
+        "title": "Corporate Gifts",
+        "description": "Want memorable business gifts? We personalize select pens — perfect for clients, employees, and events.",
+        "email": "corporate@wlpens.com",
+        "image": "https://images.unsplash.com/photo-1617177435596-1c9e30d6d608?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+    }
+    await db.site_banner.update_many(
+        {"corporate_gifts_card": {"$exists": False}},
+        {"$set": {"corporate_gifts_card": _default_corp_card}},
+    )
+
+    # Backfill minimal engraving_section on existing banner documents that lack it
+    _default_engraving_section = {
+        "eyebrow": "CRAFTED FOR YOU",
+        "title": "CUSTOM NAME ENGRAVING",
+        "subtitle": "Personalise the pen with a name for a thoughtful and elegant gift.",
+        "cta_text": "Contact Us",
+        "cta_link": "/contact",
+    }
+    await db.site_banner.update_many(
+        {"engraving_section": {"$exists": False}},
+        {"$set": {"engraving_section": _default_engraving_section}},
+    )
+
+    # Backfill signature_collections on existing banner documents that lack it
+    _default_signature_collections = {
+        "title": "SIGNATURE COLLECTIONS",
+        "subtitle": "Our carefully selected products just for you",
+        "card_left": {
+            "brand": "THE WL PENS",
+            "title": "EXCLUSIVE",
+            "image": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200",
+            "link": "/shop",
+            "theme": "exclusive",
+        },
+        "card_right": {
+            "brand": "THE WL PENS",
+            "title": "PREMIUM",
+            "image": "https://images.unsplash.com/photo-1585336261026-78b17b6a1f81?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200",
+            "link": "/shop",
+            "theme": "premium",
+        },
+    }
+    await db.site_banner.update_many(
+        {"signature_collections": {"$exists": False}},
+        {"$set": {"signature_collections": _default_signature_collections}},
     )
 
     # Init storage (non-blocking)
@@ -943,14 +1032,14 @@ async def admin_delete_product(product_id: str, _admin=Depends(admin_only)):
 
 
 # ---------------- Admin image upload ----------------
-ALLOWED_IMG = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
+ALLOWED_IMG = {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/svg+xml"}
 
 
 @api.post("/admin/upload")
 async def admin_upload(file: UploadFile = File(...), _admin=Depends(admin_only)):
     ctype = (file.content_type or "").lower()
     if ctype not in ALLOWED_IMG:
-        raise HTTPException(415, "Only JPEG, PNG, or WebP images allowed")
+        raise HTTPException(415, "Only JPEG, PNG, WebP, or SVG images allowed")
     data = await file.read()
     if len(data) > 5 * 1024 * 1024:
         raise HTTPException(413, "Image exceeds 5 MB")
@@ -969,7 +1058,7 @@ async def admin_upload_multiple(files: List[UploadFile] = File(...), _admin=Depe
     for file in files:
         ctype = (file.content_type or "").lower()
         if ctype not in ALLOWED_IMG:
-            errors.append(f"{file.filename}: Only JPEG, PNG, or WebP allowed")
+            errors.append(f"{file.filename}: Only JPEG, PNG, WebP, or SVG allowed")
             continue
         data = await file.read()
         if len(data) > 5 * 1024 * 1024:
@@ -1013,7 +1102,8 @@ def _build_whatsapp_url(order: dict) -> str:
     lines.append("")
     lines.append("*Items*")
     for it in order["items"]:
-        line = f"• {it['quantity']} × {it['name']} — Rs {it['unit_price']:,.0f}"
+        clr_str = f" [{it['color']}]" if it.get("color") else ""
+        line = f"• {it['quantity']} × {it['name']}{clr_str} — Rs {it['unit_price']:,.0f}"
         if it.get("engraving"):
             meta = []
             if it.get("engraving_font"):
@@ -1059,15 +1149,17 @@ async def place_order(body: OrderPlaceBody, user=Depends(current_user_optional))
             raise HTTPException(400, f"Insufficient stock for {p['name']}")
         unit = _price_of(p)
         total += unit * it.quantity
+        item_img = it.color_image or (p["images"][0] if p.get("images") else None)
         order_items.append({
             "product_id": p["id"],
             "name": p["name"],
             "unit_price": unit,
             "quantity": it.quantity,
+            "color": (it.color or "").strip() or None,
             "engraving": (it.engraving or "").strip() or None,
             "engraving_font": (it.engraving_font or "").strip() or None,
             "engraving_position": (it.engraving_position or "").strip() or None,
-            "image": p["images"][0] if p.get("images") else None,
+            "image": item_img,
         })
     total = round(total, 2)
     order_id = f"WL-{uuid.uuid4().hex[:8].upper()}"
@@ -1166,6 +1258,49 @@ DEFAULT_BANNER = {
     "studio_eyebrow": "03 / FROM THE STUDIO",
     "studio_title": "Live from the desk.",
     "studio_subtitle": "Fresh nib videos, first inks of the season, and bespoke commissions — straight from our Panchkula atelier.",
+    "trust_bar": [
+        {"icon": "Truck", "title": "Free Shipping", "subtext": "Free delivery on orders above ₹1499"},
+        {"icon": "Sparkles", "title": "Complimentary Refill", "subtext": "Extra refill with selected pens"},
+        {"icon": "ShieldCheck", "title": "100% Genuine Products", "subtext": "Authentic products from trusted brands"},
+        {"icon": "Award", "title": "Expertly Curated", "subtext": "Pens selected for every kind of writer"},
+    ],
+    "bulk_orders_card": {
+        "title": "Bulk Orders",
+        "description": "Looking to stock up? Exclusive discounts on bulk purchases — perfect for retailers, offices, or events.",
+        "email": "bulkorders@wlpens.com",
+        "image": "https://images.unsplash.com/photo-1583195764036-5d2c7b0b5e3f?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+    },
+    "corporate_gifts_card": {
+        "title": "Corporate Gifts",
+        "description": "Want memorable business gifts? We personalize select pens — perfect for clients, employees, and events.",
+        "email": "corporate@wlpens.com",
+        "image": "https://images.unsplash.com/photo-1617177435596-1c9e30d6d608?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+    },
+    "engraving_section": {
+        "eyebrow": "CRAFTED FOR YOU",
+        "title": "CUSTOM NAME ENGRAVING",
+        "subtitle": "Personalise the pen with a name for a thoughtful and elegant gift.",
+        "cta_text": "Contact Us",
+        "cta_link": "/contact",
+    },
+    "signature_collections": {
+        "title": "SIGNATURE COLLECTIONS",
+        "subtitle": "Our carefully selected products just for you",
+        "card_left": {
+            "brand": "THE WL PENS",
+            "title": "EXCLUSIVE",
+            "image": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200",
+            "link": "/shop",
+            "theme": "exclusive",
+        },
+        "card_right": {
+            "brand": "THE WL PENS",
+            "title": "PREMIUM",
+            "image": "https://images.unsplash.com/photo-1585336261026-78b17b6a1f81?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200",
+            "link": "/shop",
+            "theme": "premium",
+        },
+    },
     "contact_inquiry_types": [
         "General Studio Inquiry",
         "Bespoke Nib Tuning & Engraving",

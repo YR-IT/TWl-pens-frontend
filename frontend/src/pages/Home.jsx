@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Gift, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,6 +7,11 @@ import { useCategories } from "../lib/categories";
 import { SITE } from "../lib/site";
 import ProductCard from "../components/ProductCard";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../components/ui/carousel";
+import TrustBar from "../components/TrustBar";
+import BulkAndCorporateGifts from "../components/BulkAndCorporateGifts";
+import MinimalEngravingSection from "../components/MinimalEngravingSection";
+import BrandMarqueeSection from "../components/BrandMarqueeSection";
+import SignatureCollections from "../components/SignatureCollections";
 
 const HERO_IMG = "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600";
 const EDITORIAL_1 = "https://images.unsplash.com/photo-1617177435596-1c9e30d6d608?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200";
@@ -74,13 +79,6 @@ const DEFAULT_FEATURED_CATS = [
     accent: "#1C1815",
     image: "https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
   },
-];
-
-const DEFAULT_BRANDS = [
-  { name: "Pilot",  image: "", link: "/shop?brand=Pilot" },
-  { name: "Namiki", image: "", link: "/shop?brand=Namiki" },
-  { name: "Sailor", image: "", link: "/shop?brand=Sailor" },
-  { name: "Lamy",   image: "", link: "/shop?brand=Lamy" },
 ];
 
 export default function Home() {
@@ -163,26 +161,14 @@ export default function Home() {
   const bestsellersTitle = banner?.bestsellers_title || "Hallmark editions.";
   const bestsellersSubtitle = banner?.bestsellers_subtitle || "Our most coveted writing instruments, beloved by connoisseurs.";
 
-  const studioEyebrow = banner?.studio_eyebrow || "03 / FROM THE STUDIO";
-  const studioTitle = banner?.studio_title || "Live from the desk.";
-  const studioSubtitle = banner?.studio_subtitle || "Fresh nib videos, first inks of the season, and bespoke commissions — straight from our Panchkula atelier.";
-
   // Featured categories — from backend or fallback
   const featuredCats = (Array.isArray(banner?.featured_cats) && banner.featured_cats.length > 0)
     ? banner.featured_cats
     : DEFAULT_FEATURED_CATS;
 
-  // Brands — from backend or fallback
-  const brands = (Array.isArray(banner?.brands) && banner.brands.length > 0)
-    ? banner.brands
-    : DEFAULT_BRANDS;
-
-  // Brand strip items for marquee (use brands list, duplicated)
-  const brandItems = [...brands, ...brands];
-
   return (
     <div className="pt-[108px] sm:pt-[108px]">
-      {/* Hero Moving Carousel Section */}
+      {/* 1. Hero Moving Carousel Section */}
       <section 
         className="relative w-full h-[60vh] sm:h-[68vh] lg:h-[72vh] min-h-[440px] max-h-[720px] overflow-hidden bg-[#1C1815]"
         onMouseEnter={() => setIsPaused(true)}
@@ -259,7 +245,7 @@ export default function Home() {
           </AnimatePresence>
         </div>
 
-        {/* Carousel Navigation Arrows (only if multiple slides) */}
+        {/* Carousel Navigation Arrows */}
         {slides.length > 1 && (
           <>
             <button
@@ -299,6 +285,17 @@ export default function Home() {
         )}
       </section>
 
+      {/* 2. USP / Trust Bar Section (Free Shipping, Refill, Genuine, Curated) */}
+      <TrustBar items={banner?.trust_bar} />
+
+      {/* Ink-Style Signature Tagline Banner */}
+      <section className="w-full bg-[#FAF8F5] py-8 sm:py-10 text-center border-b border-[#E6E0D6]/60">
+        <div className="max-w-3xl mx-auto px-6">
+          <p className="ink-font text-2xl sm:text-4xl text-[#1A2836] leading-relaxed tracking-wide">
+            Experience the timeless elegance of craft.
+          </p>
+        </div>
+      </section>
 
       {/* Category Cards Section */}
       <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-16">
@@ -317,7 +314,7 @@ export default function Home() {
             {safeCats.map(cat => (
               <CarouselItem key={cat.id} className="basis-1/2 md:basis-1/3 lg:basis-1/5">
                 <Link to={`/shop?category=${encodeURIComponent(cat.name)}`} className="group block">
-                  <div className="bg-[#FFFFFF] border border-[#E6E0D6] overflow-hidden hover:border-[#B8860B] transition-all duration-300 shadow-sm hover:shadow-md">
+                  <div className="bg-[#FFFFFF] border border-[#E6E0D6] overflow-hidden hover:border-[#B8860B] transition-all duration-300 shadow-sm hover:shadow-md rounded-sm">
                     <div className="aspect-square overflow-hidden bg-[#F3EFEA]">
                       <img
                         src={fileUrl(cat.image)}
@@ -348,7 +345,11 @@ export default function Home() {
       <section className="max-w-[1600px] mx-auto px-6 lg:px-12">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#E6E0D6] pb-8 mb-10 gap-4">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">{bestsellersEyebrow}</p>
+            <div className="flex items-center gap-3">
+              <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">{bestsellersEyebrow}</p>
+              <span className="text-[#E6E0D6]">·</span>
+              <span className="ink-font text-xl sm:text-2xl text-[#1A2836]">Our Recommendation</span>
+            </div>
             <h2 className="font-serif text-3xl lg:text-5xl text-[#1C1815] mt-2">{bestsellersTitle}</h2>
             <p className="mt-2 text-xs sm:text-sm text-[#6E685E]">{bestsellersSubtitle}</p>
           </div>
@@ -371,33 +372,22 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Bespoke Personalization / Engraving Preview Showcase */}
-      <EngravingPreviewSection/>
+      {/* 4. Replace 03 / Bespoke with Minimal Engraving Section */}
+      <MinimalEngravingSection data={banner?.engraving_section} className="my-16" />
 
-      {/* Secondary Banner Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-2">
-        <div className="relative aspect-[16/9] md:aspect-[4/5] flex items-end p-12 overflow-hidden bg-[#D1D9D1]">
-          <img src={EDITORIAL_1} alt="Timeless Elegance" loading="lazy" decoding="async" width={800} height={600} className="absolute inset-0 w-full h-full object-cover opacity-70"/>
-          <div className="relative text-[#FAF8F5]">
-            <h3 className="font-serif text-4xl drop-shadow">Timeless Elegance</h3>
-            <Link to="/shop" className="mt-4 inline-block bg-[#FAF8F5] text-[#1C1815] px-8 py-3 rounded-full uppercase text-xs hover:bg-white transition-colors">Discover</Link>
-          </div>
-        </div>
-        <div className="relative aspect-[16/9] md:aspect-[4/5] flex items-end p-12 overflow-hidden bg-[#DED6CC]">
-          <img src={EDITORIAL_2} alt="Modern Precision" loading="lazy" decoding="async" width={800} height={600} className="absolute inset-0 w-full h-full object-cover opacity-70"/>
-          <div className="relative text-[#FAF8F5]">
-            <h3 className="font-serif text-4xl drop-shadow">Modern Precision</h3>
-            <Link to="/shop" className="mt-4 inline-block bg-[#1C1815] text-[#FAF8F5] px-8 py-3 rounded-full uppercase text-xs hover:bg-[#3D4838] transition-colors">Explore</Link>
-          </div>
-        </div>
-      </section>
+      {/* Signature Collections (2-Column Luxury Cards) */}
+      <SignatureCollections data={banner?.signature_collections} />
 
       {/* New Arrivals Carousel Section */}
       {safeNewArrivals.length > 0 && (
         <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-20">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#E6E0D6] pb-8 mb-10 gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">04 / NEW ARRIVALS</p>
+              <div className="flex items-center gap-3">
+                <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">04 / NEW ARRIVALS</p>
+                <span className="text-[#E6E0D6]">·</span>
+                <span className="ink-font text-xl sm:text-2xl text-[#1A2836]">New Arrival Editions</span>
+              </div>
               <h2 className="font-serif text-3xl lg:text-5xl text-[#1C1815] mt-2">Just landed.</h2>
               <p className="mt-2 text-xs sm:text-sm text-[#6E685E]">The latest additions to the atelier — freshly sourced, freshly inked.</p>
             </div>
@@ -421,6 +411,12 @@ export default function Home() {
         </section>
       )}
 
+      {/* 1. Bulk Orders & Corporate Gifts Section */}
+      <BulkAndCorporateGifts
+        bulkCard={banner?.bulk_orders_card}
+        corpCard={banner?.corporate_gifts_card}
+      />
+
       {/* Featured Categories — 3 editorial banners */}
       <section className="max-w-[1600px] mx-auto px-6 lg:px-12">
         <div className="border-b border-[#E6E0D6] pb-8 mb-10">
@@ -432,7 +428,7 @@ export default function Home() {
             <Link
               key={item.label}
               to={`/shop?category=${encodeURIComponent(item.query)}`}
-              className="group relative overflow-hidden aspect-[3/4] flex flex-col justify-end p-8"
+              className="group relative overflow-hidden aspect-[3/4] flex flex-col justify-end p-8 rounded-sm"
               style={{ background: item.bg }}
             >
               <img
@@ -493,171 +489,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Exclusive Brands Section */}
-      <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-20">
-        <div className="border-b border-[#E6E0D6] pb-8 mb-10 text-center">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">06 / EXCLUSIVE PARTNERS</p>
-          <h2 className="font-serif text-3xl lg:text-5xl text-[#1C1815] mt-2">Our writing houses.</h2>
-        </div>
+      {/* 3. Brand Partners Carousel — 06 / EXCLUSIVE PARTNERS (Continuous Marquee) */}
+      <BrandMarqueeSection brands={banner?.brands} />
 
-        {brands.length <= 6 ? (
-          /* Grid for 6 or fewer brands */
-          <div className="flex flex-wrap justify-center gap-10">
-            {brands.map((b) => (
-              <BrandCard key={b.name} b={b}/>
-            ))}
-          </div>
-        ) : (
-          /* Carousel for 7+ brands */
-          <Carousel opts={{ align: "start", loop: true }} className="w-full">
-            <CarouselContent>
-              {brands.map((b) => (
-                <CarouselItem key={b.name} className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
-                  <BrandCard b={b}/>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <div className="flex justify-center gap-4 mt-8">
-              <CarouselPrevious className="static"/>
-              <CarouselNext className="static"/>
-            </div>
-          </Carousel>
-        )}
-
-        <div className="text-center mt-12">
-          <Link to="/brands" className="text-[#B8860B] underline uppercase text-xs">Explore All Brands &rarr;</Link>
-        </div>
-      </section>
-
-      {/* Founder Story Block — Exclusive to Homepage */}
+      {/* 6. Founder Story Block with Ink-Style Typography & Signature */}
       <FounderStorySection />
     </div>
-  );
-}
-
-function BrandCard({ b }) {
-  const inner = (
-    <div className="flex flex-col items-center gap-4 group cursor-pointer">
-      <div className="w-36 h-36 rounded-full overflow-hidden border border-[#E6E0D6] group-hover:border-[#B8860B] transition-colors duration-300 bg-[#F3EFEA] flex items-center justify-center">
-        {b.image ? (
-          <img src={b.image} alt={b.name} loading="lazy" decoding="async" width={144} height={144} className="w-full h-full object-cover"/>
-        ) : (
-          <span className="font-serif text-2xl tracking-wider text-[#1C1815]/60 group-hover:text-[#1C1815] transition-colors">{b.name[0]}</span>
-        )}
-      </div>
-      <span className="font-serif text-lg text-[#1C1815]">{b.name}</span>
-    </div>
-  );
-  if (b.link) return <Link to={b.link}>{inner}</Link>;
-  return inner;
-}
-
-function EngravingPreviewSection() {
-  const [sampleText, setSampleText] = useState("Aryan Kumar");
-  const [activeFont, setActiveFont] = useState("script");
-
-  const fontStyles = {
-    script: { name: "Classic Script", fontClass: "font-serif italic", sample: "Aryan Kumar" },
-    serif: { name: "Timeless Roman", fontClass: "font-serif tracking-[0.2em] uppercase font-medium", sample: "ARYAN KUMAR" },
-    sans: { name: "Modern Minimalist", fontClass: "font-sans tracking-[0.25em] uppercase font-bold", sample: "ARYAN KUMAR" },
-  };
-
-  return (
-    <section className="w-full bg-[#1C1815] text-[#FAF8F5] py-20 px-6 lg:px-12 my-12 overflow-hidden">
-      <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-        {/* Left Column: Interactive Engraving Showcase Preview */}
-        <div className="relative aspect-[16/10] sm:aspect-[16/9] rounded-sm overflow-hidden bg-[#241F1B] border border-[#3D4838] shadow-2xl group">
-          <img 
-            src="/engraving-showcase.jpg" 
-            alt="Craft Your Identity - Bespoke Engraving" 
-            className="w-full h-full object-cover opacity-90 transition-transform duration-700 group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#1C1815]/90 via-[#1C1815]/40 to-transparent"/>
-          
-          {/* Live Dynamic Engraving Overlay Banner on Pen */}
-          <div className="absolute bottom-6 left-6 right-6 p-4 bg-[#1C1815]/85 backdrop-blur-md border border-[#B8860B]/40 rounded flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
-              <p className="text-[9px] uppercase tracking-[0.25em] text-[#B8860B]">Simulated Studio Etching</p>
-              <p className={`text-xl sm:text-2xl text-[#E6C687] drop-shadow-md mt-0.5 ${fontStyles[activeFont].fontClass}`}>
-                {sampleText.trim() || "Your Name Here"}
-              </p>
-            </div>
-            <span className="text-[10px] uppercase tracking-wider text-[#FAF8F5]/60 bg-[#FAF8F5]/10 px-2 py-1 rounded">
-              {fontStyles[activeFont].name}
-            </span>
-          </div>
-        </div>
-
-        {/* Right Column: Information & Interactive Font Picker */}
-        <div className="space-y-6">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.35em] text-[#B8860B]">03 / BESPOKE PERSONALIZATION</p>
-            <h2 className="font-serif text-3xl sm:text-5xl text-[#FAF8F5] mt-2 leading-tight">
-              Craft Your Identity.
-            </h2>
-            <p className="text-[#FAF8F5]/75 text-sm sm:text-base mt-4 leading-relaxed font-light">
-              Every fine pen tells a story, but an engraved instrument immortalizes it. Our master nibsmiths in Panchkula precision-etch names, monograms, and landmark dates in your chosen calligraphy font.
-            </p>
-          </div>
-
-          {/* Interactive Font Selector */}
-          <div className="space-y-3 pt-2">
-            <label className="block text-[11px] uppercase tracking-[0.2em] text-[#B8860B] font-medium">
-              1. Choose a Calligraphy Style
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {Object.entries(fontStyles).map(([key, item]) => (
-                <button
-                  key={key}
-                  onClick={() => setActiveFont(key)}
-                  className={`p-3 text-center border transition-all rounded-sm ${
-                    activeFont === key
-                      ? "border-[#B8860B] bg-[#B8860B]/15 text-[#FAF8F5]"
-                      : "border-[#3D4838] bg-[#FAF8F5]/5 text-[#FAF8F5]/70 hover:border-[#FAF8F5]/40"
-                  }`}
-                >
-                  <p className="text-[10px] uppercase tracking-wider font-medium">{item.name}</p>
-                  <p className={`text-xs mt-1 text-[#B8860B] ${item.fontClass}`}>Sample</p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Interactive Live Name Tester */}
-          <div className="space-y-2 pt-1">
-            <label className="block text-[11px] uppercase tracking-[0.2em] text-[#B8860B] font-medium">
-              2. Test Your Custom Inscription
-            </label>
-            <input
-              type="text"
-              value={sampleText}
-              maxLength={24}
-              onChange={(e) => setSampleText(e.target.value)}
-              placeholder="Type your name or monogram…"
-              className="w-full bg-[#FAF8F5]/10 border border-[#3D4838] px-4 py-3 text-base text-[#FAF8F5] outline-none placeholder:text-[#FAF8F5]/40 focus:border-[#B8860B] transition-colors rounded-sm"
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="pt-4 flex flex-wrap items-center gap-4">
-            <Link
-              to="/shop"
-              className="bg-[#B8860B] text-[#FAF8F5] px-8 py-3.5 rounded-full uppercase text-xs tracking-[0.2em] font-medium hover:bg-[#96700A] transition-all shadow-lg hover:shadow-xl"
-            >
-              Shop Engravable Pens &rarr;
-            </Link>
-            <a
-              href="https://wa.me/919351996272?text=Hello%20The%20WL%20Pens%20Studio%2C%20I%20would%20like%20to%20know%20more%20about%20bespoke%20pen%20engraving"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs uppercase tracking-[0.2em] text-[#FAF8F5]/70 hover:text-[#FAF8F5] border-b border-[#FAF8F5]/30 pb-1 transition-colors"
-            >
-              Enquire Custom Logo
-            </a>
-          </div>
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -688,7 +525,7 @@ function FounderStorySection() {
           <span className="text-[10px] uppercase tracking-[0.35em] text-[#B8860B] font-semibold mb-3">
             PEOPLE OF THE WL PENS · FOUNDER'S NOTE
           </span>
-          <h2 className="font-serif text-2xl sm:text-4xl text-[#1C1815] leading-tight mb-4">
+          <h2 className="ink-font text-3xl sm:text-4xl lg:text-5xl text-[#1A2836] leading-tight mb-4">
             "A pen should never just write. It should remember."
           </h2>
           <div className="space-y-3.5 text-sm sm:text-base text-[#6E685E] leading-relaxed font-light">
@@ -700,17 +537,20 @@ function FounderStorySection() {
             </p>
           </div>
 
-          <div className="mt-6 pt-5 border-t border-[#E6E0D6] flex items-center justify-between">
+          <div className="mt-6 pt-5 border-t border-[#E6E0D6] flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="font-serif text-lg sm:text-xl text-[#1C1815] font-medium">Manjeet Singh</p>
+              <p className="ink-font text-2xl sm:text-3xl text-[#1A2836] leading-none mb-1">
+                — W.L. Signature
+              </p>
+              <p className="font-serif text-base sm:text-lg text-[#1C1815] font-medium">Manjeet Singh</p>
               <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-[#B8860B]">Founder &amp; Master Nibsmith</p>
             </div>
-            <span className="font-serif italic text-xs sm:text-sm text-[#6E685E]">Panchkula Atelier</span>
+            <span className="font-serif italic text-xs sm:text-sm text-[#6E685E] bg-[#F3EFEA] px-3 py-1.5 rounded-full border border-[#E6E0D6]">
+              Panchkula Atelier
+            </span>
           </div>
         </div>
       </div>
     </section>
   );
 }
-
-

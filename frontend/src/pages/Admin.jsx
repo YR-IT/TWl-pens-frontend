@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, Navigate } from "react-router-dom";
 import { Package, ShoppingBag, Users, DollarSign, Truck, Upload, Trash2, Edit3, Plus, X, Tag, Instagram, ArrowUp, ArrowDown, Sparkles, Layers, ChevronRight, Image as ImageIcon, Eye, Activity, ArrowDownRight } from "lucide-react";
 import { api, fileUrl } from "../lib/api";
@@ -412,6 +413,7 @@ function ProductForm({ product, onClose, onSaved }) {
     features: product.features?.join("\n") || "",
     specs: Object.entries(product.specs || {}).map(([k, v]) => `${k}: ${v}`).join("\n"),
     images: product.images || [],
+    colors: product.colors || [],
     featured: !!product.featured,
     new_arrival: product.new_arrival ?? true,
     best_seller: !!product.best_seller,
@@ -425,7 +427,7 @@ function ProductForm({ product, onClose, onSaved }) {
   } : {
     name: "", brand: "", category: cats[0]?.name || "",
     price: "", discount_price: "",
-    description: "", features: "", specs: "", images: [], stock: 10,
+    description: "", features: "", specs: "", images: [], colors: [], stock: 10,
     featured: false, new_arrival: true, best_seller: false,
     engravable: true, engraving_max_length: 20,
     engraving_fonts: "Classic Script, Timeless Serif, Modern Sans",
@@ -438,13 +440,101 @@ function ProductForm({ product, onClose, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [showUrlField, setShowUrlField] = useState(false);
+  const [uploadingColorSwatch, setUploadingColorSwatch] = useState(null); // colorIdx
+  const [uploadingColorImages, setUploadingColorImages] = useState(null); // colorIdx
   const set = (k, v) => setForm({ ...form, [k]: v });
+
+  // Color variant helpers
+  const updateColor = (idx, field, value) => {
+    setForm((prev) => {
+      const colors = [...(prev.colors || [])];
+      colors[idx] = { ...colors[idx], [field]: value };
+      return { ...prev, colors };
+    });
+  };
+  const addColor = () => {
+    setForm((prev) => ({ ...prev, colors: [...(prev.colors || []), { name: "", hex: "#888888", swatch_image: "", images: [], price: "", discount_price: "", stock: "" }] }));
+  };
+  const removeColor = (idx) => {
+    setForm((prev) => ({ ...prev, colors: (prev.colors || []).filter((_, i) => i !== idx) }));
+  };
+  const moveColor = (from, to) => {
+    setForm((prev) => {
+      const colors = [...(prev.colors || [])];
+      if (to < 0 || to >= colors.length) return prev;
+      const [item] = colors.splice(from, 1);
+      colors.splice(to, 0, item);
+      return { ...prev, colors };
+    });
+  };
+  const uploadColorSwatch = async (file, idx) => {
+    setUploadingColorSwatch(idx);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await api.post("/admin/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      updateColor(idx, "swatch_image", r.data.url);
+      toast.success("Swatch uploaded");
+    } catch (err) {
+      toast.error("Swatch upload failed: " + (err.response?.data?.detail || err.message));
+    } finally { setUploadingColorSwatch(null); }
+  };
+  const uploadColorImages = async (files, idx) => {
+    setUploadingColorImages(idx);
+    const newUrls = [];
+    try {
+      const fd = new FormData();
+      Array.from(files).forEach((f) => fd.append("files", f));
+      try {
+        const r = await api.post("/admin/upload-multiple", fd, { headers: { "Content-Type": "multipart/form-data" } });
+        if (r.data?.files?.length) r.data.files.forEach((f) => { if (f.url) newUrls.push(f.url); });
+      } catch {
+        for (const file of Array.from(files)) {
+          const sfd = new FormData();
+          sfd.append("file", file);
+          const sr = await api.post("/admin/upload", sfd, { headers: { "Content-Type": "multipart/form-data" } });
+          if (sr.data?.url) newUrls.push(sr.data.url);
+        }
+      }
+      if (newUrls.length > 0) {
+        setForm((prev) => {
+          const colors = [...(prev.colors || [])];
+          colors[idx] = { ...colors[idx], images: [...(colors[idx].images || []), ...newUrls] };
+          return { ...prev, colors };
+        });
+        toast.success(`${newUrls.length} image${newUrls.length > 1 ? "s" : ""} added to colour`);
+      }
+    } catch (err) {
+      toast.error("Color image upload failed: " + (err.response?.data?.detail || err.message));
+    } finally { setUploadingColorImages(null); }
+  };
+  const removeColorImage = (colorIdx, imgIdx) => {
+    setForm((prev) => {
+      const colors = [...(prev.colors || [])];
+      colors[colorIdx] = { ...colors[colorIdx], images: (colors[colorIdx].images || []).filter((_, i) => i !== imgIdx) };
+      return { ...prev, colors };
+    });
+  };
 
   // If no category assigned (new product) and cats loaded later, default it
   useEffect(() => {
     if (!product && !form.category && cats.length) set("category", cats[0].name);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cats.length]);
+
+  // Accessibility: escape key to close and prevent body background scrolling
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
 
   const uploadFiles = async (fileList) => {
     if (!fileList || fileList.length === 0) return;
@@ -526,6 +616,15 @@ function ProductForm({ product, onClose, onSaved }) {
         form.specs.split("\n").map((l) => l.split(":").map((s) => s.trim())).filter((p) => p.length === 2 && p[0])
       ),
       images: form.images,
+      colors: (form.colors || []).map((c) => ({
+        name: c.name || "",
+        hex: c.hex || "",
+        swatch_image: c.swatch_image || "",
+        images: c.images || [],
+        price: c.price !== "" && c.price !== null && c.price !== undefined ? parseFloat(c.price) || null : null,
+        discount_price: c.discount_price !== "" && c.discount_price !== null && c.discount_price !== undefined ? parseFloat(c.discount_price) || null : null,
+        stock: c.stock !== "" && c.stock !== null && c.stock !== undefined ? parseInt(c.stock) : null,
+      })),
       stock: parseInt(form.stock) || 0,
       featured: !!form.featured,
       new_arrival: !!form.new_arrival,
@@ -550,18 +649,38 @@ function ProductForm({ product, onClose, onSaved }) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-10 px-4 bg-[#1C1815]/50" onClick={onClose}>
-      <div className="bg-[#FAF8F5] w-full max-w-3xl p-6 lg:p-10" onClick={(e) => e.stopPropagation()} data-testid="product-form-modal">
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">{product ? "EDIT" : "NEW"}</p>
-            <h2 className="font-serif text-3xl text-[#1C1815] mt-1">{product ? product.name : "New product"}</h2>
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] bg-[#1C1815]/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="product-form-title"
+    >
+      <div
+        className="relative bg-[#FAF8F5] w-full max-w-3xl max-h-[90vh] flex flex-col rounded-lg shadow-2xl border border-[#E6E0D6] overflow-hidden my-auto"
+        onClick={(e) => e.stopPropagation()}
+        data-testid="product-form-modal"
+      >
+        {/* Sticky Accessible Header */}
+        <div className="sticky top-0 z-20 bg-[#FAF8F5] px-6 py-4 border-b border-[#E6E0D6] flex justify-between items-center shadow-sm">
+          <div className="pr-4 min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold">{product ? "EDIT PRODUCT" : "NEW PRODUCT"}</p>
+            <h2 id="product-form-title" className="font-serif text-2xl sm:text-3xl text-[#1C1815] mt-0.5 truncate">{product ? product.name : "Create New Product"}</h2>
           </div>
-          <button onClick={onClose} data-testid="close-product-form"><X size={22}/></button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-shrink-0 p-2 text-[#6E685E] hover:text-[#1C1815] hover:bg-[#E6E0D6]/50 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#B8860B]"
+            data-testid="close-product-form"
+            aria-label="Close product editor"
+          >
+            <X size={22}/>
+          </button>
         </div>
 
-        <div className="space-y-5">
+        {/* Scrollable Form Body */}
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Fld label="Name" value={form.name} onChange={(v) => set("name", v)} testid="pf-name"/>
             <Fld label="Brand" value={form.brand} onChange={(v) => set("brand", v)} testid="pf-brand"/>
@@ -715,24 +834,209 @@ function ProductForm({ product, onClose, onSaved }) {
             )}
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-[#E6E0D6]">
-            <button onClick={onClose} className="px-5 py-3 text-xs uppercase tracking-[0.2em] border border-[#E6E0D6] hover:border-[#3D4838]" data-testid="pf-cancel">Cancel</button>
-            <button onClick={save} disabled={saving} className="px-6 py-3 text-xs uppercase tracking-[0.2em] bg-[#1C1815] text-[#FAF8F5] hover:bg-[#3D4838] disabled:bg-[#6E685E]" data-testid="pf-save">
-              {saving ? "Saving…" : "Save product"}
-            </button>
+          {/* Colors / Colour Variants */}
+          <div className="border-t border-[#E6E0D6] pt-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold">Colour Variants</p>
+                <p className="text-xs text-[#6E685E] mt-0.5">Add swatches with per-colour images, optional price, stock, and discount.</p>
+              </div>
+              <button
+                type="button"
+                onClick={addColor}
+                className="inline-flex items-center gap-1.5 bg-[#1C1815] text-[#FAF8F5] px-3 py-2 text-[10px] uppercase tracking-[0.15em] hover:bg-[#3D4838] transition-colors"
+                data-testid="add-color-btn"
+              >
+                <Plus size={12} /> Add Colour
+              </button>
+            </div>
+
+            {(form.colors || []).length === 0 ? (
+              <p className="text-xs text-[#6E685E] italic py-2">No colour variants — product will show its default images.</p>
+            ) : (
+              <div className="space-y-6">
+                {(form.colors || []).map((color, idx) => (
+                  <div key={idx} className="bg-[#FAF8F5] border border-[#E6E0D6] p-4 space-y-4" data-testid={`color-entry-${idx}`}>
+                    {/* Color header + move/remove */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-[#1C1815] uppercase tracking-[0.15em]">
+                        Colour #{idx + 1}{color.name ? ` — ${color.name}` : ""}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button type="button" disabled={idx === 0} onClick={() => moveColor(idx, idx - 1)} className="p-1 border border-[#E6E0D6] bg-white disabled:opacity-30 hover:border-[#1C1815]" title="Move up">
+                          <ArrowUp size={12} />
+                        </button>
+                        <button type="button" disabled={idx === (form.colors || []).length - 1} onClick={() => moveColor(idx, idx + 1)} className="p-1 border border-[#E6E0D6] bg-white disabled:opacity-30 hover:border-[#1C1815]" title="Move down">
+                          <ArrowDown size={12} />
+                        </button>
+                        <button type="button" onClick={() => removeColor(idx)} className="p-1 border border-red-200 bg-white text-red-600 hover:bg-red-50" title="Remove colour">
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Name + Hex + Swatch */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <label className="block">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Colour Name</span>
+                        <input
+                          type="text"
+                          value={color.name || ""}
+                          onChange={(e) => updateColor(idx, "name", e.target.value)}
+                          placeholder="e.g. Midnight Blue"
+                          className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                          data-testid={`color-name-${idx}`}
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Hex / CSS Colour</span>
+                        <div className="mt-1 flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={color.hex || "#888888"}
+                            onChange={(e) => updateColor(idx, "hex", e.target.value)}
+                            className="w-8 h-8 cursor-pointer border border-[#E6E0D6] rounded p-0.5"
+                          />
+                          <input
+                            type="text"
+                            value={color.hex || ""}
+                            onChange={(e) => updateColor(idx, "hex", e.target.value)}
+                            placeholder="#888888"
+                            className="flex-1 bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                          />
+                        </div>
+                      </label>
+                      <div>
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block">Swatch Image (optional)</span>
+                        <div className="mt-1 flex items-center gap-2">
+                          {color.swatch_image ? (
+                            <div className="relative w-8 h-8 rounded-full overflow-hidden border border-[#E6E0D6] flex-shrink-0">
+                              <img src={fileUrl(color.swatch_image)} alt="swatch" className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => updateColor(idx, "swatch_image", "")}
+                                className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                              >
+                                <X size={10} className="text-white" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-[#F3EFEA] border-2 border-dashed border-[#E6E0D6] flex items-center justify-center flex-shrink-0"
+                              style={{ background: color.hex || '#eee' }}
+                            />
+                          )}
+                          <label className="bg-[#1C1815] text-[#FAF8F5] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:bg-[#3D4838] transition-colors whitespace-nowrap">
+                            {uploadingColorSwatch === idx ? "…" : "Upload"}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => e.target.files?.[0] && uploadColorSwatch(e.target.files[0], idx)}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Optional price/stock overrides */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <label className="block">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Price override (optional)</span>
+                        <input type="number" value={color.price ?? ""} onChange={(e) => updateColor(idx, "price", e.target.value)} placeholder="Leave blank to use product price" className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]" />
+                      </label>
+                      <label className="block">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Discount price (optional)</span>
+                        <input type="number" value={color.discount_price ?? ""} onChange={(e) => updateColor(idx, "discount_price", e.target.value)} placeholder="e.g. 1299" className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]" />
+                      </label>
+                      <label className="block">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Stock (optional)</span>
+                        <input type="number" value={color.stock ?? ""} onChange={(e) => updateColor(idx, "stock", e.target.value)} placeholder="Leave blank to use product stock" className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]" />
+                      </label>
+                    </div>
+
+                    {/* Color-specific images */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">
+                          Colour Images · {(color.images || []).length} uploaded
+                          {(color.images || []).length === 0 && <span className="text-amber-600 ml-1">(add at least 1 to show on PDP)</span>}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                        {(color.images || []).map((img, imgIdx) => (
+                          <div key={img + imgIdx} className="relative aspect-square bg-[#F3EFEA] border border-transparent hover:border-[#3D4838]">
+                            <img src={fileUrl(img)} alt="" className="w-full h-full object-cover" />
+                            {imgIdx === 0 && <span className="absolute bottom-0.5 left-0.5 bg-[#1C1815] text-white text-[8px] px-1 py-0.5 uppercase tracking-[0.1em]">Cover</span>}
+                            <button
+                              type="button"
+                              onClick={() => removeColorImage(idx, imgIdx)}
+                              className="absolute top-0.5 right-0.5 bg-[#1C1815] text-white w-5 h-5 grid place-items-center"
+                            >
+                              <X size={9} />
+                            </button>
+                          </div>
+                        ))}
+                        <label className="aspect-square border border-dashed border-[#3D4838] flex flex-col items-center justify-center text-[#3D4838] cursor-pointer hover:bg-[#F3EFEA] p-1 text-center">
+                          <Upload size={14} />
+                          <span className="text-[9px] uppercase tracking-[0.1em] mt-1">{uploadingColorImages === idx ? "…" : "Add"}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => e.target.files?.length && uploadColorImages(e.target.files, idx)}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Sticky Accessible Footer */}
+        <div className="sticky bottom-0 z-20 bg-[#FAF8F5] px-6 py-4 border-t border-[#E6E0D6] flex justify-end items-center gap-3 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 text-xs uppercase tracking-[0.2em] border border-[#E6E0D6] text-[#1C1815] hover:border-[#3D4838] hover:bg-[#F3EFEA] transition-colors focus:outline-none focus:ring-2 focus:ring-[#B8860B]"
+            data-testid="pf-cancel"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            className="px-6 py-2.5 text-xs uppercase tracking-[0.2em] bg-[#1C1815] text-[#FAF8F5] hover:bg-[#3D4838] disabled:bg-[#6E685E] transition-colors flex items-center gap-2 font-medium focus:outline-none focus:ring-2 focus:ring-[#B8860B]"
+            data-testid="pf-save"
+          >
+            {saving ? "Saving…" : (product ? "Save changes" : "Create product")}
+          </button>
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
-function Fld({ label, type = "text", value, onChange, testid }) {
+function Fld({ label, type = "text", value, onChange, testid, placeholder }) {
+  const id = testid || label.toLowerCase().replace(/[^a-z0-9]/g, "-");
   return (
-    <label className="block">
-      <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">{label}</span>
-      <input type={type} value={value ?? ""} onChange={(e) => onChange(e.target.value)} className="mt-2 w-full bg-transparent border-b border-[#E6E0D6] py-2.5 text-[#1C1815] outline-none focus:border-[#3D4838]" data-testid={testid}/>
-    </label>
+    <div className="block">
+      <label htmlFor={id} className="block text-[10px] uppercase tracking-[0.2em] text-[#6E685E] font-medium">{label}</label>
+      <input
+        id={id}
+        type={type}
+        value={value ?? ""}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-2 w-full bg-white/50 border border-[#E6E0D6] px-3 py-2 text-sm text-[#1C1815] outline-none transition-colors focus:border-[#3D4838] focus:ring-1 focus:ring-[#3D4838]"
+        data-testid={testid}
+      />
+    </div>
   );
 }
 
@@ -1010,6 +1314,20 @@ function StudioForm({ post, onClose, onSaved, fallbackOrder }) {
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setForm({ ...form, [k]: v });
 
+  // Accessibility: escape key to close and prevent body background scrolling
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
+
   const upload = async (file) => {
     setUploading(true);
     const fd = new FormData();
@@ -1037,53 +1355,88 @@ function StudioForm({ post, onClose, onSaved, fallbackOrder }) {
     } finally { setSaving(false); }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-10 px-4 bg-[#1C1815]/50" onClick={onClose}>
-      <div className="bg-[#FAF8F5] w-full max-w-xl p-6 lg:p-10" onClick={(e) => e.stopPropagation()} data-testid="studio-form-modal">
-        <div className="flex justify-between items-start mb-6">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] bg-[#1C1815]/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="studio-form-title"
+    >
+      <div
+        className="relative bg-[#FAF8F5] w-full max-w-xl max-h-[90vh] flex flex-col rounded-lg shadow-2xl border border-[#E6E0D6] overflow-hidden my-auto"
+        onClick={(e) => e.stopPropagation()}
+        data-testid="studio-form-modal"
+      >
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-20 bg-[#FAF8F5] px-6 py-4 border-b border-[#E6E0D6] flex justify-between items-center shadow-sm">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">{post ? "EDIT" : "NEW"}</p>
-            <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Studio tile</h2>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold">{post ? "EDIT TILE" : "NEW TILE"}</p>
+            <h2 id="studio-form-title" className="font-serif text-2xl text-[#1C1815] mt-0.5">Studio Tile</h2>
           </div>
-          <button onClick={onClose} data-testid="close-studio-form"><X size={22}/></button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 text-[#6E685E] hover:text-[#1C1815] hover:bg-[#E6E0D6]/50 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#B8860B]"
+            data-testid="close-studio-form"
+            aria-label="Close studio tile editor"
+          >
+            <X size={22}/>
+          </button>
         </div>
 
-        <div className="space-y-5">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
           <div>
-            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Image</span>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] font-medium">Image</span>
             <div className="mt-2 grid grid-cols-2 gap-4">
-              <div className="aspect-square bg-[#F3EFEA]" data-testid="sf-image-preview">
+              <div className="aspect-square bg-[#F3EFEA] border border-[#E6E0D6] rounded-sm overflow-hidden" data-testid="sf-image-preview">
                 {form.image && <img src={fileUrl(form.image)} alt="" className="w-full h-full object-cover"/>}
               </div>
-              <label className="aspect-square border border-dashed border-[#3D4838] flex flex-col items-center justify-center text-[#3D4838] cursor-pointer hover:bg-[#F3EFEA]" data-testid="sf-upload">
+              <label className="aspect-square border border-dashed border-[#3D4838] flex flex-col items-center justify-center text-[#3D4838] cursor-pointer hover:bg-[#F3EFEA] rounded-sm transition-colors" data-testid="sf-upload">
                 <Upload size={20}/>
-                <span className="text-[10px] uppercase tracking-[0.15em] mt-2">{uploading ? "Uploading…" : "Upload image"}</span>
+                <span className="text-[10px] uppercase tracking-[0.15em] mt-2 font-medium">{uploading ? "Uploading…" : "Upload image"}</span>
                 <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}/>
               </label>
             </div>
           </div>
-          <label className="block">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Caption (optional)</span>
-            <input value={form.caption || ""} onChange={(e) => set("caption", e.target.value)} maxLength={280} placeholder="New nibs, Turin edition · 001–012" className="mt-2 w-full bg-transparent border-b border-[#E6E0D6] py-2.5 outline-none focus:border-[#3D4838]" data-testid="sf-caption"/>
-          </label>
-          <label className="block">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Instagram permalink (optional)</span>
-            <input value={form.link || ""} onChange={(e) => set("link", e.target.value)} placeholder="https://instagram.com/p/..." className="mt-2 w-full bg-transparent border-b border-[#E6E0D6] py-2.5 outline-none focus:border-[#3D4838]" data-testid="sf-link"/>
-          </label>
-          <label className="block">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Order (lower = shown first)</span>
-            <input type="number" value={form.order} onChange={(e) => set("order", e.target.value)} className="mt-2 w-32 bg-transparent border-b border-[#E6E0D6] py-2.5 outline-none focus:border-[#3D4838]" data-testid="sf-order"/>
-          </label>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-[#E6E0D6]">
-            <button onClick={onClose} className="px-5 py-3 text-xs uppercase tracking-[0.2em] border border-[#E6E0D6] hover:border-[#3D4838]" data-testid="sf-cancel">Cancel</button>
-            <button onClick={save} disabled={saving || !form.image} className="px-6 py-3 text-xs uppercase tracking-[0.2em] bg-[#1C1815] text-[#FAF8F5] hover:bg-[#3D4838] disabled:bg-[#6E685E]" data-testid="sf-save">
-              {saving ? "Saving…" : "Save tile"}
-            </button>
+          <div className="block">
+            <label htmlFor="sf-caption" className="block text-[10px] uppercase tracking-[0.2em] text-[#6E685E] font-medium">Caption (optional)</label>
+            <input id="sf-caption" value={form.caption || ""} onChange={(e) => set("caption", e.target.value)} maxLength={280} placeholder="New nibs, Turin edition · 001–012" className="mt-2 w-full bg-white/50 border border-[#E6E0D6] px-3 py-2 text-sm outline-none transition-colors focus:border-[#3D4838] focus:ring-1 focus:ring-[#3D4838]" data-testid="sf-caption"/>
+          </div>
+          <div className="block">
+            <label htmlFor="sf-link" className="block text-[10px] uppercase tracking-[0.2em] text-[#6E685E] font-medium">Instagram permalink (optional)</label>
+            <input id="sf-link" value={form.link || ""} onChange={(e) => set("link", e.target.value)} placeholder="https://instagram.com/p/..." className="mt-2 w-full bg-white/50 border border-[#E6E0D6] px-3 py-2 text-sm outline-none transition-colors focus:border-[#3D4838] focus:ring-1 focus:ring-[#3D4838]" data-testid="sf-link"/>
+          </div>
+          <div className="block">
+            <label htmlFor="sf-order" className="block text-[10px] uppercase tracking-[0.2em] text-[#6E685E] font-medium">Order (lower = shown first)</label>
+            <input id="sf-order" type="number" value={form.order} onChange={(e) => set("order", e.target.value)} className="mt-2 w-32 bg-white/50 border border-[#E6E0D6] px-3 py-2 text-sm outline-none transition-colors focus:border-[#3D4838] focus:ring-1 focus:ring-[#3D4838]" data-testid="sf-order"/>
           </div>
         </div>
+
+        {/* Sticky Footer */}
+        <div className="sticky bottom-0 z-20 bg-[#FAF8F5] px-6 py-4 border-t border-[#E6E0D6] flex justify-end items-center gap-3 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 text-xs uppercase tracking-[0.2em] border border-[#E6E0D6] text-[#1C1815] hover:border-[#3D4838] hover:bg-[#F3EFEA] transition-colors focus:outline-none focus:ring-2 focus:ring-[#B8860B]"
+            data-testid="sf-cancel"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving || !form.image}
+            className="px-6 py-2.5 text-xs uppercase tracking-[0.2em] bg-[#1C1815] text-[#FAF8F5] hover:bg-[#3D4838] disabled:bg-[#6E685E] transition-colors flex items-center gap-2 font-medium focus:outline-none focus:ring-2 focus:ring-[#B8860B]"
+            data-testid="sf-save"
+          >
+            {saving ? "Saving…" : "Save tile"}
+          </button>
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -1352,6 +1705,40 @@ function BannerTab() {
       { name: "Sailor", image: "", link: "/shop?brand=Sailor" },
       { name: "Lamy",   image: "", link: "/shop?brand=Lamy" },
     ],
+    trust_bar: [
+      { icon: "Truck", title: "Free Shipping", subtext: "Free delivery on orders above \u20b91499" },
+      { icon: "Sparkles", title: "Complimentary Refill", subtext: "Extra refill with selected pens" },
+      { icon: "ShieldCheck", title: "100% Genuine Products", subtext: "Authentic products from trusted brands" },
+      { icon: "Award", title: "Expertly Curated", subtext: "Pens selected for every kind of writer" },
+    ],
+    bulk_orders_card: {
+      title: "Bulk Orders",
+      description: "Looking to stock up? Exclusive discounts on bulk purchases \u2014 perfect for retailers, offices, or events.",
+      email: "bulkorders@wlpens.com",
+      image: "",
+    },
+    corporate_gifts_card: {
+      title: "Corporate Gifts",
+      description: "Want memorable business gifts? We personalize select pens \u2014 perfect for clients, employees, and events.",
+      email: "corporate@wlpens.com",
+      image: "",
+    },
+    signature_collections: {
+      title: "SIGNATURE COLLECTIONS",
+      subtitle: "Our carefully selected products just for you",
+      card_left: {
+        brand: "THE WL PENS",
+        title: "EXCLUSIVE",
+        image: "",
+        link: "/shop",
+      },
+      card_right: {
+        brand: "THE WL PENS",
+        title: "PREMIUM",
+        image: "",
+        link: "/shop",
+      },
+    },
     contact_inquiry_types: [
       "General Studio Inquiry",
       "Bespoke Nib Tuning & Engraving",
@@ -1365,6 +1752,73 @@ function BannerTab() {
   const [uploadingCat, setUploadingCat] = useState(null); // index of cat being uploaded
   const [activeSlideIdx, setActiveSlideIdx] = useState(0);
   const [uploadingSlide, setUploadingSlide] = useState(null);
+  const [uploadingTrustIcon, setUploadingTrustIcon] = useState(null); // idx
+  const [uploadingBulkImage, setUploadingBulkImage] = useState(false);
+  const [uploadingCorpImage, setUploadingCorpImage] = useState(false);
+  const [uploadingSigLeft, setUploadingSigLeft] = useState(false);
+  const [uploadingSigRight, setUploadingSigRight] = useState(false);
+
+  // Trust bar helpers
+  const updateTrustItem = (idx, field, value) => {
+    setBanner((prev) => {
+      const trust_bar = [...(prev.trust_bar || [])];
+      trust_bar[idx] = { ...trust_bar[idx], [field]: value };
+      return { ...prev, trust_bar };
+    });
+  };
+  const uploadTrustIcon = async (file, idx) => {
+    setUploadingTrustIcon(idx);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await api.post("/admin/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      updateTrustItem(idx, "icon", r.data.url);
+      toast.success("Icon uploaded");
+    } catch (err) {
+      toast.error("Icon upload failed: " + (err.response?.data?.detail || err.message));
+    } finally { setUploadingTrustIcon(null); }
+  };
+
+  // Bulk/Corp card image upload
+  const uploadCardImage = async (file, card) => {
+    const setter = card === "bulk" ? setUploadingBulkImage : setUploadingCorpImage;
+    setter(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await api.post("/admin/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      const field = card === "bulk" ? "bulk_orders_card" : "corporate_gifts_card";
+      setBanner((prev) => ({ ...prev, [field]: { ...(prev[field] || {}), image: r.data.url } }));
+      toast.success("Card image uploaded");
+    } catch (err) {
+      toast.error("Image upload failed: " + (err.response?.data?.detail || err.message));
+    } finally { setter(false); }
+  };
+
+  // Signature Collections card image upload
+  const uploadSignatureImage = async (file, side) => {
+    const setter = side === "left" ? setUploadingSigLeft : setUploadingSigRight;
+    setter(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await api.post("/admin/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      const cardKey = side === "left" ? "card_left" : "card_right";
+      setBanner((prev) => ({
+        ...prev,
+        signature_collections: {
+          ...(prev.signature_collections || {}),
+          [cardKey]: {
+            ...((prev.signature_collections || {})[cardKey] || {}),
+            image: r.data.url,
+          },
+        },
+      }));
+      toast.success("Signature card image uploaded");
+    } catch (err) {
+      toast.error("Image upload failed: " + (err.response?.data?.detail || err.message));
+    } finally { setter(false); }
+  };
 
   useEffect(() => {
     api.get("/site/banner")
@@ -2095,7 +2549,370 @@ function BannerTab() {
         </div>
       </div>
 
-      {/* 6. Contact Form Inquiry Topics Configuration */}
+      {/* 7. USP / Trust Bar Configuration */}
+      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6" data-testid="admin-trust-bar-section">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">USP / TRUST BAR</p>
+            <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Trust Bar Items</h2>
+            <p className="text-sm text-[#6E685E] mt-1">
+              Manage the 4-column icon strip (Free Shipping, Refill, Genuine, Curated). Each item has an icon (Lucide name or uploaded image), title, and subtext.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setBanner((prev) => ({
+              ...prev,
+              trust_bar: [...(prev.trust_bar || []), { icon: "ShieldCheck", title: "New USP", subtext: "Description here" }],
+            }))}
+            className="inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-[#3D4838] transition-colors"
+          >
+            <Plus size={14} /> Add Item
+          </button>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t border-[#E6E0D6]">
+          {(banner.trust_bar || []).map((item, idx) => (
+            <div key={idx} className="bg-[#FAF8F5] border border-[#E6E0D6] p-5 space-y-4" data-testid={`trust-item-${idx}`}>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-[#1C1815] uppercase tracking-[0.15em]">Item #{idx + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if ((banner.trust_bar || []).length <= 1) { toast.error("At least one trust item required"); return; }
+                    setBanner((prev) => ({ ...prev, trust_bar: (prev.trust_bar || []).filter((_, i) => i !== idx) }));
+                  }}
+                  className="text-red-400 hover:text-red-700 text-xs uppercase tracking-[0.1em]"
+                >
+                  Remove
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Icon */}
+                <div>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-1">Icon (Lucide name or upload)</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={item.icon || ""}
+                      onChange={(e) => updateTrustItem(idx, "icon", e.target.value)}
+                      placeholder="e.g. Truck, ShieldCheck, Sparkles…"
+                      className="flex-1 bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                    />
+                    <label className="bg-[#1C1815] text-[#FAF8F5] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:bg-[#3D4838] transition-colors whitespace-nowrap">
+                      {uploadingTrustIcon === idx ? "…" : "Upload"}
+                      <input
+                        type="file"
+                        accept="image/*,image/svg+xml"
+                        className="hidden"
+                        onChange={(e) => e.target.files?.[0] && uploadTrustIcon(e.target.files[0], idx)}
+                      />
+                    </label>
+                  </div>
+                  {item.icon && (item.icon.startsWith("http") || item.icon.startsWith("/")) && (
+                    <img src={fileUrl(item.icon)} alt="icon preview" className="mt-2 w-8 h-8 object-contain" />
+                  )}
+                </div>
+                {/* Title */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Title</span>
+                  <input
+                    type="text"
+                    value={item.title || ""}
+                    onChange={(e) => updateTrustItem(idx, "title", e.target.value)}
+                    placeholder="e.g. Free Shipping"
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+                {/* Subtext */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Subtext</span>
+                  <input
+                    type="text"
+                    value={item.subtext || ""}
+                    onChange={(e) => updateTrustItem(idx, "subtext", e.target.value)}
+                    placeholder="e.g. Free delivery on orders above ₹1499"
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+              </div>
+            </div>
+          ))}
+          {(banner.trust_bar || []).length === 0 && (
+            <p className="text-xs text-[#6E685E] italic py-2">No trust bar items — defaults will be shown.</p>
+          )}
+        </div>
+      </div>
+
+      {/* 8. Bulk Orders & Corporate Gifts Cards */}
+      <div className="bg-white border border-[#E6E0D6] p-8 space-y-8" data-testid="admin-bulk-corp-section">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">HOMEPAGE CARDS</p>
+          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Bulk Orders & Corporate Gifts</h2>
+          <p className="text-sm text-[#6E685E] mt-1">
+            Customize the two-column section on the homepage with image, title, description, and contact email for each card.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-[#E6E0D6]">
+          {/* Bulk Orders Card */}
+          {[
+            { key: "bulk_orders_card", label: "Bulk Orders Card", card: "bulk", uploading: uploadingBulkImage },
+            { key: "corporate_gifts_card", label: "Corporate Gifts Card", card: "corp", uploading: uploadingCorpImage },
+          ].map(({ key, label, card, uploading }) => {
+            const cardData = banner[key] || {};
+            return (
+              <div key={key} className="bg-[#FAF8F5] border border-[#E6E0D6] p-5 space-y-4" data-testid={`admin-${key}`}>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold">{label}</p>
+
+                {/* Image */}
+                <div>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-2">Card Image</span>
+                  {cardData.image ? (
+                    <div className="relative aspect-[16/9] bg-[#F3EFEA] border border-[#E6E0D6] overflow-hidden">
+                      <img src={fileUrl(cardData.image)} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setBanner((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), image: "" } }))}
+                        className="absolute top-2 right-2 bg-[#1C1815]/80 text-white w-7 h-7 flex items-center justify-center hover:bg-[#1C1815]"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="aspect-[16/9] bg-[#F3EFEA] border border-dashed border-[#E6E0D6] flex items-center justify-center text-[#6E685E]/50">
+                      <ImageIcon size={28} />
+                    </div>
+                  )}
+                  <div className="mt-2 flex items-center gap-2">
+                    <label className="bg-[#1C1815] text-[#FAF8F5] px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:bg-[#3D4838] transition-colors">
+                      {uploading ? "Uploading…" : "Upload Image"}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadCardImage(e.target.files[0], card)} />
+                    </label>
+                    <span className="text-[10px] text-[#6E685E]">or</span>
+                    <input
+                      type="text"
+                      value={cardData.image || ""}
+                      onChange={(e) => setBanner((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), image: e.target.value } }))}
+                      placeholder="Paste image URL…"
+                      className="flex-1 bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                    />
+                  </div>
+                </div>
+
+                {/* Title */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Title</span>
+                  <input
+                    type="text"
+                    value={cardData.title || ""}
+                    onChange={(e) => setBanner((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), title: e.target.value } }))}
+                    placeholder="e.g. Bulk Orders"
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+
+                {/* Description */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Description</span>
+                  <textarea
+                    rows={3}
+                    value={cardData.description || ""}
+                    onChange={(e) => setBanner((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), description: e.target.value } }))}
+                    placeholder="Short description…"
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-2 text-xs text-[#1C1815] outline-none focus:border-[#3D4838] resize-y"
+                  />
+                </label>
+
+                {/* Email */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Contact Email</span>
+                  <input
+                    type="email"
+                    value={cardData.email || ""}
+                    onChange={(e) => setBanner((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), email: e.target.value } }))}
+                    placeholder="e.g. bulkorders@wlpens.com"
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 9. Signature Collections (2 Luxury Cards) */}
+      <div className="bg-white border border-[#E6E0D6] p-8 space-y-8" data-testid="admin-signature-collections-section">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">HOMEPAGE SECTION</p>
+          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Signature Collections</h2>
+          <p className="text-sm text-[#6E685E] mt-1">
+            Customize the 2-column luxury signature collections cards on the homepage (e.g. Exclusive &amp; Premium collections).
+          </p>
+        </div>
+
+        {/* Section title & subtitle */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-[#E6E0D6]">
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Title</span>
+            <input
+              type="text"
+              value={banner.signature_collections?.title || ""}
+              onChange={(e) =>
+                setBanner((prev) => ({
+                  ...prev,
+                  signature_collections: { ...(prev.signature_collections || {}), title: e.target.value },
+                }))
+              }
+              placeholder="SIGNATURE COLLECTIONS"
+              className="mt-1 w-full bg-[#FAF8F5] border border-[#E6E0D6] px-3 py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Subtitle</span>
+            <input
+              type="text"
+              value={banner.signature_collections?.subtitle || ""}
+              onChange={(e) =>
+                setBanner((prev) => ({
+                  ...prev,
+                  signature_collections: { ...(prev.signature_collections || {}), subtitle: e.target.value },
+                }))
+              }
+              placeholder="Our carefully selected products just for you"
+              className="mt-1 w-full bg-[#FAF8F5] border border-[#E6E0D6] px-3 py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+            />
+          </label>
+        </div>
+
+        {/* Left and Right Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-[#E6E0D6]">
+          {[
+            { key: "card_left", label: "Left Card (Exclusive)", side: "left", uploading: uploadingSigLeft, defaultTitle: "EXCLUSIVE" },
+            { key: "card_right", label: "Right Card (Premium)", side: "right", uploading: uploadingSigRight, defaultTitle: "PREMIUM" },
+          ].map(({ key, label, side, uploading, defaultTitle }) => {
+            const cardData = banner.signature_collections?.[key] || {};
+            return (
+              <div key={key} className="bg-[#FAF8F5] border border-[#E6E0D6] p-5 space-y-4">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold">{label}</p>
+
+                {/* Card Image */}
+                <div>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-2">Card Background Image</span>
+                  {cardData.image ? (
+                    <div className="relative aspect-[16/10] bg-[#F3EFEA] border border-[#E6E0D6] overflow-hidden rounded-lg">
+                      <img src={fileUrl(cardData.image)} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setBanner((prev) => ({
+                            ...prev,
+                            signature_collections: {
+                              ...(prev.signature_collections || {}),
+                              [key]: { ...((prev.signature_collections || {})[key] || {}), image: "" },
+                            },
+                          }))
+                        }
+                        className="absolute top-2 right-2 bg-[#1C1815]/80 text-white w-7 h-7 flex items-center justify-center hover:bg-[#1C1815] rounded-full"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="aspect-[16/10] bg-[#F3EFEA] border border-dashed border-[#E6E0D6] flex items-center justify-center text-[#6E685E]/50 rounded-lg">
+                      <ImageIcon size={28} />
+                    </div>
+                  )}
+                  <div className="mt-2 flex items-center gap-2">
+                    <label className="bg-[#1C1815] text-[#FAF8F5] px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:bg-[#3D4838] transition-colors">
+                      {uploading ? "Uploading…" : "Upload Image"}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadSignatureImage(e.target.files[0], side)} />
+                    </label>
+                    <span className="text-[10px] text-[#6E685E]">or</span>
+                    <input
+                      type="text"
+                      value={cardData.image || ""}
+                      onChange={(e) =>
+                        setBanner((prev) => ({
+                          ...prev,
+                          signature_collections: {
+                            ...(prev.signature_collections || {}),
+                            [key]: { ...((prev.signature_collections || {})[key] || {}), image: e.target.value },
+                          },
+                        }))
+                      }
+                      placeholder="Paste image URL…"
+                      className="flex-1 bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                    />
+                  </div>
+                </div>
+
+                {/* Brand Eyebrow */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Brand / Eyebrow Text</span>
+                  <input
+                    type="text"
+                    value={cardData.brand || ""}
+                    onChange={(e) =>
+                      setBanner((prev) => ({
+                        ...prev,
+                        signature_collections: {
+                          ...(prev.signature_collections || {}),
+                          [key]: { ...((prev.signature_collections || {})[key] || {}), brand: e.target.value },
+                        },
+                      }))
+                    }
+                    placeholder="THE WL PENS"
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+
+                {/* Card Title */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Card Title</span>
+                  <input
+                    type="text"
+                    value={cardData.title || ""}
+                    onChange={(e) =>
+                      setBanner((prev) => ({
+                        ...prev,
+                        signature_collections: {
+                          ...(prev.signature_collections || {}),
+                          [key]: { ...((prev.signature_collections || {})[key] || {}), title: e.target.value },
+                        },
+                      }))
+                    }
+                    placeholder={defaultTitle}
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+
+                {/* Card Link */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Destination Link</span>
+                  <input
+                    type="text"
+                    value={cardData.link || ""}
+                    onChange={(e) =>
+                      setBanner((prev) => ({
+                        ...prev,
+                        signature_collections: {
+                          ...(prev.signature_collections || {}),
+                          [key]: { ...((prev.signature_collections || {})[key] || {}), link: e.target.value },
+                        },
+                      }))
+                    }
+                    placeholder="/shop"
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 10. Contact Form Inquiry Topics Configuration */}
       <div className="bg-white border border-[#E6E0D6] p-8 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
