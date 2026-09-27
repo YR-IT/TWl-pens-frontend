@@ -39,8 +39,11 @@ export default function Header() {
     <>
     <header className="fixed top-0 left-0 right-0 z-40 w-full bg-[#FAF8F5]">
       {/* Announcement Carousel */}
-      <div className="bg-[#1C1815] text-[#FAF8F5] py-2 overflow-hidden border-b border-[#3D4838] w-full">
-        <div className="animate-marquee-infinite flex items-center whitespace-nowrap">
+      <div 
+        className="announcement-bar bg-[#1C1815] text-[#FAF8F5] py-2 overflow-hidden border-b border-[#3D4838] w-full group cursor-pointer"
+        data-testid="header-announcement-bar"
+      >
+        <div className="animate-marquee-infinite flex items-center whitespace-nowrap group-hover:[animation-play-state:paused]">
           {[
             { text: "COMPLIMENTARY BESPOKE STUDIO ENGRAVING", color: "text-[#B8860B]" },
             { text: "CALL / WHATSAPP: +91 93519 96272", color: "text-[#FAF8F5]/80" },
