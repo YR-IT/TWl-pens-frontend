@@ -44,6 +44,8 @@ export default function Checkout() {
         items: items.map((i) => ({ 
           product_id: i.id, 
           quantity: i.quantity, 
+          color: i.color || null,
+          color_image: i.color_image || null,
           engraving: i.engraving || null,
           engraving_font: i.engraving_font || null,
           engraving_position: i.engraving_position || null,

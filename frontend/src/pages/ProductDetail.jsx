@@ -25,12 +25,14 @@ import WishlistButton from "../components/WishlistButton";
 import ProductCard from "../components/ProductCard";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../components/ui/carousel";
 import { trackEvent } from "../lib/analytics";
+import TrustBar from "../components/TrustBar";
 
 export default function ProductDetail() {
   const { id } = useParams();
   const [p, setP] = useState(null);
   const [related, setRelated] = useState([]);
   const [active, setActive] = useState(0);
+  const [selectedColorIdx, setSelectedColorIdx] = useState(0);
   const [qty, setQty] = useState(1);
   const [engraving, setEngraving] = useState("");
   const [engravingFont, setEngravingFont] = useState("");
@@ -44,6 +46,7 @@ export default function ProductDetail() {
       if (!active || !r.data) return;
       setP(r.data); 
       setActive(0);
+      setSelectedColorIdx(0);
       if (r.data.engraving_fonts?.length) setEngravingFont(r.data.engraving_fonts[0]);
       if (r.data.engraving_positions?.length) setEngravingPosition(r.data.engraving_positions[0]);
       trackEvent("product_view", r.data.id, { name: r.data.name, price: r.data.discount_price || r.data.price });
@@ -69,11 +72,19 @@ export default function ProductDetail() {
 
   if (!p) return <div className="pt-[76px] p-12 text-center text-[#6E685E]" data-testid="product-loading">Loading…</div>;
 
-  const hasDiscount = !!p.discount_price;
-  const price = hasDiscount ? p.discount_price : p.price;
-  const off = hasDiscount ? Math.round(((p.price - p.discount_price) / p.price) * 100) : 0;
-  const images = p.images?.length ? p.images : [];
-  const current = images[active];
+  // Color variants logic
+  const hasColors = Array.isArray(p.colors) && p.colors.length > 0 && p.colors.some(c => c.images?.length > 0);
+  const activeColor = hasColors ? (p.colors[selectedColorIdx] || p.colors[0]) : null;
+  const images = hasColors && activeColor?.images?.length ? activeColor.images : (p.images?.length ? p.images : []);
+  const current = images[active] || images[0];
+
+  const basePrice = hasColors && activeColor?.price ? activeColor.price : p.price;
+  const baseDiscount = hasColors && activeColor?.price ? activeColor.discount_price : p.discount_price;
+  const hasDiscount = !!baseDiscount;
+  const price = hasDiscount ? baseDiscount : basePrice;
+  const off = hasDiscount ? Math.round(((basePrice - baseDiscount) / basePrice) * 100) : 0;
+  const stock = hasColors && activeColor?.stock !== undefined && activeColor?.stock !== null ? activeColor.stock : p.stock;
+
   const availableFonts = p.engraving_fonts?.length ? p.engraving_fonts : ["Classic Script", "Timeless Serif", "Modern Sans"];
   const availablePositions = p.engraving_positions?.length ? p.engraving_positions : ["Engraving on Cap", "Engraving on Barrel", "Engraving on Clip"];
 
@@ -119,7 +130,7 @@ export default function ProductDetail() {
           </div>
           <div className="mt-6 flex items-baseline gap-3" data-testid="product-price">
             <span className="font-serif text-3xl text-[#1C1815]">{money(price)}</span>
-            {hasDiscount && <><span className="text-lg text-[#6E685E] line-through">{money(p.price)}</span><span className="text-xs uppercase tracking-[0.2em] text-[#B8860B]">−{off}%</span></>}
+            {hasDiscount && <><span className="text-lg text-[#6E685E] line-through">{money(basePrice)}</span><span className="text-xs uppercase tracking-[0.2em] text-[#B8860B]">−{off}%</span></>}
           </div>
           <p className="mt-6 text-[#1C1815]/80 leading-relaxed whitespace-pre-line" data-testid="product-description">{p.description}</p>
 
@@ -131,6 +142,73 @@ export default function ProductDetail() {
                 </li>
               ))}
             </ul>
+          )}
+
+          {/* Color Variant Selector */}
+          {hasColors && (
+            <div className="mt-8 border border-[#E6E0D6] bg-[#F3EFEA]/50 p-5 space-y-4" data-testid="color-variant-section">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold">Select Colour</p>
+                {activeColor?.name && (
+                  <span className="text-xs text-[#1C1815] font-medium tracking-wide">{activeColor.name}</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {p.colors.filter(c => c.images?.length > 0).map((c, idx) => {
+                  const realIdx = p.colors.indexOf(c);
+                  const isSelected = realIdx === selectedColorIdx;
+                  return (
+                    <button
+                      key={realIdx}
+                      type="button"
+                      onClick={() => { setSelectedColorIdx(realIdx); setActive(0); }}
+                      title={c.name}
+                      data-testid={`color-swatch-${realIdx}`}
+                      className={`relative w-10 h-10 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
+                        isSelected
+                          ? "border-[#B8860B] ring-2 ring-[#B8860B]/30 scale-110 shadow-md"
+                          : "border-[#E6E0D6] hover:border-[#B8860B]/60 hover:scale-105"
+                      }`}
+                    >
+                      {c.swatch_image ? (
+                        <img
+                          src={fileUrl(c.swatch_image)}
+                          alt={c.name}
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <span
+                          className="w-7 h-7 rounded-full border border-white/60 shadow-inner"
+                          style={{ background: c.hex || c.name || '#ccc' }}
+                        />
+                      )}
+                      {isSelected && (
+                        <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#B8860B] rounded-full flex items-center justify-center">
+                          <Check size={9} className="text-white" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {activeColor && (
+                <div className="flex items-center gap-4 pt-2 border-t border-[#E6E0D6]/60">
+                  {activeColor.price && (
+                    <span className="text-xs text-[#6E685E] uppercase tracking-[0.15em]">
+                      {activeColor.discount_price
+                        ? <><span className="text-[#1C1815] font-medium">{money(activeColor.discount_price)}</span> <span className="line-through">{money(activeColor.price)}</span></>
+                        : <span className="text-[#1C1815] font-medium">{money(activeColor.price)}</span>
+                      }
+                    </span>
+                  )}
+                  {activeColor.stock !== undefined && activeColor.stock !== null && (
+                    <span className="text-[10px] text-[#6E685E] uppercase tracking-[0.15em]">
+                      {activeColor.stock > 0 ? `${activeColor.stock} in stock` : "Out of stock"}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
           {p.engravable && (
@@ -244,27 +322,28 @@ export default function ProductDetail() {
               <button onClick={() => setQty((q) => q + 1)} className="w-10 h-11 grid place-items-center hover:bg-[#F3EFEA]" data-testid="qty-increase"><Plus size={14}/></button>
             </div>
             <button
-              disabled={p.stock === 0}
+              disabled={stock === 0}
               onClick={() => { 
                 const selectedFont = engravingFont || availableFonts[0];
                 const selectedPos = engravingPosition || availablePositions[0];
-                add(p, qty, engraving, engraving ? selectedFont : "", engraving ? selectedPos : ""); 
+                add(p, qty, engraving, engraving ? selectedFont : "", engraving ? selectedPos : "", hasColors ? activeColor : null); 
                 trackEvent("add_to_cart", p.id, {
                   quantity: qty,
                   price,
                   engraving: Boolean(engraving),
+                  color: activeColor?.name || null,
                 });
-                toast.success(`${p.name} added to cart${engraving ? ` · "${engraving}"` : ""}`); 
+                toast.success(`${p.name}${activeColor?.name ? ` · ${activeColor.name}` : ""}${engraving ? ` · "${engraving}"` : ""} added to cart`); 
               }}
               className="flex-1 bg-[#1C1815] text-[#FAF8F5] py-4 text-xs uppercase tracking-[0.25em] hover:bg-[#3D4838] disabled:bg-[#6E685E] flex items-center justify-center gap-3 transition-colors"
               data-testid="add-to-cart-btn"
             >
-              {p.stock === 0 ? "Sold out" : "Add to cart"} {p.stock > 0 && <ArrowRight size={14}/>}
+              {stock === 0 ? "Sold out" : "Add to cart"} {stock > 0 && <ArrowRight size={14}/>}
             </button>
           </div>
 
           <p className="mt-4 text-xs text-[#6E685E]" data-testid="product-stock">
-            {p.stock > 0 ? `${p.stock} in the atelier · ${p.estimated_delivery || "ships within 48 hours"}` : "Currently sold out"}
+            {stock > 0 ? `${stock} in the atelier · ${p.estimated_delivery || "ships within 48 hours"}` : "Currently sold out"}
           </p>
 
           {/* New Sections */}

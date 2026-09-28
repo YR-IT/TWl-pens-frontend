@@ -116,3 +116,40 @@ code {
         border-bottom-color: inherit;
     }
 }
+
+/* ---------------- Atelier Ink & Script Typography ---------------- */
+.ink-font {
+    font-family: 'Alex Brush', 'Pinyon Script', 'Caveat', cursive, serif;
+    font-weight: 400;
+    color: #1A2836;
+    letter-spacing: 0.02em;
+}
+
+/* ---------------- Marquee Infinite Animation ---------------- */
+@keyframes marquee-scroll {
+    0% {
+        transform: translateX(0%);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+.animate-marquee {
+    display: flex;
+    width: max-content;
+    animation: marquee-scroll 32s linear infinite;
+}
+
+.animate-marquee:hover {
+    animation-play-state: paused;
+}
+
+/* Hide scrollbar for clean horizontal swipes */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

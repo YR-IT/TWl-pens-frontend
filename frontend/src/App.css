@@ -104,8 +104,10 @@ a.link-slide:hover::after { transform: scaleX(1); transform-origin: left; }
   will-change: transform;
 }
 
-.animate-marquee-infinite:hover {
-  animation-play-state: paused;
+.animate-marquee-infinite:hover,
+.announcement-bar:hover .animate-marquee-infinite,
+.group:hover .animate-marquee-infinite {
+  animation-play-state: paused !important;
 }
 
 .animate-marquee-reverse {
