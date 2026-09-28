@@ -1261,7 +1261,7 @@ function CategoriesTab() {
                     data-testid={`edit-cat-name-${c.id}`}
                   />
                   <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">
-                    Order
+                    Position
                     <input
                       type="number"
                       value={editing.order}
@@ -1299,7 +1299,7 @@ function CategoriesTab() {
                     </div>
                     <div>
                       <p className="font-serif text-lg text-[#1C1815]" data-testid={`cat-name-${c.id}`}>{c.name}</p>
-                      <p className="text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">Order · {c.order}</p>
+                      <p className="text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">Display Position · #{c.order}</p>
                     </div>
                   </div>
                   <div className="flex gap-1 shrink-0">
