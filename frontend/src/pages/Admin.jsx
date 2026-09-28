@@ -15,7 +15,14 @@ export default function Admin() {
   const { user, ready } = useAuth();
   const [tab, setTab] = useState("dashboard");
 
-  if (!ready) return <div className="pt-[76px] p-12 text-center text-[#6E685E]">Loading…</div>;
+  if (!ready) {
+    return (
+      <div className="pt-[140px] pb-24 text-center min-h-[60vh] flex flex-col items-center justify-center bg-[#FAF8F5]">
+        <div className="w-6 h-6 border-2 border-[#1C1815] border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="font-serif italic text-sm text-[#6E685E]">Loading atelier admin…</p>
+      </div>
+    );
+  }
   if (!user) return <Navigate to="/login" replace/>;
   if (user.role !== "admin") return <Navigate to="/" replace/>;
 
@@ -56,15 +63,50 @@ export default function Admin() {
 
 function Dashboard() {
   const [stats, setStats] = useState(null);
-  useEffect(() => { api.get("/admin/stats").then((r) => setStats(r.data)); }, []);
-  if (!stats) return <p className="text-[#6E685E]" data-testid="dashboard-loading">Loading metrics…</p>;
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get("/admin/stats")
+      .then((r) => setStats(r.data))
+      .catch((err) => {
+        console.warn("Could not load stats:", err);
+        setStats({
+          revenue: 0,
+          total_orders: 0,
+          paid_orders: 0,
+          shipped_orders: 0,
+          total_products: 0,
+          total_customers: 0,
+        });
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading && !stats) {
+    return (
+      <div className="py-16 text-center flex flex-col items-center justify-center">
+        <div className="w-5 h-5 border-2 border-[#1C1815] border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-xs uppercase tracking-[0.2em] text-[#6E685E]" data-testid="dashboard-loading">Loading metrics…</p>
+      </div>
+    );
+  }
+
+  const safeStats = stats || {
+    revenue: 0,
+    total_orders: 0,
+    paid_orders: 0,
+    shipped_orders: 0,
+    total_products: 0,
+    total_customers: 0,
+  };
+
   const cards = [
-    { label: "Revenue", value: money(stats.revenue), icon: DollarSign, testid: "stat-revenue" },
-    { label: "Orders", value: stats.total_orders, icon: ShoppingBag, testid: "stat-orders" },
-    { label: "Paid", value: stats.paid_orders, icon: Package, testid: "stat-paid" },
-    { label: "Shipped", value: stats.shipped_orders, icon: Truck, testid: "stat-shipped" },
-    { label: "Products", value: stats.total_products, icon: Package, testid: "stat-products" },
-    { label: "Customers", value: stats.total_customers, icon: Users, testid: "stat-customers" },
+    { label: "Revenue", value: money(safeStats.revenue), icon: DollarSign, testid: "stat-revenue" },
+    { label: "Orders", value: safeStats.total_orders, icon: ShoppingBag, testid: "stat-orders" },
+    { label: "Paid", value: safeStats.paid_orders, icon: Package, testid: "stat-paid" },
+    { label: "Shipped", value: safeStats.shipped_orders, icon: Truck, testid: "stat-shipped" },
+    { label: "Products", value: safeStats.total_products, icon: Package, testid: "stat-products" },
+    { label: "Customers", value: safeStats.total_customers, icon: Users, testid: "stat-customers" },
   ];
   return (
     <div className="space-y-10" data-testid="admin-dashboard">
@@ -330,29 +372,60 @@ function ProductsTab() {
   const [editing, setEditing] = useState(null); // null | 'new' | product object
   const [loading, setLoading] = useState(true);
 
-  const load = () => {
-    setLoading(true);
-    api.get("/products", { params: { limit: 500 } }).then((r) => setProducts(r.data)).finally(() => setLoading(false));
+  const load = (silent = false) => {
+    if (!silent) setLoading(true);
+    api.get("/products", { params: { limit: 500 } })
+      .then((r) => setProducts(Array.isArray(r.data) ? r.data : (r.data?.products || [])))
+      .catch((err) => {
+        console.warn("Could not load products:", err);
+        setProducts([]);
+      })
+      .finally(() => setLoading(false));
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const del = async (id) => {
     if (!confirm("Delete this product?")) return;
-    await api.delete(`/admin/products/${id}`);
-    toast.success("Product deleted");
-    load();
+    // Optimistic: remove instantly from UI
+    const prev = products;
+    setProducts((ps) => ps.filter((p) => p.id !== id));
+    try {
+      await api.delete(`/admin/products/${id}`);
+      toast.success("Product deleted");
+    } catch (err) {
+      // Restore on failure
+      setProducts(prev);
+      toast.error(err.response?.data?.detail || "Delete failed — product restored");
+    }
   };
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="font-serif text-2xl text-[#1C1815]">Product catalog</h2>
+        <div>
+          <h2 className="font-serif text-2xl text-[#1C1815]">Product catalog</h2>
+          <p className="text-xs text-[#6E685E] mt-1">{products.length} product{products.length === 1 ? "" : "s"} listed</p>
+        </div>
         <button onClick={() => setEditing("new")} className="inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-5 py-3 text-xs uppercase tracking-[0.2em] hover:bg-[#3D4838]" data-testid="add-product-btn">
           <Plus size={14}/> Add product
         </button>
       </div>
       {loading ? (
-        <p className="text-[#6E685E]">Loading…</p>
+        <div className="border border-[#E6E0D6] bg-white p-12 text-center flex flex-col items-center justify-center">
+          <div className="w-5 h-5 border-2 border-[#1C1815] border-t-transparent rounded-full animate-spin mb-3" />
+          <p className="text-xs uppercase tracking-[0.2em] text-[#6E685E]">Loading products…</p>
+        </div>
+      ) : products.length === 0 ? (
+        <div className="border border-dashed border-[#E6E0D6] bg-white p-12 text-center" data-testid="no-admin-products">
+          <Package size={28} className="mx-auto text-[#B8860B] mb-3" />
+          <h3 className="font-serif text-xl text-[#1C1815]">No products in the atelier catalog</h3>
+          <p className="text-xs text-[#6E685E] mt-2 max-w-md mx-auto">
+            Your store is currently empty. Click the button above to add your first handcrafted writing instrument.
+          </p>
+          <button onClick={() => setEditing("new")} className="mt-5 inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-5 py-2.5 text-xs uppercase tracking-[0.2em] hover:bg-[#3D4838]">
+            <Plus size={14}/> Add your first product
+          </button>
+        </div>
       ) : (
         <div className="overflow-x-auto border border-[#E6E0D6] bg-white">
           <table className="w-full text-sm" data-testid="products-table">
@@ -368,7 +441,7 @@ function ProductsTab() {
             </thead>
             <tbody>
               {products.map((p) => (
-                <tr key={p.id} className="border-t border-[#E6E0D6]" data-testid={`product-row-${p.id}`}>
+                <tr key={p.id} className="border-t border-[#E6E0D6] transition-opacity duration-200" data-testid={`product-row-${p.id}`}>
                   <td className="px-4 py-3">
                     <div className="w-12 h-12 bg-[#F3EFEA] overflow-hidden">
                       {p.images?.[0] && <img src={fileUrl(p.images[0])} alt="" className="w-full h-full object-cover"/>}
@@ -399,7 +472,7 @@ function ProductsTab() {
         <ProductForm
           product={editing === "new" ? null : editing}
           onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); load(); }}
+          onSaved={() => { setEditing(null); load(true); }}
         />
       )}
     </div>
@@ -1188,7 +1261,7 @@ function CategoriesTab() {
                     data-testid={`edit-cat-name-${c.id}`}
                   />
                   <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">
-                    Order
+                    Position
                     <input
                       type="number"
                       value={editing.order}
@@ -1226,7 +1299,7 @@ function CategoriesTab() {
                     </div>
                     <div>
                       <p className="font-serif text-lg text-[#1C1815]" data-testid={`cat-name-${c.id}`}>{c.name}</p>
-                      <p className="text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">Order · {c.order}</p>
+                      <p className="text-[10px] uppercase tracking-[0.15em] text-[#6E685E]">Display Position · #{c.order}</p>
                     </div>
                   </div>
                   <div className="flex gap-1 shrink-0">
@@ -1250,15 +1323,25 @@ function StudioTab() {
 
   const load = () => {
     setLoading(true);
-    api.get("/studio-posts", { params: { limit: 100 } }).then((r) => setPosts(r.data)).finally(() => setLoading(false));
+    api.get("/studio-posts", { params: { limit: 100 } })
+      .then((r) => setPosts(Array.isArray(r.data) ? r.data : []))
+      .catch((err) => {
+        console.warn("Could not load studio posts:", err);
+        setPosts([]);
+      })
+      .finally(() => setLoading(false));
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const del = async (id) => {
     if (!window.confirm("Delete this studio post?")) return;
-    await api.delete(`/admin/studio-posts/${id}`);
-    toast.success("Post removed");
-    load();
+    try {
+      await api.delete(`/admin/studio-posts/${id}`);
+      toast.success("Post removed");
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Delete failed");
+    }
   };
 
   return (
@@ -1273,7 +1356,10 @@ function StudioTab() {
         </button>
       </div>
       {loading ? (
-        <p className="text-[#6E685E]">Loading…</p>
+        <div className="border border-[#E6E0D6] bg-white p-12 text-center flex flex-col items-center justify-center">
+          <div className="w-5 h-5 border-2 border-[#1C1815] border-t-transparent rounded-full animate-spin mb-3" />
+          <p className="text-xs uppercase tracking-[0.2em] text-[#6E685E]">Loading studio tiles…</p>
+        </div>
       ) : posts.length === 0 ? (
         <div className="border border-dashed border-[#E6E0D6] p-16 text-center" data-testid="no-studio-posts">
           <Instagram size={26} className="mx-auto text-[#B8860B]"/>
@@ -1447,9 +1533,15 @@ function OrdersTab() {
 
   const load = () => {
     setLoading(true);
-    api.get("/admin/orders").then((r) => setOrders(r.data)).finally(() => setLoading(false));
+    api.get("/admin/orders")
+      .then((r) => setOrders(Array.isArray(r.data) ? r.data : []))
+      .catch((err) => {
+        console.warn("Could not load orders:", err);
+        setOrders([]);
+      })
+      .finally(() => setLoading(false));
   };
-  useEffect(load, []);
+  useEffect(() => { load(); }, []);
 
   const update = async (id, patch) => {
     try {
@@ -1461,7 +1553,14 @@ function OrdersTab() {
     }
   };
 
-  if (loading) return <p className="text-[#6E685E]">Loading orders…</p>;
+  if (loading) {
+    return (
+      <div className="border border-[#E6E0D6] bg-white p-12 text-center flex flex-col items-center justify-center">
+        <div className="w-5 h-5 border-2 border-[#1C1815] border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-xs uppercase tracking-[0.2em] text-[#6E685E]">Loading orders…</p>
+      </div>
+    );
+  }
   if (orders.length === 0) return <p className="text-[#6E685E]" data-testid="no-admin-orders">No orders yet.</p>;
 
   return (
@@ -2086,7 +2185,14 @@ function BannerTab() {
     }
   };
 
-  if (loading) return <p className="text-[#6E685E]">Loading homepage settings…</p>;
+  if (loading) {
+    return (
+      <div className="border border-[#E6E0D6] bg-white p-12 text-center flex flex-col items-center justify-center max-w-4xl">
+        <div className="w-5 h-5 border-2 border-[#1C1815] border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-xs uppercase tracking-[0.2em] text-[#6E685E]">Loading homepage settings…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl space-y-8" data-testid="admin-banner-tab">

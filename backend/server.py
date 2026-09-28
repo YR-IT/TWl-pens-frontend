@@ -495,10 +495,15 @@ async def startup():
             })
             logger.info(f"Seeded admin user: {ADMIN_EMAIL}")
 
-    # Seed products if empty
-    if await db.products.count_documents({}) == 0:
+    # Seed products only when explicitly requested (set SEED_PRODUCTS=true in .env).
+    # On production this must be False so the catalog stays empty until real products
+    # are entered via the admin panel.
+    _seed_enabled = os.getenv("SEED_PRODUCTS", "false").lower() == "true"
+    if _seed_enabled and await db.products.count_documents({}) == 0:
         await _seed_products()
         logger.info("Seeded starter product catalog")
+    elif not _seed_enabled and await db.products.count_documents({}) == 0:
+        logger.info("Product catalog is empty — add real products via /admin. (Set SEED_PRODUCTS=true to auto-seed for dev)")
 
     # Seed categories if empty
     default_cat_images = {
@@ -525,8 +530,8 @@ async def startup():
             {"$set": {"image": cimg}},
         )
 
-    # Seed studio posts if empty
-    if await db.studio_posts.count_documents({}) == 0:
+    # Studio posts seeding — same flag guard as products
+    if _seed_enabled and await db.studio_posts.count_documents({}) == 0:
         studio_seeds = [
             ("https://images.unsplash.com/photo-1583912372642-8b0adbb1a53a?crop=entropy&cs=srgb&fm=jpg&q=85&w=800", "New nibs, Turin edition · 001–012", "https://instagram.com/thewlpens"),
             ("https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=800", "First ink of the season · Midnight Olive", "https://instagram.com/thewlpens"),
