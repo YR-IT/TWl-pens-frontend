@@ -10,10 +10,14 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const t = localStorage.getItem("atelier_token");
     if (!t) { setReady(true); return; }
+    const timeout = setTimeout(() => setReady(true), 3500);
     api.get("/auth/me")
       .then((r) => setUser(r.data))
       .catch(() => localStorage.removeItem("atelier_token"))
-      .finally(() => setReady(true));
+      .finally(() => {
+        clearTimeout(timeout);
+        setReady(true);
+      });
   }, []);
 
   const login = async (email, password) => {
