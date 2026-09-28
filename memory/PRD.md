@@ -1,62 +1,72 @@
-# Atelier Ink & Steel — Luxury Pen E-commerce Store
+# The WL Pens — Project Architecture & Status Memory
 
-## Original Problem Statement
-Build a luxury pen e-commerce website inspired by makoba.com/collections/new-arrivals but with a distinct premium design. Includes an admin page for uploading pen designs, managing products (with discount pricing) and tracking shipments.
+## 1. Project Overview
+- **Brand**: The WL Pens (Atelier based in Panchkula, Haryana)
+- **Tech Stack**: FastAPI + Motor (MongoDB) on backend, React 19 + Tailwind CSS on frontend.
+- **Port Allocation**:
+  - Frontend: `http://localhost:3000` (started via `npm run dev`)
+  - Backend: `http://localhost:8000` (started via `uvicorn server:app --reload --port 8000`)
+- **Admin Account**: `thewlpens@gmail.com` / `Thewlpens@2000`
 
-## User Choices
-- Full replacement pivot (was a restaurant app)
-- Features: catalog with filters (brand/category/price), product detail, cart, guest checkout, user accounts/login, real Stripe payments
-- Categories: Fountain Pens, Rollerball, Ballpoint, Mechanical Pencils, Inks, Accessories, Limited Editions
-- Design: blend of Minimal Scandinavian + Warm Editorial Luxury (cream #FAF8F5, deep espresso #1C1815, muted olive #3D4838, warm gold #B8860B) with Cormorant Garamond serif + Manrope sans
-- Product images: curated stock luxury pen photography + admin can upload their own
-- Admin: image upload, discount pricing, product CRUD, shipment tracking
+---
 
-## Architecture
-- **Backend** (FastAPI + Motor MongoDB): `/app/backend/server.py`
-  - JWT bearer auth (bcrypt), roles: customer / admin
-  - Supabase Storage adapter for admin image uploads
-  - WhatsApp order handoff (Stripe disabled)
-  - Collections: `users`, `products`, `orders`, `payment_transactions`
-- **Frontend** (React 19 + React Router + Tailwind + shadcn/ui):
-  - Pages: Home, Catalog (`/shop`), ProductDetail (`/product/:id`), Checkout, PaymentSuccess (`/checkout/success`), Login, Register, Account, Admin
-  - Contexts: `AuthProvider` (localStorage token) + `CartProvider` (localStorage cart)
-  - Sonner toast for feedback
+## 2. Complete Homepage Overhaul (21+ Sections)
 
-## Completed (2026-02-03)
-- Full pivot from restaurant to luxury pen store — old code wiped
-- 7-item seeded catalog across all pen categories with discount pricing on 4 SKUs
-- Catalog with category / brand / price / search / sort filters
-- Product detail with image thumbnails, specs, features, discount pricing (−% badge)
-- Cart drawer with quantity control, persistent to localStorage
-- Guest & authenticated checkout → WhatsApp order handoff with pre-filled details
-- Auth: register/login/me, JWT stored client-side
-- Admin dashboard: KPIs (revenue, orders, paid, shipped, products, customers)
-- Admin product CRUD with image upload to Supabase Storage
-- Admin shipment tracking (status + carrier + tracking number)
-- Backend test suite: 18/18 green; Playwright e2e green
+The homepage in `frontend/src/pages/Home.jsx` implements the full luxury pen boutique layout inspired by *penstore.in*:
 
-## Seeded Admin
-- Email: `admin@atelier.pens`
-- Password: `Admin@123456`
-- Also stored at `/app/memory/test_credentials.md`
+1. **Hero Moving Carousel** (`Home.jsx`): Multi-slide responsive carousel with auto-play, pause-on-hover, slide indicators, and dynamic CTA routes.
+2. **Legacy Trust Strip** (`LegacyTrustStrip.jsx`): Minimalist heritage trust badge + live real-time visitor heartbeat counter with pulse animation.
+3. **Promotional Offers Ticker** (`OffersTicker.jsx`): Infinite marquee ticker for promo codes, shipping offers, with hover-pause functionality.
+4. **4-Column Trust Bar** (`TrustBar.jsx`): Free shipping, extra refill, genuine guarantee, expert curation.
+5. **Ink Tagline Banner** (`Home.jsx`): Editorial headline & subtitle.
+6. **Category Browsing Carousel** (`Home.jsx`): Live fetched categories from MongoDB.
+7. **Writing Instruments Tiles** (`CategoryTilesGrid.jsx`): 3-column curated grid (Fountain Pens, Rollerball/Ballpoint, Inks).
+8. **Hallmark Best Sellers** (`Home.jsx`): 3-column hallmark product grid with quick-view modal.
+9. **Signature Collections** (`SignatureCollections.jsx`): 2-column luxury collection cards (*Exclusive* & *Premium*).
+10. **Fountain Pens Product Rail** (`ProductCategoryRail.jsx`): Dedicated category carousel with quick-add.
+11. **Secondary Authenticity Marquee** (`SecondaryTrustMarquee.jsx`): 100% genuine, authorized distributor, 1-year warranty marquee ribbon.
+12. **Occasion Gift Tiles** (`OccasionGiftTiles.jsx`): Editorial gifting cards (*Gifts for Her* & *Gifts for Him*).
+13. **New Arrivals Carousel** (`Home.jsx`): Fresh additions to the atelier.
+14. **Rollerball Pens Product Rail** (`ProductCategoryRail.jsx`): Dedicated category carousel for rollerballs.
+15. **Bulk & Corporate Gifts** (`BulkAndCorporateGifts.jsx`): Two cards for high-volume corporate and retail gifting.
+16. **Featured Categories Editorial** (`Home.jsx`): 3 cards with custom backgrounds and accent styling.
+17. **Gift & Promo Banner** (`Home.jsx`): Seasonal promotional banner.
+18. **Brand Heritage Marquee** (`BrandMarqueeSection.jsx`): Infinite marquee of authorized partner brand logos.
+19. **Assurance of Excellence** (`WarrantyTrustBlock.jsx`): Minimalist 3-pillar craftsmanship assurance grid (*Hand-Tuned Precision*, *100% Genuine Provenance*, *Dedicated Studio Care*).
+20. **Customer Reviews Carousel** (`CustomerReviewsCarousel.jsx`): Auto-sliding review carousel with pause-on-hover, prev/next buttons, and 8+ authentic Indian pen connoisseurs.
+21. **Physical Store Location & Map** (`StoreLocationMap.jsx`): Panchkula atelier address, hours, contact, and Google Maps embed.
+22. **Founder Story Section** (`Home.jsx`): Brand narrative from the foothills of the Shivaliks.
+23. **Crafted For You (Custom Engraving)** (`MinimalEngravingSection.jsx`): Laser personalization atelier showcase positioned after the founder's story at the very end of the page.
 
-## Prioritized Backlog (P0/P1/P2)
-- **P1**: Wishlist / saved products for customers
-- **P1**: Search modal in header with autocomplete
-- **P1**: Product image gallery — currently 1 image per seed, admin can add more
-- **P2**: Custom nib size / engraving options on PDP (mentioned in design guidelines)
-- **P2**: Real Stripe webhook signature validation (currently uses inline polling as primary fulfilment path)
-- **P2**: Email order confirmations (via Resend integration)
-- **P2**: Split server.py into routers (auth/products/admin/payments)
-- **P2**: Case-normalise shipping.email at write time (lookup edge case)
+---
 
-## Key API Endpoints
-- Public: `GET /api/products`, `GET /api/products/facets`, `GET /api/products/{id}`
-- Auth: `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`
-- Checkout: `POST /api/checkout/session`, `GET /api/payments/status/{session_id}`, `POST /api/webhook/stripe`
-- Customer orders: `GET /api/orders/mine`, `GET /api/orders/lookup/{order_id}?email=`
-- Admin: `POST/PUT/DELETE /api/admin/products/*`, `POST /api/admin/upload`, `GET /api/admin/orders`, `PATCH /api/admin/orders/{id}/shipment`, `GET /api/admin/stats`
-- Files: `GET /api/files/{path}` (proxy for object storage)
+## 3. Dynamic CMS Customization in Admin Panel
 
-## Test Report
-`/app/test_reports/iteration_1.json` — no critical bugs.
+All dynamic assets and promotional copy are fully editable from the Admin Dashboard (`/admin > Homepage Sections`):
+- **Hero Carousel Slides**: Add/remove/reorder slides, edit copy, upload images.
+- **Offers Ticker Messages**: Add/remove/edit promo text strings.
+- **Secondary Trust Marquee Items**: Add/remove/edit assurance points.
+- **Occasion Gift Tiles**: Upload background images, edit titles, descriptions, and links for *Gifts for Her* and *Gifts for Him*.
+- **Customer Reviews**: Add/remove/edit reviewer name, city, 1-5 star ratings, testimonials, and product photos.
+- **Store Location & Atelier Details**: Studio address, phone, email, opening hours, Google Maps embed URL.
+- **Signature Collections**: Custom background uploads, brand eyebrows, titles, links.
+- **Product Variants**: Full multi-color variants with hex codes, swatch images, price overrides, discount prices, stock counts, and dedicated variant image galleries.
+- **Laser Name Engraving**: Engravable toggle, custom character limit, font options, and PDP preview.
+
+---
+
+## 4. Automated Testing Suite
+
+Full test coverage across 5 test suites with **48/48 passing tests**:
+- `backend/tests/backend_test.py`: Product catalog, filters, facets, admin CRUD, upload, auth, and order flow (18 tests).
+- `backend/tests/test_iteration3.py`: Category management, cascade renames, product engraving, and order persistence (12 tests).
+- `backend/tests/test_analytics_and_search.py`: Fuzzy search, analytics ingestion, and caching lifecycle (6 tests).
+- `backend/tests/test_wishlist.py`: Wishlist toggle, ordering, sharing token, and public access (9 tests).
+- `tests/test_homepage_api.py`: Homepage CMS banners, site settings, and auth security tests (3 tests).
+
+---
+
+## 5. Development Guidelines & Constraints
+- **Zero Mock Data in Frontend**: All products, categories, reviews, and banner configurations are fetched live from the backend API.
+- **Portaling Standard**: All interactive overlays (modals, drawers, quick-view) use `createPortal(..., document.body)` to avoid z-index or overflow clipping.
+- **Build Constraint**: Use `npm run dev` for local development. Do not run `npm run build` due to pre-existing CRA alias config.

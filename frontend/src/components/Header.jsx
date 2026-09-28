@@ -13,7 +13,7 @@ import {
   LogOut, 
   Phone, 
   MessageCircle, 
-  ShieldCheck 
+  ShieldCheck
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCart } from "../lib/cart";
@@ -94,24 +94,46 @@ export default function Header() {
 
           {/* Desktop Navigation Links */}
           <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
-            {["Home", "New Arrivals", "Contact Us"].map(link => (
-              <Link 
-                key={link}
-                to={link === "Home" ? "/" : `/${link.toLowerCase().replace(" ", "-")}`}
-                className={`text-[11px] uppercase tracking-[0.25em] font-medium transition-colors flex items-center gap-1.5 ${
-                  link === "New Arrivals" 
-                    ? "text-[#B8860B] hover:text-[#1C1815] font-semibold"
-                    : "text-[#6E685E] hover:text-[#1C1815]"
-                }`}
-              >
-                {link}
-                {link === "New Arrivals" && <span className="w-1 h-1 rounded-full bg-[#B8860B]"></span>}
+            <Link to="/" className="text-[11px] uppercase tracking-[0.25em] font-medium text-[#6E685E] hover:text-[#1C1815] transition-colors" data-testid="nav-home">
+              Home
+            </Link>
+
+            {/* Categories Dropdown */}
+            <div className="relative group py-2">
+              <Link to="/shop" className="text-[11px] uppercase tracking-[0.25em] font-medium text-[#6E685E] hover:text-[#1C1815] transition-colors flex items-center gap-1" data-testid="nav-categories">
+                Categories <ChevronDown size={12} className="group-hover:rotate-180 transition-transform duration-200" />
               </Link>
-            ))}
+              <div className="absolute top-full left-0 w-56 bg-white border border-[#E6E0D6] shadow-xl p-3 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50 rounded-xs">
+                <Link to="/shop" className="block px-3 py-2 text-xs font-semibold text-[#1C1815] hover:bg-[#F3EFEA] border-b border-[#E6E0D6]/60">
+                  All Writing Instruments
+                </Link>
+                {cats.map((c) => (
+                  <Link
+                    key={c.id}
+                    to={`/shop?category=${encodeURIComponent(c.name)}`}
+                    className="block px-3 py-2 text-xs text-[#6E685E] hover:text-[#1C1815] hover:bg-[#F3EFEA] transition-colors"
+                  >
+                    {c.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <Link to="/new-arrivals" className="text-[11px] uppercase tracking-[0.25em] font-semibold text-[#B8860B] hover:text-[#1C1815] transition-colors flex items-center gap-1.5" data-testid="nav-new-arrivals">
+              New Arrivals <span className="w-1.5 h-1.5 rounded-full bg-[#B8860B]"></span>
+            </Link>
+
+            <Link to="/best-sellers" className="text-[11px] uppercase tracking-[0.25em] font-medium text-[#6E685E] hover:text-[#1C1815] transition-colors" data-testid="nav-best-sellers">
+              Best Sellers
+            </Link>
+
+            <Link to="/contact" className="text-[11px] uppercase tracking-[0.25em] font-medium text-[#6E685E] hover:text-[#1C1815] transition-colors" data-testid="nav-contact">
+              Contact Us
+            </Link>
           </nav>
 
           {/* Right Action Icons (Search, Sign In / Account, Wishlist, Cart) */}
-          <div className="flex items-center gap-2 sm:gap-5 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
             {/* Search Trigger */}
             <button 
               onClick={() => setSearch(true)} 
@@ -122,7 +144,7 @@ export default function Header() {
               <Search size={18}/>
             </button>
             
-            {/* Sign in / Account Link (Visible on mobile as icon & desktop with text) */}
+            {/* Sign in / Account Link */}
             <Link 
               to={user ? (user.role === "admin" ? "/admin" : "/account") : "/login"} 
               className="p-1.5 text-[#6E685E] hover:text-[#1C1815] transition-colors flex items-center gap-1.5" 
@@ -142,7 +164,7 @@ export default function Header() {
             <Link to="/wishlist" className="p-1.5 relative text-[#6E685E] hover:text-[#B8860B] transition-colors" data-testid="wishlist-link" aria-label="Wishlist">
               <Heart size={18}/>
               {wcount > 0 && (
-                <span className="absolute 0 top-0.5 right-0.5 bg-[#B8860B] text-[#FAF8F5] text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                <span className="absolute top-0.5 right-0.5 bg-[#B8860B] text-[#FAF8F5] text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                   {wcount}
                 </span>
               )}
@@ -157,7 +179,7 @@ export default function Header() {
             >
               <ShoppingBag size={20}/>
               {count > 0 && (
-                <span className="absolute 0 top-0.5 right-0.5 bg-[#1C1815] text-[#FAF8F5] text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                <span className="absolute top-0.5 right-0.5 bg-[#1C1815] text-[#FAF8F5] text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                   {count}
                 </span>
               )}

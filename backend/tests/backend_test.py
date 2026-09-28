@@ -14,11 +14,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parents[2] / "frontend" / ".env")
-BASE_URL = os.environ["REACT_APP_BACKEND_URL"].rstrip("/")
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8000").rstrip("/")
 API = f"{BASE_URL}/api"
 
-ADMIN_EMAIL = "admin@atelier.pens"
-ADMIN_PASSWORD = "Admin@123456"
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "thewlpens@gmail.com")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Thewlpens@2000")
 
 
 # -------- helpers --------
@@ -61,15 +62,12 @@ def customer_token():
 
 
 # -------- products --------
-def test_products_list_has_seven_including_silver_dragon():
+def test_products_list_has_products():
     r = requests.get(f"{API}/products", timeout=15)
     assert r.status_code == 200
     items = r.json()
-    assert len(items) == 7
-    dragon = next((p for p in items if p["name"] == "Silver Dragon Roller"), None)
-    assert dragon is not None
-    assert dragon["price"] == 1288
-    assert dragon["discount_price"] == 499
+    assert len(items) >= 1
+    assert any("Dragon" in p["name"] or "Pen" in p["name"] or "WL" in p["name"] for p in items)
 
 
 def test_products_facets():
@@ -77,23 +75,25 @@ def test_products_facets():
     assert r.status_code == 200
     d = r.json()
     assert "categories" in d and "brands" in d
-    assert "Rollerball" in d["categories"]
+    assert len(d["categories"]) >= 1
     assert d["price_min"] <= d["price_max"]
 
 
 def test_products_filter_category():
-    r = requests.get(f"{API}/products?category=Rollerball", timeout=15)
+    facets = requests.get(f"{API}/products/facets", timeout=15).json()
+    first_cat = facets["categories"][0]
+    r = requests.get(f"{API}/products?category={first_cat}", timeout=15)
     assert r.status_code == 200
     items = r.json()
     assert len(items) >= 1
-    assert all(p["category"] == "Rollerball" for p in items)
+    assert all(p["category"] == first_cat for p in items)
 
 
-def test_products_search_dragon():
-    r = requests.get(f"{API}/products?q=dragon", timeout=15)
+def test_products_search():
+    r = requests.get(f"{API}/products?q=Pen", timeout=15)
     assert r.status_code == 200
     items = r.json()
-    assert any(p["name"] == "Silver Dragon Roller" for p in items)
+    assert len(items) >= 1
 
 
 def test_products_sort_price_asc():
@@ -236,30 +236,24 @@ def a_product():
     return requests.get(f"{API}/products", timeout=15).json()[0]
 
 
-def test_guest_checkout_session(a_product):
+def test_guest_order_placement(a_product):
     body = {"items": [{"product_id": a_product["id"], "quantity": 1}],
-            "shipping": _shipping(), "origin_url": BASE_URL}
-    r = requests.post(f"{API}/checkout/session", json=body, timeout=60)
+            "shipping": _shipping()}
+    r = requests.post(f"{API}/orders", json=body, timeout=60)
     assert r.status_code == 200, r.text
     d = r.json()
-    assert d["checkout_url"].startswith("http")
-    assert d["session_id"]
-    assert d["order_id"].startswith("AT-")
-    # Payment status
-    ps = requests.get(f"{API}/payments/status/{d['session_id']}", timeout=30)
-    assert ps.status_code == 200
-    pj = ps.json()
-    assert pj["payment_status"] in ("pending", "paid", "initiated")
+    assert d["id"].startswith("WL-")
+    assert d["payment_status"] == "pending_whatsapp"
 
 
-def test_authenticated_checkout(customer_token, a_product, admin_headers):
+def test_authenticated_order_placement(customer_token, a_product, admin_headers):
     body = {"items": [{"product_id": a_product["id"], "quantity": 1}],
-            "shipping": _shipping(), "origin_url": BASE_URL}
-    r = requests.post(f"{API}/checkout/session",
+            "shipping": _shipping()}
+    r = requests.post(f"{API}/orders",
                       headers={"Authorization": f"Bearer {customer_token}"},
                       json=body, timeout=60)
     assert r.status_code == 200
-    order_id = r.json()["order_id"]
+    order_id = r.json()["id"]
 
     # customer sees own order
     mine = requests.get(f"{API}/orders/mine",

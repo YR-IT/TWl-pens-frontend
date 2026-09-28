@@ -344,11 +344,29 @@ class BannerIn(BaseModel):
     bulk_orders_card: Optional[dict] = None
     corporate_gifts_card: Optional[dict] = None
 
-    # Minimal Engraving Section
-    engraving_section: Optional[dict] = None
-
     # Signature Collections (2 luxury cards)
     signature_collections: Optional[dict] = None
+
+    # Section 01: Top Utility Bar
+    utility_bar_messages: Optional[List[str]] = None
+
+    # Section 05: Offers Marquee
+    offers_ticker: Optional[List[str]] = None
+
+    # Section 12: Secondary Trust Marquee
+    secondary_trust_marquee: Optional[List[str]] = None
+
+    # Section 13: Occasion Gift Tiles
+    occasion_gift_tiles: Optional[dict] = None
+
+    # Section 18: Customer Reviews
+    customer_reviews: Optional[List[dict]] = None
+
+    # Section 20: Store Location & Atelier Info
+    store_info: Optional[dict] = None
+
+    # Writing Tiles (3 tiles grid)
+    writing_tiles: Optional[List[dict]] = None
 
     # Contact Form Inquiry Types
     contact_inquiry_types: Optional[List[str]] = None
@@ -437,7 +455,11 @@ async def startup():
     await db.orders.create_index("id", unique=True)
     await db.orders.create_index("session_id", sparse=True)
     await db.wishlists.create_index("user_id", unique=True)
-    await db.wishlists.create_index("share_token", unique=True, sparse=True)
+    try:
+        await db.wishlists.update_many({"share_token": None}, {"$unset": {"share_token": ""}})
+        await db.wishlists.create_index("share_token", unique=True, sparse=True)
+    except Exception as e:
+        logger.warning(f"Could not setup wishlist index: {e}")
     await db.categories.create_index("name", unique=True)
     await db.studio_posts.create_index("id", unique=True)
     await db.events.create_index([("event_type", 1), ("session_id", 1)])
@@ -697,6 +719,151 @@ async def startup():
     await db.site_banner.update_many(
         {"signature_collections": {"$exists": False}},
         {"$set": {"signature_collections": _default_signature_collections}},
+    )
+
+    # Backfill utility_bar_messages
+    _default_utility_bar = [
+        "COMPLIMENTARY BESPOKE STUDIO ENGRAVING",
+        "CALL / WHATSAPP: +91 93519 96272",
+        "SHIPS WITHIN 48 HOURS FROM PANCHKULA",
+        "SS/26 ATELIER COLLECTION",
+        "HAND-GROUND IRIDIUM NIBS",
+    ]
+    await db.site_banner.update_many(
+        {"utility_bar_messages": {"$exists": False}},
+        {"$set": {"utility_bar_messages": _default_utility_bar}},
+    )
+
+    # Backfill offers_ticker
+    _default_offers_ticker = [
+        "FREE PAN-INDIA SHIPPING ON ORDERS ABOVE ₹1499",
+        "COMPLIMENTARY EXTRA INK REFILL WITH SELECTED ROLLERBALLS",
+        "FLAT 10% OFF ON ORDERS ABOVE ₹5000 · USE CODE 'ATELIER10'",
+        "BESPOKE LASER & DIAMOND NAME ENGRAVING AVAILABLE",
+    ]
+    await db.site_banner.update_many(
+        {"offers_ticker": {"$exists": False}},
+        {"$set": {"offers_ticker": _default_offers_ticker}},
+    )
+
+    # Backfill secondary_trust_marquee
+    _default_trust_marquee = [
+        "100% GENUINE ATELIER PRODUCTS",
+        "OFFICIAL BRAND AUTHORIZED DISTRIBUTOR",
+        "1-YEAR ATELIER COMPREHENSIVE WARRANTY",
+        "EXPRESS DISPATCH FROM PANCHKULA",
+        "LIFETIME WRITING INSTRUMENT CARE",
+    ]
+    await db.site_banner.update_many(
+        {"secondary_trust_marquee": {"$exists": False}},
+        {"$set": {"secondary_trust_marquee": _default_trust_marquee}},
+    )
+
+    # Backfill occasion_gift_tiles
+    _default_occasion_tiles = {
+        "card_left": {
+            "title": "Gifts for Her",
+            "subtitle": "Slender profiles, refined rose gold accents, and delicate lacquer finishes.",
+            "image": "https://images.unsplash.com/photo-1585336261026-78b17b6a1f81?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200",
+            "link": "/shop?category=Fountain%20Pens",
+        },
+        "card_right": {
+            "title": "Gifts for Him",
+            "subtitle": "Substantial brass weight, knurled grip, and matte black & gold hardware.",
+            "image": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200",
+            "link": "/shop?category=Rollerball%20Pens",
+        },
+    }
+    await db.site_banner.update_many(
+        {"occasion_gift_tiles": {"$exists": False}},
+        {"$set": {"occasion_gift_tiles": _default_occasion_tiles}},
+    )
+
+    # Backfill customer_reviews
+    _default_reviews = [
+        {
+            "name": "Vikramaditya S.",
+            "city": "New Delhi",
+            "rating": 5,
+            "quote": "The nib smoothness on my custom engraved pen exceeds my vintage Montblanc. Truly world-class craftsmanship from Panchkula.",
+            "product_name": "1200 Golden Dragon Rollerball",
+            "product_image": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?crop=entropy&cs=srgb&fm=jpg&q=85&w=300",
+        },
+        {
+            "name": "Ananya Roy",
+            "city": "Bengaluru",
+            "rating": 5,
+            "quote": "Ordered 25 personalized pens for our firm's annual leadership awards. Every single recipient was genuinely stunned by the presentation packaging.",
+            "product_name": "Atelier Bespoke Engraved Edition",
+            "product_image": "https://images.unsplash.com/photo-1585336261026-78b17b6a1f81?crop=entropy&cs=srgb&fm=jpg&q=85&w=300",
+        },
+        {
+            "name": "Karan Malhotra",
+            "city": "Chandigarh",
+            "rating": 5,
+            "quote": "The weight distribution is impeccably balanced. Writing long journals feels effortless. Outstanding customer support via WhatsApp as well.",
+            "product_name": "High Grade Metal Rollerball",
+            "product_image": "https://images.unsplash.com/photo-1617177435596-1c9e30d6d608?crop=entropy&cs=srgb&fm=jpg&q=85&w=300",
+        },
+        {
+            "name": "Dr. Siddharth Verma",
+            "city": "Mumbai",
+            "rating": 5,
+            "quote": "As a surgeon, I appreciate precision instruments. The ink feed never skips, and the hand-etched initials on the brass barrel look stunning.",
+            "product_name": "Turin Brass Atelier Edition",
+            "product_image": "https://images.unsplash.com/photo-1583195764036-5d2c7b0b5e3f?crop=entropy&cs=srgb&fm=jpg&q=85&w=300",
+        },
+        {
+            "name": "Meera Nambiar",
+            "city": "Chennai",
+            "rating": 5,
+            "quote": "The shimmer and flow of the archival twilight ink paired with the medium nib is pure joy. Arrived in a lovely cotton pouch within 48 hours.",
+            "product_name": "Archival Midnight Shimmer Set",
+            "product_image": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?crop=entropy&cs=srgb&fm=jpg&q=85&w=300",
+        },
+        {
+            "name": "Adv. Harshvardhan Joshi",
+            "city": "Jaipur",
+            "rating": 5,
+            "quote": "Signed my high court registry deeds with the WL Gold Dragon pen today. The balance in hand commands respect. Highly impressed.",
+            "product_name": "1200 Golden Dragon Clip Edition",
+            "product_image": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?crop=entropy&cs=srgb&fm=jpg&q=85&w=300",
+        },
+        {
+            "name": "Pooja Deshmukh",
+            "city": "Pune",
+            "rating": 5,
+            "quote": "Gifted this to my father for his 60th birthday with his name engraved. He hasn't stopped using it since. Thank you Manjeet & team!",
+            "product_name": "Executive Matte Black Rollerball",
+            "product_image": "https://images.unsplash.com/photo-1585336261026-78b17b6a1f81?crop=entropy&cs=srgb&fm=jpg&q=85&w=300",
+        },
+        {
+            "name": "Ritwik Sen",
+            "city": "Kolkata",
+            "rating": 5,
+            "quote": "Being a calligraphy enthusiast, I am very picky about feed consistency. The WL nib ground in Panchkula is phenomenal for everyday prose.",
+            "product_name": "Fine Nib Classic Fountain Pen",
+            "product_image": "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=300",
+        },
+    ]
+    await db.site_banner.update_many(
+        {"customer_reviews": {"$exists": False}},
+        {"$set": {"customer_reviews": _default_reviews}},
+    )
+
+    # Backfill store_info
+    _default_store_info = {
+        "title": "Visit Our Panchkula Atelier",
+        "address": "SCO 42, Sector 11, Panchkula, Haryana 134109",
+        "phone": "+91 93519 96272",
+        "email": "thewlpens@gmail.com",
+        "hours": "Monday – Saturday: 10:30 AM – 7:30 PM",
+        "parent_company": "The WL Pens Studio",
+        "map_embed_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d109741.02912911311!2d76.77111075!3d30.6942091!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390f937d2f9a9c7b%3A0x6a2c9183416e91!2sPanchkula%2C%20Haryana!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin",
+    }
+    await db.site_banner.update_many(
+        {"store_info": {"$exists": False}},
+        {"$set": {"store_info": _default_store_info}},
     )
 
     # Init storage (non-blocking)
@@ -1301,6 +1468,115 @@ DEFAULT_BANNER = {
             "theme": "premium",
         },
     },
+    "utility_bar_messages": [
+        "COMPLIMENTARY BESPOKE STUDIO ENGRAVING",
+        "CALL / WHATSAPP: +91 93519 96272",
+        "SHIPS WITHIN 48 HOURS FROM PANCHKULA",
+        "SS/26 ATELIER COLLECTION",
+        "HAND-GROUND IRIDIUM NIBS",
+    ],
+    "offers_ticker": [
+        "FREE PAN-INDIA SHIPPING ON ORDERS ABOVE ₹1499",
+        "COMPLIMENTARY EXTRA INK REFILL WITH SELECTED ROLLERBALLS",
+        "FLAT 10% OFF ON ORDERS ABOVE ₹5000 · USE CODE 'ATELIER10'",
+        "BESPOKE LASER & DIAMOND NAME ENGRAVING AVAILABLE",
+    ],
+    "secondary_trust_marquee": [
+        "100% GENUINE ATELIER PRODUCTS",
+        "OFFICIAL BRAND AUTHORIZED DISTRIBUTOR",
+        "1-YEAR ATELIER COMPREHENSIVE WARRANTY",
+        "EXPRESS DISPATCH FROM PANCHKULA",
+        "LIFETIME WRITING INSTRUMENT CARE",
+    ],
+    "occasion_gift_tiles": {
+        "card_left": {
+            "title": "Gifts for Her",
+            "subtitle": "Slender profiles, refined rose gold accents, and delicate lacquer finishes.",
+            "image": "https://images.unsplash.com/photo-1585336261026-78b17b6a1f81?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200",
+            "link": "/shop?category=Fountain%20Pens",
+        },
+        "card_right": {
+            "title": "Gifts for Him",
+            "subtitle": "Substantial brass weight, knurled grip, and matte black & gold hardware.",
+            "image": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200",
+            "link": "/shop?category=Rollerball%20Pens",
+        },
+    },
+    "customer_reviews": [
+        {
+            "name": "Vikramaditya S.",
+            "city": "New Delhi",
+            "rating": 5,
+            "quote": "The nib smoothness on my custom engraved pen exceeds my vintage Montblanc. Truly world-class craftsmanship from Panchkula.",
+            "product_name": "1200 Golden Dragon Rollerball",
+            "product_image": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?crop=entropy&cs=srgb&fm=jpg&q=85&w=300",
+        },
+        {
+            "name": "Ananya Roy",
+            "city": "Bengaluru",
+            "rating": 5,
+            "quote": "Ordered 25 personalized pens for our firm's annual leadership awards. Every single recipient was genuinely stunned by the presentation packaging.",
+            "product_name": "Atelier Bespoke Engraved Edition",
+            "product_image": "https://images.unsplash.com/photo-1585336261026-78b17b6a1f81?crop=entropy&cs=srgb&fm=jpg&q=85&w=300",
+        },
+        {
+            "name": "Karan Malhotra",
+            "city": "Chandigarh",
+            "rating": 5,
+            "quote": "The weight distribution is impeccably balanced. Writing long journals feels effortless. Outstanding customer support via WhatsApp as well.",
+            "product_name": "High Grade Metal Rollerball",
+            "product_image": "https://images.unsplash.com/photo-1617177435596-1c9e30d6d608?crop=entropy&cs=srgb&fm=jpg&q=85&w=300",
+        },
+        {
+            "name": "Dr. Siddharth Verma",
+            "city": "Mumbai",
+            "rating": 5,
+            "quote": "As a surgeon, I appreciate precision instruments. The ink feed never skips, and the hand-etched initials on the brass barrel look stunning.",
+            "product_name": "Turin Brass Atelier Edition",
+            "product_image": "https://images.unsplash.com/photo-1583195764036-5d2c7b0b5e3f?crop=entropy&cs=srgb&fm=jpg&q=85&w=300",
+        },
+        {
+            "name": "Meera Nambiar",
+            "city": "Chennai",
+            "rating": 5,
+            "quote": "The shimmer and flow of the archival twilight ink paired with the medium nib is pure joy. Arrived in a lovely cotton pouch within 48 hours.",
+            "product_name": "Archival Midnight Shimmer Set",
+            "product_image": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?crop=entropy&cs=srgb&fm=jpg&q=85&w=300",
+        },
+        {
+            "name": "Adv. Harshvardhan Joshi",
+            "city": "Jaipur",
+            "rating": 5,
+            "quote": "Signed my high court registry deeds with the WL Gold Dragon pen today. The balance in hand commands respect. Highly impressed.",
+            "product_name": "1200 Golden Dragon Clip Edition",
+            "product_image": "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?crop=entropy&cs=srgb&fm=jpg&q=85&w=300",
+        },
+        {
+            "name": "Pooja Deshmukh",
+            "city": "Pune",
+            "rating": 5,
+            "quote": "Gifted this to my father for his 60th birthday with his name engraved. He hasn't stopped using it since. Thank you Manjeet & team!",
+            "product_name": "Executive Matte Black Rollerball",
+            "product_image": "https://images.unsplash.com/photo-1585336261026-78b17b6a1f81?crop=entropy&cs=srgb&fm=jpg&q=85&w=300",
+        },
+        {
+            "name": "Ritwik Sen",
+            "city": "Kolkata",
+            "rating": 5,
+            "quote": "Being a calligraphy enthusiast, I am very picky about feed consistency. The WL nib ground in Panchkula is phenomenal for everyday prose.",
+            "product_name": "Fine Nib Classic Fountain Pen",
+            "product_image": "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=300",
+        },
+    ],
+    "store_info": {
+        "title": "Visit Our Panchkula Atelier",
+        "address": "SCO 42, Sector 11, Panchkula, Haryana 134109",
+        "phone": "+91 93519 96272",
+        "email": "thewlpens@gmail.com",
+        "hours": "Monday – Saturday: 10:30 AM – 7:30 PM",
+        "parent_company": "The WL Pens Studio",
+        "map_embed_url": "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d109741.02912911311!2d76.77111075!3d30.6942091!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390f937d2f9a9c7b%3A0x6a2c9183416e91!2sPanchkula%2C%20Haryana!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin",
+    },
     "contact_inquiry_types": [
         "General Studio Inquiry",
         "Bespoke Nib Tuning & Engraving",
@@ -1608,7 +1884,6 @@ async def toggle_wishlist(body: WishlistToggle, user=Depends(current_user)):
         await db.wishlists.insert_one({
             "user_id": user["id"],
             "product_ids": [body.product_id],
-            "share_token": None,
             "created_at": now,
             "updated_at": now,
         })

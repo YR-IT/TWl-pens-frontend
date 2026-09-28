@@ -1739,6 +1739,68 @@ function BannerTab() {
         link: "/shop",
       },
     },
+    offers_ticker: [
+      "FREE PAN-INDIA SHIPPING ON ORDERS ABOVE ₹1499",
+      "COMPLIMENTARY EXTRA INK REFILL WITH SELECTED ROLLERBALLS",
+      "FLAT 10% OFF ON ORDERS ABOVE ₹5000 · USE CODE 'ATELIER10'",
+      "BESPOKE LASER & DIAMOND NAME ENGRAVING AVAILABLE",
+    ],
+    secondary_trust_marquee: [
+      "100% GENUINE ATELIER PRODUCTS",
+      "OFFICIAL BRAND AUTHORIZED DISTRIBUTOR",
+      "1-YEAR ATELIER COMPREHENSIVE WARRANTY",
+      "EXPRESS DISPATCH FROM PANCHKULA",
+      "LIFETIME WRITING INSTRUMENT CARE",
+    ],
+    occasion_gift_tiles: {
+      card_left: {
+        title: "Gifts for Her",
+        subtitle: "Slender profiles, refined rose gold accents, and delicate lacquer finishes.",
+        image: "",
+        link: "/shop?category=Fountain%20Pens",
+      },
+      card_right: {
+        title: "Gifts for Him",
+        subtitle: "Substantial brass weight, knurled grip, and matte black & gold hardware.",
+        image: "",
+        link: "/shop?category=Rollerball%20Pens",
+      },
+    },
+    customer_reviews: [
+      {
+        name: "Vikramaditya S.",
+        city: "New Delhi",
+        rating: 5,
+        quote: "The nib smoothness on my custom engraved pen exceeds my vintage Montblanc. Truly world-class craftsmanship from Panchkula.",
+        product_name: "1200 Golden Dragon Rollerball",
+        product_image: "",
+      },
+      {
+        name: "Ananya Roy",
+        city: "Bengaluru",
+        rating: 5,
+        quote: "Ordered 25 personalized pens for our firm's annual leadership awards. Every single recipient was genuinely stunned by the presentation packaging.",
+        product_name: "Atelier Bespoke Engraved Edition",
+        product_image: "",
+      },
+      {
+        name: "Karan Malhotra",
+        city: "Chandigarh",
+        rating: 5,
+        quote: "The weight distribution is impeccably balanced. Writing long journals feels effortless. Outstanding customer support via WhatsApp as well.",
+        product_name: "High Grade Metal Rollerball",
+        product_image: "",
+      },
+    ],
+    store_info: {
+      title: "Visit Our Panchkula Atelier",
+      address: "SCO 42, Sector 11, Panchkula, Haryana 134109",
+      phone: "+91 93519 96272",
+      email: "thewlpens@gmail.com",
+      hours: "Monday – Saturday: 10:30 AM – 7:30 PM",
+      parent_company: "The WL Pens Studio",
+      map_embed_url: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d109741.02912911311!2d76.77111075!3d30.6942091!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390f937d2f9a9c7b%3A0x6a2c9183416e91!2sPanchkula%2C%20Haryana!5e0!3m2!1sen!2sin!4v1700000000000!5m2!1sen!2sin",
+    },
     contact_inquiry_types: [
       "General Studio Inquiry",
       "Bespoke Nib Tuning & Engraving",
@@ -1757,6 +1819,9 @@ function BannerTab() {
   const [uploadingCorpImage, setUploadingCorpImage] = useState(false);
   const [uploadingSigLeft, setUploadingSigLeft] = useState(false);
   const [uploadingSigRight, setUploadingSigRight] = useState(false);
+  const [uploadingOccasionLeft, setUploadingOccasionLeft] = useState(false);
+  const [uploadingOccasionRight, setUploadingOccasionRight] = useState(false);
+  const [uploadingReviewImg, setUploadingReviewImg] = useState(null);
 
   // Trust bar helpers
   const updateTrustItem = (idx, field, value) => {
@@ -1818,6 +1883,49 @@ function BannerTab() {
     } catch (err) {
       toast.error("Image upload failed: " + (err.response?.data?.detail || err.message));
     } finally { setter(false); }
+  };
+
+  // Occasion Gift Tiles image upload
+  const uploadOccasionImage = async (file, side) => {
+    const setter = side === "left" ? setUploadingOccasionLeft : setUploadingOccasionRight;
+    setter(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await api.post("/admin/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      const cardKey = side === "left" ? "card_left" : "card_right";
+      setBanner((prev) => ({
+        ...prev,
+        occasion_gift_tiles: {
+          ...(prev.occasion_gift_tiles || {}),
+          [cardKey]: {
+            ...((prev.occasion_gift_tiles || {})[cardKey] || {}),
+            image: r.data.url,
+          },
+        },
+      }));
+      toast.success("Occasion gift card image uploaded");
+    } catch (err) {
+      toast.error("Image upload failed: " + (err.response?.data?.detail || err.message));
+    } finally { setter(false); }
+  };
+
+  // Customer Reviews product image upload
+  const uploadReviewImage = async (file, idx) => {
+    setUploadingReviewImg(idx);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await api.post("/admin/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      setBanner((prev) => {
+        const reviews = [...(prev.customer_reviews || [])];
+        reviews[idx] = { ...reviews[idx], product_image: r.data.url };
+        return { ...prev, customer_reviews: reviews };
+      });
+      toast.success("Review product image uploaded");
+    } catch (err) {
+      toast.error("Image upload failed: " + (err.response?.data?.detail || err.message));
+    } finally { setUploadingReviewImg(null); }
   };
 
   useEffect(() => {
@@ -2984,6 +3092,561 @@ function BannerTab() {
               </button>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* 11. Promotional Offers Marquee */}
+      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6" data-testid="admin-offers-ticker-section">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">PROMOTIONAL BANNER</p>
+            <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Offers Ticker / Marquee</h2>
+            <p className="text-sm text-[#6E685E] mt-1">
+              Top announcement marquee displaying shipping offers, gift promotions, and discount codes.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setBanner((prev) => ({
+                ...prev,
+                offers_ticker: [
+                  ...(prev.offers_ticker || []),
+                  "NEW PROMOTIONAL OFFER / CODE",
+                ],
+              }));
+            }}
+            className="inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-[#3D4838] transition-colors"
+          >
+            <Plus size={14} /> Add Offer
+          </button>
+        </div>
+
+        <div className="space-y-3 pt-4 border-t border-[#E6E0D6]">
+          {(banner.offers_ticker || [
+            "FREE PAN-INDIA SHIPPING ON ORDERS ABOVE ₹1499",
+            "COMPLIMENTARY EXTRA INK REFILL WITH SELECTED ROLLERBALLS",
+            "FLAT 10% OFF ON ORDERS ABOVE ₹5000 · USE CODE 'ATELIER10'",
+            "BESPOKE LASER & DIAMOND NAME ENGRAVING AVAILABLE",
+          ]).map((msg, idx) => (
+            <div key={idx} className="flex items-center gap-3">
+              <span className="text-xs text-[#6E685E] w-6 text-right font-medium">{idx + 1}.</span>
+              <input
+                type="text"
+                value={msg}
+                onChange={(e) => {
+                  const updated = [...(banner.offers_ticker || [])];
+                  updated[idx] = e.target.value;
+                  setBanner((prev) => ({ ...prev, offers_ticker: updated }));
+                }}
+                placeholder="Promo text..."
+                className="flex-1 bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const current = banner.offers_ticker || [];
+                  if (current.length <= 1) {
+                    toast.error("At least one offer message is required");
+                    return;
+                  }
+                  const updated = current.filter((_, i) => i !== idx);
+                  setBanner((prev) => ({ ...prev, offers_ticker: updated }));
+                }}
+                className="text-red-400 hover:text-red-700 p-2 text-xs uppercase tracking-[0.1em]"
+                title="Remove offer"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 12. Secondary Trust Marquee */}
+      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6" data-testid="admin-trust-marquee-section">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">TRUST &amp; ASSURANCE</p>
+            <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Secondary Trust Marquee</h2>
+            <p className="text-sm text-[#6E685E] mt-1">
+              Infinite scrolling ribbon highlighting authenticity, warranty, and craftsmanship assurances.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setBanner((prev) => ({
+                ...prev,
+                secondary_trust_marquee: [
+                  ...(prev.secondary_trust_marquee || []),
+                  "NEW TRUST ASSURANCE POINT",
+                ],
+              }));
+            }}
+            className="inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-[#3D4838] transition-colors"
+          >
+            <Plus size={14} /> Add Point
+          </button>
+        </div>
+
+        <div className="space-y-3 pt-4 border-t border-[#E6E0D6]">
+          {(banner.secondary_trust_marquee || [
+            "100% GENUINE ATELIER PRODUCTS",
+            "OFFICIAL BRAND AUTHORIZED DISTRIBUTOR",
+            "1-YEAR ATELIER COMPREHENSIVE WARRANTY",
+            "EXPRESS DISPATCH FROM PANCHKULA",
+            "LIFETIME WRITING INSTRUMENT CARE",
+          ]).map((item, idx) => (
+            <div key={idx} className="flex items-center gap-3">
+              <span className="text-xs text-[#6E685E] w-6 text-right font-medium">{idx + 1}.</span>
+              <input
+                type="text"
+                value={item}
+                onChange={(e) => {
+                  const updated = [...(banner.secondary_trust_marquee || [])];
+                  updated[idx] = e.target.value;
+                  setBanner((prev) => ({ ...prev, secondary_trust_marquee: updated }));
+                }}
+                placeholder="Trust badge message..."
+                className="flex-1 bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const current = banner.secondary_trust_marquee || [];
+                  if (current.length <= 1) {
+                    toast.error("At least one trust assurance point is required");
+                    return;
+                  }
+                  const updated = current.filter((_, i) => i !== idx);
+                  setBanner((prev) => ({ ...prev, secondary_trust_marquee: updated }));
+                }}
+                className="text-red-400 hover:text-red-700 p-2 text-xs uppercase tracking-[0.1em]"
+                title="Remove item"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 13. Occasion Gift Tiles (Gifts for Her / Him) */}
+      <div className="bg-white border border-[#E6E0D6] p-8 space-y-8" data-testid="admin-occasion-tiles-section">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">GIFTING SECTION</p>
+          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Occasion Gift Tiles</h2>
+          <p className="text-sm text-[#6E685E] mt-1">
+            2-column editorial cards directing shoppers to curated gifting selections (Gifts for Her &amp; Gifts for Him).
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-[#E6E0D6]">
+          {[
+            { key: "card_left", label: "Left Card (Gifts for Her)", side: "left", uploading: uploadingOccasionLeft, defaultTitle: "Gifts for Her", defaultLink: "/shop?category=Fountain%20Pens" },
+            { key: "card_right", label: "Right Card (Gifts for Him)", side: "right", uploading: uploadingOccasionRight, defaultTitle: "Gifts for Him", defaultLink: "/shop?category=Rollerball%20Pens" },
+          ].map(({ key, label, side, uploading, defaultTitle, defaultLink }) => {
+            const cardData = banner.occasion_gift_tiles?.[key] || {};
+            return (
+              <div key={key} className="bg-[#FAF8F5] border border-[#E6E0D6] p-5 space-y-4">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold">{label}</p>
+
+                {/* Image */}
+                <div>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-2">Card Image</span>
+                  {cardData.image ? (
+                    <div className="relative aspect-[16/10] bg-[#F3EFEA] border border-[#E6E0D6] overflow-hidden rounded-lg">
+                      <img src={fileUrl(cardData.image)} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setBanner((prev) => ({
+                            ...prev,
+                            occasion_gift_tiles: {
+                              ...(prev.occasion_gift_tiles || {}),
+                              [key]: { ...((prev.occasion_gift_tiles || {})[key] || {}), image: "" },
+                            },
+                          }))
+                        }
+                        className="absolute top-2 right-2 bg-[#1C1815]/80 text-white w-7 h-7 flex items-center justify-center hover:bg-[#1C1815] rounded-full"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="aspect-[16/10] bg-[#F3EFEA] border border-dashed border-[#E6E0D6] flex items-center justify-center text-[#6E685E]/50 rounded-lg">
+                      <ImageIcon size={28} />
+                    </div>
+                  )}
+                  <div className="mt-2 flex items-center gap-2">
+                    <label className="bg-[#1C1815] text-[#FAF8F5] px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:bg-[#3D4838] transition-colors">
+                      {uploading ? "Uploading…" : "Upload Image"}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadOccasionImage(e.target.files[0], side)} />
+                    </label>
+                    <span className="text-[10px] text-[#6E685E]">or</span>
+                    <input
+                      type="text"
+                      value={cardData.image || ""}
+                      onChange={(e) =>
+                        setBanner((prev) => ({
+                          ...prev,
+                          occasion_gift_tiles: {
+                            ...(prev.occasion_gift_tiles || {}),
+                            [key]: { ...((prev.occasion_gift_tiles || {})[key] || {}), image: e.target.value },
+                          },
+                        }))
+                      }
+                      placeholder="Paste image URL…"
+                      className="flex-1 bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                    />
+                  </div>
+                </div>
+
+                {/* Title */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Title</span>
+                  <input
+                    type="text"
+                    value={cardData.title || ""}
+                    onChange={(e) =>
+                      setBanner((prev) => ({
+                        ...prev,
+                        occasion_gift_tiles: {
+                          ...(prev.occasion_gift_tiles || {}),
+                          [key]: { ...((prev.occasion_gift_tiles || {})[key] || {}), title: e.target.value },
+                        },
+                      }))
+                    }
+                    placeholder={defaultTitle}
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+
+                {/* Subtitle */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Subtitle</span>
+                  <textarea
+                    rows={2}
+                    value={cardData.subtitle || ""}
+                    onChange={(e) =>
+                      setBanner((prev) => ({
+                        ...prev,
+                        occasion_gift_tiles: {
+                          ...(prev.occasion_gift_tiles || {}),
+                          [key]: { ...((prev.occasion_gift_tiles || {})[key] || {}), subtitle: e.target.value },
+                        },
+                      }))
+                    }
+                    placeholder="Short description..."
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838] resize-y"
+                  />
+                </label>
+
+                {/* Link */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Link</span>
+                  <input
+                    type="text"
+                    value={cardData.link || ""}
+                    onChange={(e) =>
+                      setBanner((prev) => ({
+                        ...prev,
+                        occasion_gift_tiles: {
+                          ...(prev.occasion_gift_tiles || {}),
+                          [key]: { ...((prev.occasion_gift_tiles || {})[key] || {}), link: e.target.value },
+                        },
+                      }))
+                    }
+                    placeholder={defaultLink}
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 14. Customer Testimonials & Reviews */}
+      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6" data-testid="admin-customer-reviews-section">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SOCIAL PROOF</p>
+            <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Customer Reviews &amp; Testimonials</h2>
+            <p className="text-sm text-[#6E685E] mt-1">
+              Add and edit authentic buyer testimonials featured on the homepage carousel.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setBanner((prev) => ({
+                ...prev,
+                customer_reviews: [
+                  ...(prev.customer_reviews || []),
+                  {
+                    name: "New Reviewer",
+                    city: "City Name",
+                    rating: 5,
+                    quote: "Exceptional writing experience and swift dispatch. Highly recommended.",
+                    product_name: "Featured Pen Edition",
+                    product_image: "",
+                  },
+                ],
+              }));
+            }}
+            className="inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-[#3D4838] transition-colors"
+          >
+            <Plus size={14} /> Add Review
+          </button>
+        </div>
+
+        <div className="space-y-6 pt-4 border-t border-[#E6E0D6]">
+          {(banner.customer_reviews || []).map((rev, idx) => (
+            <div key={idx} className="bg-[#FAF8F5] border border-[#E6E0D6] p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-serif text-[#1C1815] font-semibold">Review #{idx + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = (banner.customer_reviews || []).filter((_, i) => i !== idx);
+                    setBanner((prev) => ({ ...prev, customer_reviews: updated }));
+                  }}
+                  className="text-red-400 hover:text-red-700 text-xs uppercase tracking-[0.1em] flex items-center gap-1"
+                >
+                  <Trash2 size={13} /> Remove
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Reviewer Name */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Reviewer Name</span>
+                  <input
+                    type="text"
+                    value={rev.name || ""}
+                    onChange={(e) => {
+                      const updated = [...(banner.customer_reviews || [])];
+                      updated[idx] = { ...updated[idx], name: e.target.value };
+                      setBanner((prev) => ({ ...prev, customer_reviews: updated }));
+                    }}
+                    placeholder="e.g. Vikramaditya S."
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+
+                {/* City */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">City / Location</span>
+                  <input
+                    type="text"
+                    value={rev.city || ""}
+                    onChange={(e) => {
+                      const updated = [...(banner.customer_reviews || [])];
+                      updated[idx] = { ...updated[idx], city: e.target.value };
+                      setBanner((prev) => ({ ...prev, customer_reviews: updated }));
+                    }}
+                    placeholder="e.g. New Delhi"
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+
+                {/* Rating (1-5) */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Rating (Stars)</span>
+                  <select
+                    value={rev.rating || 5}
+                    onChange={(e) => {
+                      const updated = [...(banner.customer_reviews || [])];
+                      updated[idx] = { ...updated[idx], rating: parseInt(e.target.value, 10) || 5 };
+                      setBanner((prev) => ({ ...prev, customer_reviews: updated }));
+                    }}
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  >
+                    <option value={5}>★★★★★ (5 Stars)</option>
+                    <option value={4}>★★★★☆ (4 Stars)</option>
+                    <option value={3}>★★★☆☆ (3 Stars)</option>
+                  </select>
+                </label>
+              </div>
+
+              {/* Quote */}
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Testimonial Quote</span>
+                <textarea
+                  rows={2}
+                  value={rev.quote || ""}
+                  onChange={(e) => {
+                    const updated = [...(banner.customer_reviews || [])];
+                    updated[idx] = { ...updated[idx], quote: e.target.value };
+                    setBanner((prev) => ({ ...prev, customer_reviews: updated }));
+                  }}
+                  placeholder="Review comment..."
+                  className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838] resize-y"
+                />
+              </label>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                {/* Product Name */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Associated Product Name</span>
+                  <input
+                    type="text"
+                    value={rev.product_name || ""}
+                    onChange={(e) => {
+                      const updated = [...(banner.customer_reviews || [])];
+                      updated[idx] = { ...updated[idx], product_name: e.target.value };
+                      setBanner((prev) => ({ ...prev, customer_reviews: updated }));
+                    }}
+                    placeholder="e.g. 1200 Golden Dragon Rollerball"
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+
+                {/* Product Image */}
+                <div>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-1">Product Thumbnail</span>
+                  <div className="flex items-center gap-2">
+                    {rev.product_image && (
+                      <img src={fileUrl(rev.product_image)} alt="" className="w-9 h-9 object-cover rounded border border-[#E6E0D6]" />
+                    )}
+                    <label className="bg-[#1C1815] text-[#FAF8F5] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:bg-[#3D4838] transition-colors shrink-0">
+                      {uploadingReviewImg === idx ? "Uploading…" : "Upload"}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadReviewImage(e.target.files[0], idx)} />
+                    </label>
+                    <input
+                      type="text"
+                      value={rev.product_image || ""}
+                      onChange={(e) => {
+                        const updated = [...(banner.customer_reviews || [])];
+                        updated[idx] = { ...updated[idx], product_image: e.target.value };
+                        setBanner((prev) => ({ ...prev, customer_reviews: updated }));
+                      }}
+                      placeholder="Image URL..."
+                      className="flex-1 bg-white border border-[#E6E0D6] px-2 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 15. Store Location & Atelier Information */}
+      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6" data-testid="admin-store-info-section">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">PHYSICAL ATELIER</p>
+          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Store Location &amp; Information</h2>
+          <p className="text-sm text-[#6E685E] mt-1">
+            Studio address, contact details, opening hours, and embedded Google Map for the physical boutique.
+          </p>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t border-[#E6E0D6]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Atelier Title</span>
+              <input
+                type="text"
+                value={banner.store_info?.title || ""}
+                onChange={(e) =>
+                  setBanner((prev) => ({
+                    ...prev,
+                    store_info: { ...(prev.store_info || {}), title: e.target.value },
+                  }))
+                }
+                placeholder="Visit Our Panchkula Atelier"
+                className="mt-1 w-full bg-[#FAF8F5] border border-[#E6E0D6] px-3 py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Phone Number</span>
+              <input
+                type="text"
+                value={banner.store_info?.phone || ""}
+                onChange={(e) =>
+                  setBanner((prev) => ({
+                    ...prev,
+                    store_info: { ...(prev.store_info || {}), phone: e.target.value },
+                  }))
+                }
+                placeholder="+91 93519 96272"
+                className="mt-1 w-full bg-[#FAF8F5] border border-[#E6E0D6] px-3 py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Email Address</span>
+              <input
+                type="email"
+                value={banner.store_info?.email || ""}
+                onChange={(e) =>
+                  setBanner((prev) => ({
+                    ...prev,
+                    store_info: { ...(prev.store_info || {}), email: e.target.value },
+                  }))
+                }
+                placeholder="thewlpens@gmail.com"
+                className="mt-1 w-full bg-[#FAF8F5] border border-[#E6E0D6] px-3 py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Opening Hours</span>
+              <input
+                type="text"
+                value={banner.store_info?.hours || ""}
+                onChange={(e) =>
+                  setBanner((prev) => ({
+                    ...prev,
+                    store_info: { ...(prev.store_info || {}), hours: e.target.value },
+                  }))
+                }
+                placeholder="Monday – Saturday: 10:30 AM – 7:30 PM"
+                className="mt-1 w-full bg-[#FAF8F5] border border-[#E6E0D6] px-3 py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+          </div>
+
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Studio Physical Address</span>
+            <input
+              type="text"
+              value={banner.store_info?.address || ""}
+              onChange={(e) =>
+                setBanner((prev) => ({
+                  ...prev,
+                  store_info: { ...(prev.store_info || {}), address: e.target.value },
+                }))
+              }
+              placeholder="SCO 42, Sector 11, Panchkula, Haryana 134109"
+              className="mt-1 w-full bg-[#FAF8F5] border border-[#E6E0D6] px-3 py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Google Maps Embed URL</span>
+            <input
+              type="text"
+              value={banner.store_info?.map_embed_url || ""}
+              onChange={(e) =>
+                setBanner((prev) => ({
+                  ...prev,
+                  store_info: { ...(prev.store_info || {}), map_embed_url: e.target.value },
+                }))
+              }
+              placeholder="https://www.google.com/maps/embed?pb=..."
+              className="mt-1 w-full bg-[#FAF8F5] border border-[#E6E0D6] px-3 py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+            />
+            <span className="text-[10px] text-[#6E685E] mt-1 block">
+              Tip: In Google Maps, click Share → Embed a map, then copy the URL inside the src attribute.
+            </span>
+          </label>
         </div>
       </div>
 

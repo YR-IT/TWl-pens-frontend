@@ -5,10 +5,12 @@ import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth";
 import { CartProvider } from "@/lib/cart";
 import { WishlistProvider } from "@/lib/wishlist";
+import { CompareProvider } from "@/lib/compare";
 import ScrollToTop from "@/components/ScrollToTop";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
+import CompareDrawer from "@/components/CompareDrawer";
 import Splash from "@/components/Splash";
 import Home from "@/pages/Home";
 import Catalog from "@/pages/Catalog";
@@ -84,21 +86,24 @@ export default function App() {
     <AuthProvider>
       <WishlistProvider>
         <CartProvider>
-          <BrowserRouter>
-            <ScrollToTop/>
-            <Splash/>
-            <div className="min-h-screen flex flex-col bg-[#FAF8F5] text-[#1C1815] antialiased">
-              <Header/>
-              <main className="flex-1">
-                <AnimatedRoutes/>
-              </main>
-              <Footer/>
-              <CartDrawer/>
-              <Toaster position="bottom-right" theme="light" toastOptions={{
-                style: { background: "#1C1815", color: "#FAF8F5", border: "1px solid #3D4838", borderRadius: 0 }
-              }}/>
-            </div>
-          </BrowserRouter>
+          <CompareProvider>
+            <BrowserRouter>
+              <ScrollToTop/>
+              <Splash/>
+              <div className="min-h-screen flex flex-col bg-[#FAF8F5] text-[#1C1815] antialiased">
+                <Header/>
+                <main className="flex-1">
+                  <AnimatedRoutes/>
+                </main>
+                <Footer/>
+                <CartDrawer/>
+                <CompareDrawer/>
+                <Toaster position="bottom-right" theme="light" toastOptions={{
+                  style: { background: "#1C1815", color: "#FAF8F5", border: "1px solid #3D4838", borderRadius: 0 }
+                }}/>
+              </div>
+            </BrowserRouter>
+          </CompareProvider>
         </CartProvider>
       </WishlistProvider>
     </AuthProvider>

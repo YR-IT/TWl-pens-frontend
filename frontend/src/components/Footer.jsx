@@ -1,5 +1,5 @@
 import { SITE } from "../lib/site";
-import { MapPin, Mail, Phone, MessageCircle, Instagram, Youtube, Shield, Truck, RefreshCw, Award, ArrowUpRight } from "lucide-react";
+import { MessageCircle, Instagram, Youtube, Shield, Truck, RefreshCw, Award } from "lucide-react";
 import { Link } from "react-router-dom";
 import logo from "../logo.png";
 
@@ -16,9 +16,20 @@ const SOCIAL = [
   { icon: MessageCircle, href: "https://wa.me/919351996272?text=Hello%20The%20WL%20Pens%20Studio", label: "WhatsApp" },
 ];
 
+const PAYMENT_METHODS = [
+  "UPI",
+  "Google Pay",
+  "Paytm",
+  "Visa",
+  "Mastercard",
+  "RuPay",
+  "NetBanking",
+];
+
 export default function Footer() {
+
   return (
-    <footer id="contact" className="mt-12 sm:mt-16 border-t border-[#E6E0D6] bg-[#F3EFEA]">
+    <footer id="contact" className="mt-16 sm:mt-24 border-t border-[#E6E0D6] bg-[#F3EFEA]" data-testid="site-footer">
       {/* Sleek Trust & Quality Strip */}
       <div className="border-b border-[#E6E0D6] bg-[#FAF8F5] py-4 px-4 sm:px-6 lg:px-12">
         <div className="max-w-[1600px] mx-auto grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
@@ -33,9 +44,9 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Main Footer Navigation & Studio Info */}
-      <div className="max-w-[1600px] mx-auto px-5 sm:px-8 lg:px-12 py-10 sm:py-14">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10">
+      {/* Main Footer Navigation, Newsletter & Studio Info */}
+      <div className="max-w-[1600px] mx-auto px-5 sm:px-8 lg:px-12 py-12 sm:py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10">
           
           {/* Col 1: Brand Atelier (lg: 4 cols) */}
           <div className="lg:col-span-4 space-y-4">
@@ -74,6 +85,16 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/shop?category=Rollerball%20Pens" className="hover:text-[#1C1815] transition-colors">
+                  Rollerball Pens
+                </Link>
+              </li>
+              <li>
+                <Link to="/shop?category=Ballpoint%20Pens" className="hover:text-[#1C1815] transition-colors">
+                  Ballpoint Pens
+                </Link>
+              </li>
+              <li>
                 <Link to="/new-arrivals" className="hover:text-[#1C1815] transition-colors">
                   New Arrivals
                 </Link>
@@ -88,77 +109,68 @@ export default function Footer() {
                   Archival Inks
                 </Link>
               </li>
-              <li>
-                <Link to="/shop" className="hover:text-[#1C1815] transition-colors">
-                  All Collections
-                </Link>
-              </li>
             </ul>
           </div>
 
-          {/* Col 3: Atelier & Services (lg: 3 cols) */}
-          <div className="lg:col-span-3 space-y-3">
-            <h4 className="font-serif text-base text-[#1C1815] font-medium">Atelier &amp; Services</h4>
+          {/* Col 3: Atelier & Policies (lg: 2 cols) */}
+          <div className="lg:col-span-2 space-y-3">
+            <h4 className="font-serif text-base text-[#1C1815] font-medium">Customer Care</h4>
             <ul className="space-y-2 text-xs sm:text-sm text-[#6E685E]">
               <li>
-                <Link to="/shop" className="hover:text-[#1C1815] transition-colors">
-                  Bespoke Studio Engraving
+                <Link to="/contact" className="hover:text-[#1C1815] transition-colors">
+                  1-Year Warranty &amp; Care
                 </Link>
               </li>
               <li>
                 <Link to="/contact" className="hover:text-[#1C1815] transition-colors">
-                  Corporate &amp; Wedding Gifting
+                  Shipping &amp; Delivery
                 </Link>
               </li>
               <li>
                 <Link to="/contact" className="hover:text-[#1C1815] transition-colors">
-                  Contact Atelier
+                  Returns &amp; Refunds
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="hover:text-[#1C1815] transition-colors">
+                  Corporate Inquiries
                 </Link>
               </li>
               <li>
                 <Link to="/account" className="hover:text-[#1C1815] transition-colors">
-                  Order Tracking &amp; Account
+                  Order Tracking
                 </Link>
-              </li>
-              <li>
-                <a
-                  href="https://wa.me/919351996272?text=Hello%20The%20WL%20Pens%20Studio"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[#25D366] hover:text-[#1EBE5B] font-medium transition-colors"
-                >
-                  WhatsApp Concierge <ArrowUpRight size={13} />
-                </a>
               </li>
             </ul>
           </div>
 
-          {/* Col 4: Studio Location & Contact (lg: 3 cols) */}
-          <div className="lg:col-span-3 space-y-3">
+          {/* Col 4: Studio Concierge & Payments (lg: 4 cols) */}
+          <div className="lg:col-span-4 space-y-4">
             <h4 className="font-serif text-base text-[#1C1815] font-medium">Panchkula Atelier</h4>
-            <div className="text-xs sm:text-sm text-[#6E685E] space-y-2 leading-relaxed">
-              <p className="flex items-start gap-2">
-                <MapPin size={15} className="text-[#B8860B] shrink-0 mt-0.5" />
-                <span>
-                  Chandi Mandir, Panchkula<br />
-                  Haryana — 134107, India
-                </span>
-              </p>
-              <p className="flex items-center gap-2">
-                <Phone size={15} className="text-[#B8860B] shrink-0" />
-                <a href="tel:+919351996272" className="text-[#1C1815] hover:text-[#B8860B] font-medium transition-colors">
-                  +91 93519 96272
-                </a>
-              </p>
-              <p className="flex items-center gap-2">
-                <Mail size={15} className="text-[#B8860B] shrink-0" />
-                <a href="mailto:hello@wlpens.in" className="hover:text-[#1C1815] transition-colors">
-                  hello@wlpens.in
-                </a>
-              </p>
-              <p className="text-[11px] text-[#6E685E] pt-1">
-                Mon – Sat: 10:00 AM – 7:00 PM IST
-              </p>
+            <p className="text-xs text-[#6E685E] leading-relaxed font-light">
+              Visit our boutique studio or speak directly with our nibsmith for bespoke engraving, bulk gifting, and nib tuning consultations.
+            </p>
+
+            <div className="space-y-1.5 text-xs text-[#6E685E]">
+              <p><strong className="text-[#1C1815] font-medium">Hours:</strong> Monday – Saturday: 10:30 AM – 7:30 PM</p>
+              <p><strong className="text-[#1C1815] font-medium">Concierge:</strong> +91 93519 96272</p>
+              <p><strong className="text-[#1C1815] font-medium">Email:</strong> thewlpens@gmail.com</p>
+            </div>
+
+            <div className="pt-2">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-1.5">
+                Accepted Payment Methods
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {PAYMENT_METHODS.map((method) => (
+                  <span
+                    key={method}
+                    className="px-2 py-0.5 bg-white border border-[#E6E0D6] text-[9px] uppercase tracking-[0.1em] text-[#1C1815] font-medium rounded-xs"
+                  >
+                    {method}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -168,9 +180,13 @@ export default function Footer() {
       {/* Copyright Bar & Developer Credit */}
       <div className="border-t border-[#E6E0D6] bg-[#FAF8F5] py-5 px-5 sm:px-8 lg:px-12">
         <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#6E685E] text-center sm:text-left">
-          <span className="tracking-wide">
-            © {new Date().getFullYear()} <strong className="font-medium text-[#1C1815]">{SITE.brand}</strong>. All rights reserved.
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="tracking-wide">
+              © 2020–{new Date().getFullYear()} <strong className="font-medium text-[#1C1815]">{SITE.brand}</strong>. All rights reserved.
+            </span>
+            <span className="hidden sm:inline text-gray-300">|</span>
+            <span className="text-[11px] text-[#6E685E]">🇮🇳 INR (India)</span>
+          </div>
           <span className="tracking-normal">
             Designed and Developed by{" "}
             <a

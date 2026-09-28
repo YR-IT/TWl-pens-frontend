@@ -7,16 +7,25 @@ import { useCategories } from "../lib/categories";
 import { SITE } from "../lib/site";
 import ProductCard from "../components/ProductCard";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../components/ui/carousel";
+
+// ── Section Components ──────────────────────────────────────────────────────
+import LegacyTrustStrip from "../components/LegacyTrustStrip";
+import OffersTicker from "../components/OffersTicker";
 import TrustBar from "../components/TrustBar";
-import BulkAndCorporateGifts from "../components/BulkAndCorporateGifts";
+import CategoryTilesGrid from "../components/CategoryTilesGrid";
+import SignatureCollections from "../components/SignatureCollections";
+import ProductCategoryRail from "../components/ProductCategoryRail";
+import SecondaryTrustMarquee from "../components/SecondaryTrustMarquee";
+import OccasionGiftTiles from "../components/OccasionGiftTiles";
 import MinimalEngravingSection from "../components/MinimalEngravingSection";
 import BrandMarqueeSection from "../components/BrandMarqueeSection";
-import SignatureCollections from "../components/SignatureCollections";
 
+import CustomerReviewsCarousel from "../components/CustomerReviewsCarousel";
+import BulkAndCorporateGifts from "../components/BulkAndCorporateGifts";
+import StoreLocationMap from "../components/StoreLocationMap";
+
+// ── Static fallbacks ─────────────────────────────────────────────────────────
 const HERO_IMG = "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600";
-const EDITORIAL_1 = "https://images.unsplash.com/photo-1617177435596-1c9e30d6d608?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200";
-const EDITORIAL_2 = "https://images.unsplash.com/photo-1473186505569-9c61870c11f9?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200";
-const GIFT_IMG = "/gifting-banner.jpg";
 
 const DEFAULT_SLIDES = [
   {
@@ -81,19 +90,43 @@ const DEFAULT_FEATURED_CATS = [
   },
 ];
 
+const DEFAULT_WRITING_TILES = [
+  {
+    title: "Fountain Pens",
+    tag: "WRITING INSTRUMENTS",
+    description: "Master-crafted nibs, balanced brass barrels, and archival ink flows.",
+    category: "Fountain Pens",
+    image: "https://images.unsplash.com/photo-1583195764036-5d2c7b0b5e3f?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+  },
+  {
+    title: "Rollerball Pens",
+    tag: "WRITING INSTRUMENTS",
+    description: "Smooth, confident strokes with premium liquid ink refills.",
+    category: "Rollerball Pens",
+    image: "https://images.unsplash.com/photo-1585336261026-78b17b6a1f81?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+  },
+  {
+    title: "Inks & Accessories",
+    tag: "WRITING ESSENTIALS",
+    description: "Shimmering sheens, deep pigments, and everything in between.",
+    category: "Inks",
+    image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+  },
+];
+
 export default function Home() {
   const [featured, setFeatured] = useState([]);
   const [newArrivals, setNewArrivals] = useState([]);
-  const [studio, setStudio] = useState([]);
+  const [fountainPens, setFountainPens] = useState([]);
+  const [rollerballs, setRollerballs] = useState([]);
   const [banner, setBanner] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const cats = useCategories();
 
   useEffect(() => {
-    api.get("/site/banner")
-      .then((r) => setBanner(r.data))
-      .catch(() => setBanner(null));
+    api.get("/site/banner").then((r) => setBanner(r.data)).catch(() => setBanner(null));
+
     api.get("/products", { params: { best_seller: true, limit: 6 } })
       .then((r) => {
         const list = Array.isArray(r.data) ? r.data : (Array.isArray(r.data?.products) ? r.data.products : []);
@@ -105,18 +138,29 @@ export default function Home() {
         }
       })
       .catch(() => setFeatured([]));
+
     api.get("/products", { params: { new_arrival: true, limit: 8 } })
       .then((r) => {
         const list = Array.isArray(r.data) ? r.data : (Array.isArray(r.data?.products) ? r.data.products : []);
         setNewArrivals(list);
       })
       .catch(() => setNewArrivals([]));
-    api.get("/studio-posts", { params: { limit: 6 } })
-      .then((r) => setStudio(Array.isArray(r.data) ? r.data : (Array.isArray(r.data?.posts) ? r.data.posts : [])))
-      .catch(() => setStudio([]));
+
+    api.get("/products", { params: { category: "Fountain Pens", limit: 8 } })
+      .then((r) => {
+        const list = Array.isArray(r.data) ? r.data : (Array.isArray(r.data?.products) ? r.data.products : []);
+        setFountainPens(list);
+      })
+      .catch(() => setFountainPens([]));
+
+    api.get("/products", { params: { category: "Rollerball Pens", limit: 8 } })
+      .then((r) => {
+        const list = Array.isArray(r.data) ? r.data : (Array.isArray(r.data?.products) ? r.data.products : []);
+        setRollerballs(list);
+      })
+      .catch(() => setRollerballs([]));
   }, []);
 
-  // Compute active slides list
   const slides = (Array.isArray(banner?.slides) && banner.slides.length > 0)
     ? banner.slides
     : (banner?.image
@@ -133,7 +177,6 @@ export default function Home() {
           }]
         : DEFAULT_SLIDES);
 
-  // Auto-play timer (5.5s) with pause-on-hover
   useEffect(() => {
     if (slides.length <= 1 || isPaused) return;
     const interval = setInterval(() => {
@@ -142,37 +185,41 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [slides.length, isPaused]);
 
-  // Keep index within bounds if slides length changes
   const activeSlideIndex = currentSlide % (slides.length || 1);
   const activeSlide = slides[activeSlideIndex] || slides[0] || DEFAULT_SLIDES[0];
-
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
   const safeCats = Array.isArray(cats) ? cats : [];
   const safeFeatured = Array.isArray(featured) ? featured : [];
   const safeNewArrivals = Array.isArray(newArrivals) ? newArrivals : [];
+  const safeFountainPens = Array.isArray(fountainPens) ? fountainPens : [];
+  const safeRollerballs = Array.isArray(rollerballs) ? rollerballs : [];
 
   const categoriesEyebrow = banner?.categories_eyebrow || "01 / CURATED COLLECTIONS";
   const categoriesTitle = banner?.categories_title || "Shop by category.";
   const categoriesSubtitle = banner?.categories_subtitle || "Explore fine pens, rich pigment inks, and handcrafted accessories engineered for effortless writing.";
-
   const bestsellersEyebrow = banner?.bestsellers_eyebrow || "02 / BEST SELLERS";
   const bestsellersTitle = banner?.bestsellers_title || "Hallmark editions.";
   const bestsellersSubtitle = banner?.bestsellers_subtitle || "Our most coveted writing instruments, beloved by connoisseurs.";
 
-  // Featured categories — from backend or fallback
+  const writingTiles = (Array.isArray(banner?.writing_tiles) && banner.writing_tiles.length > 0)
+    ? banner.writing_tiles
+    : DEFAULT_WRITING_TILES;
+
   const featuredCats = (Array.isArray(banner?.featured_cats) && banner.featured_cats.length > 0)
     ? banner.featured_cats
     : DEFAULT_FEATURED_CATS;
 
   return (
     <div className="pt-[108px] sm:pt-[108px]">
-      {/* 1. Hero Moving Carousel Section */}
-      <section 
+
+      {/* S1: HERO MOVING CAROUSEL */}
+      <section
         className="relative w-full h-[60vh] sm:h-[68vh] lg:h-[72vh] min-h-[440px] max-h-[720px] overflow-hidden bg-[#1C1815]"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
+        data-testid="hero-carousel-section"
       >
         <AnimatePresence mode="wait">
           <motion.div
@@ -183,9 +230,9 @@ export default function Home() {
             transition={{ duration: 0.8, ease: "easeInOut" }}
             className="absolute inset-0"
           >
-            <img 
-              src={activeSlide.image ? fileUrl(activeSlide.image) : HERO_IMG} 
-              alt={activeSlide.title || "The WL Pens Atelier"} 
+            <img
+              src={activeSlide.image ? fileUrl(activeSlide.image) : HERO_IMG}
+              alt={activeSlide.title || "The WL Pens Atelier"}
               loading="eager"
               fetchpriority="high"
               decoding="async"
@@ -193,12 +240,10 @@ export default function Home() {
               height={720}
               className="w-full h-full object-cover object-[center_35%] scale-105 transition-transform duration-1000"
             />
-            {/* Cinematic Gradient Overlays */}
             <div className="absolute inset-0 bg-gradient-to-t from-[#1C1815]/80 via-[#1C1815]/40 to-[#1C1815]/20" />
           </motion.div>
         </AnimatePresence>
 
-        {/* Slide Content Layer */}
         <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-4 sm:px-6 z-10">
           <AnimatePresence mode="wait">
             <motion.div
@@ -228,6 +273,7 @@ export default function Home() {
                   <Link
                     to={activeSlide.cta_link || "/shop"}
                     className="bg-[#FAF8F5] text-[#1C1815] px-8 sm:px-10 py-3.5 rounded-full uppercase tracking-widest text-xs font-semibold hover:bg-[#E6E0D6] transition-all shadow-lg hover:shadow-xl hover:scale-105 duration-200"
+                    data-testid="hero-primary-cta"
                   >
                     {activeSlide.cta_text}
                   </Link>
@@ -236,6 +282,7 @@ export default function Home() {
                   <Link
                     to={activeSlide.secondary_cta_link || "/new-arrivals"}
                     className="border border-[#FAF8F5]/80 text-[#FAF8F5] bg-black/20 backdrop-blur-sm px-6 sm:px-8 py-3.5 rounded-full uppercase tracking-widest text-xs font-medium hover:bg-[#FAF8F5] hover:text-[#1C1815] transition-all duration-200"
+                    data-testid="hero-secondary-cta"
                   >
                     {activeSlide.secondary_cta_text}
                   </Link>
@@ -245,13 +292,13 @@ export default function Home() {
           </AnimatePresence>
         </div>
 
-        {/* Carousel Navigation Arrows */}
         {slides.length > 1 && (
           <>
             <button
               type="button"
               onClick={prevSlide}
               aria-label="Previous Slide"
+              data-testid="hero-prev-btn"
               className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/30 hover:bg-black/60 text-white/90 hover:text-white flex items-center justify-center backdrop-blur-sm border border-white/10 transition-all hover:scale-110"
             >
               <ChevronLeft size={22} />
@@ -260,12 +307,11 @@ export default function Home() {
               type="button"
               onClick={nextSlide}
               aria-label="Next Slide"
+              data-testid="hero-next-btn"
               className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/30 hover:bg-black/60 text-white/90 hover:text-white flex items-center justify-center backdrop-blur-sm border border-white/10 transition-all hover:scale-110"
             >
               <ChevronRight size={22} />
             </button>
-
-            {/* Slide Indicator Bars / Dots */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 sm:gap-3 bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
               {slides.map((s, idx) => (
                 <button
@@ -274,9 +320,7 @@ export default function Home() {
                   onClick={() => setCurrentSlide(idx)}
                   aria-label={`Go to slide ${idx + 1}`}
                   className={`h-1.5 transition-all duration-300 rounded-full ${
-                    idx === activeSlideIndex
-                      ? "w-8 bg-[#B8860B]"
-                      : "w-2 bg-white/40 hover:bg-white/70"
+                    idx === activeSlideIndex ? "w-8 bg-[#B8860B]" : "w-2 bg-white/40 hover:bg-white/70"
                   }`}
                 />
               ))}
@@ -285,10 +329,16 @@ export default function Home() {
         )}
       </section>
 
-      {/* 2. USP / Trust Bar Section (Free Shipping, Refill, Genuine, Curated) */}
+      {/* S2: LEGACY TRUST STRIP */}
+      <LegacyTrustStrip />
+
+      {/* S3: OFFERS TICKER */}
+      <OffersTicker offers={banner?.offers_ticker} />
+
+      {/* S4: USP TRUST BAR */}
       <TrustBar items={banner?.trust_bar} />
 
-      {/* Ink-Style Signature Tagline Banner */}
+      {/* S5: INK TAGLINE BANNER */}
       <section className="w-full bg-[#FAF8F5] py-8 sm:py-10 text-center border-b border-[#E6E0D6]/60">
         <div className="max-w-3xl mx-auto px-6">
           <p className="ink-font text-2xl sm:text-4xl text-[#1A2836] leading-relaxed tracking-wide">
@@ -297,8 +347,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Category Cards Section */}
-      <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-16">
+      {/* S6: CATEGORY BROWSING CAROUSEL */}
+      <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-16" data-testid="categories-carousel-section">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#E6E0D6] pb-8 mb-10 gap-4">
           <div>
             <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">{categoriesEyebrow}</p>
@@ -341,8 +391,17 @@ export default function Home() {
         </Carousel>
       </section>
 
-      {/* Best sellers & hallmark instruments */}
-      <section className="max-w-[1600px] mx-auto px-6 lg:px-12">
+      {/* S7: WRITING INSTRUMENTS CATEGORY TILE GRID */}
+      <CategoryTilesGrid
+        eyebrow="WRITING INSTRUMENTS"
+        title="DISCOVER OUR HALLMARK CATEGORIES"
+        subtitle="Engineered for effortless glide, supreme balance, and timeless aesthetic."
+        tiles={writingTiles}
+        showBrowseAll={true}
+      />
+
+      {/* S8: BEST SELLERS GRID */}
+      <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-4" data-testid="bestsellers-section">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#E6E0D6] pb-8 mb-10 gap-4">
           <div>
             <div className="flex items-center gap-3">
@@ -353,7 +412,11 @@ export default function Home() {
             <h2 className="font-serif text-3xl lg:text-5xl text-[#1C1815] mt-2">{bestsellersTitle}</h2>
             <p className="mt-2 text-xs sm:text-sm text-[#6E685E]">{bestsellersSubtitle}</p>
           </div>
-          <Link to="/best-sellers" className="text-xs uppercase tracking-[0.2em] text-[#3D4838] hover:text-[#1C1815] border-b border-[#3D4838] pb-1 self-start sm:self-auto" data-testid="view-all-products">
+          <Link
+            to="/best-sellers"
+            className="text-xs uppercase tracking-[0.2em] text-[#3D4838] hover:text-[#1C1815] border-b border-[#3D4838] pb-1 self-start sm:self-auto"
+            data-testid="view-all-products"
+          >
             View all best sellers
           </Link>
         </div>
@@ -366,21 +429,35 @@ export default function Home() {
         >
           {safeFeatured.map((p) => (
             <motion.div key={p.id} variants={{ hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 0.9, 0.3, 1] } } }}>
-              <ProductCard p={p}/>
+              <ProductCard p={p} />
             </motion.div>
           ))}
         </motion.div>
       </section>
 
-      {/* 4. Replace 03 / Bespoke with Minimal Engraving Section */}
-      <MinimalEngravingSection data={banner?.engraving_section} className="my-16" />
-
-      {/* Signature Collections (2-Column Luxury Cards) */}
+      {/* S9: SIGNATURE COLLECTIONS */}
       <SignatureCollections data={banner?.signature_collections} />
 
-      {/* New Arrivals Carousel Section */}
+      {/* S10: FOUNTAIN PEN CATEGORY RAIL */}
+      {safeFountainPens.length > 0 && (
+        <ProductCategoryRail
+          eyebrow="HALLMARK CATEGORY SPOTLIGHT"
+          title="BEST-SELLING FOUNTAIN PENS"
+          subtitle="Master-crafted nibs, ergonomic brass barrels, and archival ink flows — from everyday workhorses to collector-grade heirlooms."
+          products={safeFountainPens}
+          categoryLink="/shop?category=Fountain%20Pens"
+        />
+      )}
+
+      {/* S11: SECONDARY TRUST MARQUEE */}
+      <SecondaryTrustMarquee items={banner?.secondary_trust_marquee} />
+
+      {/* S12: OCCASION GIFT TILES */}
+      <OccasionGiftTiles data={banner?.occasion_gift_tiles} />
+
+      {/* S13: NEW ARRIVALS CAROUSEL */}
       {safeNewArrivals.length > 0 && (
-        <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-20">
+        <section className="max-w-[1600px] mx-auto px-6 lg:px-12 py-20" data-testid="new-arrivals-section">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#E6E0D6] pb-8 mb-10 gap-4">
             <div>
               <div className="flex items-center gap-3">
@@ -399,26 +476,37 @@ export default function Home() {
             <CarouselContent>
               {safeNewArrivals.map((p) => (
                 <CarouselItem key={p.id} className="basis-full sm:basis-1/2 lg:basis-1/4">
-                  <ProductCard p={p}/>
+                  <ProductCard p={p} />
                 </CarouselItem>
               ))}
             </CarouselContent>
             <div className="flex justify-center gap-4 mt-8">
-              <CarouselPrevious className="static"/>
-              <CarouselNext className="static"/>
+              <CarouselPrevious className="static" />
+              <CarouselNext className="static" />
             </div>
           </Carousel>
         </section>
       )}
 
-      {/* 1. Bulk Orders & Corporate Gifts Section */}
+      {/* S15: ROLLERBALL CATEGORY RAIL */}
+      {safeRollerballs.length > 0 && (
+        <ProductCategoryRail
+          eyebrow="PREMIUM ROLLERBALLS"
+          title="SMOOTH INK ROLLERBALL PENS"
+          subtitle="Confident, fluid strokes with premium liquid ink refills — built for daily elegance."
+          products={safeRollerballs}
+          categoryLink="/shop?category=Rollerball%20Pens"
+        />
+      )}
+
+      {/* S16: BULK & CORPORATE GIFTS */}
       <BulkAndCorporateGifts
         bulkCard={banner?.bulk_orders_card}
         corpCard={banner?.corporate_gifts_card}
       />
 
-      {/* Featured Categories — 3 editorial banners */}
-      <section className="max-w-[1600px] mx-auto px-6 lg:px-12">
+      {/* S17: FEATURED CATEGORIES - 3 editorial banners */}
+      <section className="max-w-[1600px] mx-auto px-6 lg:px-12" data-testid="featured-categories-section">
         <div className="border-b border-[#E6E0D6] pb-8 mb-10">
           <p className="text-[10px] uppercase tracking-[0.3em] text-[#B8860B]">05 / FEATURED CATEGORIES</p>
           <h2 className="font-serif text-3xl lg:text-5xl text-[#1C1815] mt-2">Curated for you.</h2>
@@ -430,6 +518,7 @@ export default function Home() {
               to={`/shop?category=${encodeURIComponent(item.query)}`}
               className="group relative overflow-hidden aspect-[3/4] flex flex-col justify-end p-8 rounded-sm"
               style={{ background: item.bg }}
+              data-testid="featured-cat-card"
             >
               <img
                 src={item.image}
@@ -440,7 +529,7 @@ export default function Home() {
                 <h3 className="font-serif text-3xl leading-tight" style={{ color: item.accent }}>{item.label}</h3>
                 <p className="text-sm mt-2 opacity-70" style={{ color: item.accent }}>{item.sub}</p>
                 <span className="mt-4 inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] font-medium" style={{ color: item.accent }}>
-                  Explore <ArrowRight size={12}/>
+                  Explore <ArrowRight size={12} />
                 </span>
               </div>
             </Link>
@@ -448,40 +537,34 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Gift / Promo Banner */}
-      <section className="relative w-full overflow-hidden my-20 bg-[#1C1815]" style={{ minHeight: "420px" }}>
-        <img 
-          src={GIFT_IMG} 
-          alt="Luxury Gift Giving" 
+      {/* S18: GIFT / PROMO BANNER */}
+      <section className="relative w-full overflow-hidden my-20 bg-[#1C1815]" style={{ minHeight: "420px" }} data-testid="gift-promo-banner">
+        <img
+          src="/gifting-banner.jpg"
+          alt="Luxury Gift Giving"
           loading="lazy"
           decoding="async"
           width={1600}
           height={420}
           className="absolute inset-0 w-full h-full object-cover object-center lg:object-right opacity-90 transition-transform duration-1000 hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#1C1815]/95 via-[#1C1815]/75 to-[#1C1815]/30 sm:to-transparent"/>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1C1815]/95 via-[#1C1815]/75 to-[#1C1815]/30 sm:to-transparent" />
         <div className="relative max-w-[1600px] mx-auto px-6 sm:px-12 lg:px-24 py-16 sm:py-20 flex flex-col justify-center min-h-[420px]">
           <div className="max-w-xl">
             <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-[#B8860B] mb-3 sm:mb-4 bg-[#FAF8F5]/10 backdrop-blur-sm px-3 py-1 rounded-full w-fit">
-              <Gift size={13}/> Bespoke Gifting
+              <Gift size={13} /> Bespoke Gifting
             </span>
             <h2 className="font-serif text-3xl sm:text-5xl lg:text-6xl text-[#FAF8F5] leading-tight">
-              The perfect gift,<br/><em className="text-[#FAF8F5]/90">perfectly engraved.</em>
+              The perfect gift,<br /><em className="text-[#FAF8F5]/90">perfectly engraved.</em>
             </h2>
             <p className="text-[#FAF8F5]/80 text-sm sm:text-base mt-4 leading-relaxed max-w-md font-light">
               Complimentary bespoke studio engraving on every order. Delivered in a hand-stitched cotton pouch with a wax-sealed note.
             </p>
             <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-8">
-              <Link 
-                to="/shop" 
-                className="bg-[#B8860B] text-[#FAF8F5] px-8 py-3.5 rounded-full uppercase text-xs tracking-[0.2em] font-medium hover:bg-[#96700A] transition-all shadow-lg hover:shadow-xl"
-              >
+              <Link to="/shop" className="bg-[#B8860B] text-[#FAF8F5] px-8 py-3.5 rounded-full uppercase text-xs tracking-[0.2em] font-medium hover:bg-[#96700A] transition-all shadow-lg hover:shadow-xl" data-testid="gift-shop-link">
                 Shop Gifts
               </Link>
-              <Link 
-                to="/contact" 
-                className="border border-[#FAF8F5]/60 text-[#FAF8F5] px-8 py-3.5 rounded-full uppercase text-xs tracking-[0.2em] font-medium hover:border-[#FAF8F5] hover:bg-[#FAF8F5]/10 transition-all backdrop-blur-sm"
-              >
+              <Link to="/contact" className="border border-[#FAF8F5]/60 text-[#FAF8F5] px-8 py-3.5 rounded-full uppercase text-xs tracking-[0.2em] font-medium hover:border-[#FAF8F5] hover:bg-[#FAF8F5]/10 transition-all backdrop-blur-sm" data-testid="gift-enquire-link">
                 Enquire
               </Link>
             </div>
@@ -489,11 +572,20 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. Brand Partners Carousel — 06 / EXCLUSIVE PARTNERS (Continuous Marquee) */}
+      {/* S19: BRAND PARTNERS MARQUEE */}
       <BrandMarqueeSection brands={banner?.brands} />
 
-      {/* 6. Founder Story Block with Ink-Style Typography & Signature */}
+      {/* S20: CUSTOMER REVIEWS CAROUSEL */}
+      <CustomerReviewsCarousel reviews={banner?.customer_reviews} />
+
+      {/* S22: STORE LOCATION MAP */}
+      <StoreLocationMap info={banner?.store_info} />
+
+      {/* S23: FOUNDER STORY */}
       <FounderStorySection />
+
+      {/* S24: CRAFTED FOR YOU - BESPOKE ENGRAVING CTA */}
+      <MinimalEngravingSection data={banner?.engraving_section} className="border-t border-[#E6E0D6] bg-white py-16" />
     </div>
   );
 }
@@ -502,25 +594,22 @@ function FounderStorySection() {
   return (
     <section className="border-t border-[#E6E0D6] bg-[#FAF8F5] overflow-hidden" data-testid="founder-story-section">
       <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 min-h-[460px]">
-        {/* Founder Photo Column */}
         <div className="lg:col-span-6 relative aspect-[16/10] lg:aspect-auto min-h-[340px] bg-[#EFE9DF] overflow-hidden">
-          <img 
-            src="/founder-placeholder.jpg" 
-            alt="Manjeet Singh - Founder of The WL Pens" 
+          <img
+            src="/founder-placeholder.jpg"
+            alt="Manjeet Singh - Founder of The WL Pens"
             loading="lazy"
             decoding="async"
             width={600}
             height={460}
             className="w-full h-full object-cover object-center lg:object-top"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#1C1815]/60 via-transparent to-transparent lg:hidden"/>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1C1815]/60 via-transparent to-transparent lg:hidden" />
           <div className="absolute bottom-4 left-6 text-[#FAF8F5] lg:hidden">
             <p className="font-serif text-xl font-medium">Manjeet Singh</p>
             <p className="text-xs text-[#FAF8F5]/80 uppercase tracking-widest">Founder &amp; Nibsmith</p>
           </div>
         </div>
-
-        {/* Story Narrative Column */}
         <div className="lg:col-span-6 p-8 sm:p-12 lg:p-16 flex flex-col justify-center bg-[#FAF8F5]">
           <span className="text-[10px] uppercase tracking-[0.35em] text-[#B8860B] font-semibold mb-3">
             PEOPLE OF THE WL PENS · FOUNDER'S NOTE
@@ -536,12 +625,9 @@ function FounderStorySection() {
               Every writing instrument that leaves our Panchkula studio is hand-inspected, nib-tested, and individually engraved with precision diamond tools to become a personal heirloom.
             </p>
           </div>
-
           <div className="mt-6 pt-5 border-t border-[#E6E0D6] flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="ink-font text-2xl sm:text-3xl text-[#1A2836] leading-none mb-1">
-                — W.L. Signature
-              </p>
+              <p className="ink-font text-2xl sm:text-3xl text-[#1A2836] leading-none mb-1">— W.L. Signature</p>
               <p className="font-serif text-base sm:text-lg text-[#1C1815] font-medium">Manjeet Singh</p>
               <p className="text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-[#B8860B]">Founder &amp; Master Nibsmith</p>
             </div>

@@ -1,207 +1,181 @@
-# WL Pens — Local Setup Guide
+# The WL Pens — Luxury Writing Instruments Storefront
 
-A luxury pen e-commerce store based in Chandi Mandir, Panchkula. Built with FastAPI + MongoDB on the backend, React 19 + Tailwind + shadcn/ui on the frontend. Orders are placed on the site and confirmed over WhatsApp — no card processing on the website.
-
----
-
-## 1. Requirements
-
-| Tool          | Version           | Why                                              |
-| ------------- | ----------------- | ------------------------------------------------ |
-| Python        | 3.10 or newer     | FastAPI backend                                  |
-| Node.js       | 18 LTS or newer   | React frontend                                   |
-| Yarn (Classic)| 1.22+             | Frontend package manager (npm is not supported)  |
-| MongoDB       | 6.x or newer      | Local database                                   |
-
-Optional but recommended: `git`, a modern browser (Chrome/Safari/Firefox).
+A luxury pen atelier & e-commerce platform based in Panchkula, Haryana. Built with **FastAPI + Motor (MongoDB)** on the backend and **React 19 + Tailwind CSS + shadcn/ui** on the frontend. Features a rich, 21+ section homepage architecture inspired by *penstore.in*, live dynamic CMS management for non-technical administrators, custom laser name engraving, variant colors & swatches, and streamlined WhatsApp checkout.
 
 ---
 
-## 2. Clone the code
+## 1. System Architecture & Tech Stack
 
-```bash
-git clone <your-repo-url> wl-pens
-cd wl-pens
-```
-
-Repo layout:
-
-```
-wl-pens/
-├── backend/    # FastAPI app
-└── frontend/   # React app
-```
+- **Backend**: Python 3.10+ / 3.14, FastAPI, Motor (Async MongoDB Driver), PyMongo, Pydantic v2, PyJWT, Passlib (Bcrypt), Supabase Storage for media assets.
+- **Frontend**: React 19, React Router DOM v7, Tailwind CSS, Lucide React, Framer Motion, Embla Carousel, Sonner toast system.
+- **Database**: MongoDB Atlas / Local MongoDB.
+- **Checkout Flow**: Native cart & checkout with direct WhatsApp handoff to the Panchkula studio team (`+91 93519 96272`), generating detailed order breakdown URLs with product names, color selections, bespoke engraving details, and customer address.
 
 ---
 
-## 3. Start MongoDB
+## 2. Homepage Architecture (21+ Sections)
 
-### Option A — Docker (fastest)
-```bash
-docker run -d --name wl-mongo -p 27017:27017 mongo:7
-```
+The homepage replicates and expands upon luxury writing instrument boutique patterns with full dynamic backend connectivity:
 
-### Option B — Native install
-- **macOS**:  `brew install mongodb-community && brew services start mongodb-community`
-- **Ubuntu**: `sudo apt install mongodb && sudo systemctl start mongod`
-- **Windows**: Install MongoDB Community Server, then `net start MongoDB`
-
-Verify it is up:
-```bash
-mongosh --eval "db.runCommand({ ping: 1 })"
-```
+| # | Section Name | Component File | Description & Dynamic CMS Fields |
+|---|---|---|---|
+| 1 | **Hero Moving Carousel** | `Home.jsx` | Multi-slide banner with auto-play, pause on hover, slide indicators, and customizable CTAs. |
+| 2 | **Legacy & Trust Strip** | `LegacyTrustStrip.jsx` | Minimalist heritage badge ("Panchkula Atelier · Since 2020") with live real-time visitor heartbeat counter. |
+| 3 | **Promotional Offers Ticker** | `OffersTicker.jsx` | Infinite marquee with hover-pause showing active promotional discount codes & free shipping perks. |
+| 4 | **4-Column Trust Bar** | `TrustBar.jsx` | Free shipping, complimentary refills, 100% genuine guarantee, and expert curation. |
+| 5 | **Ink Tagline Editorial** | `Home.jsx` | Philosophy banner: *"Fine Pens & Rich Pigments curated for effortless writing."* |
+| 6 | **Category Carousel** | `Home.jsx` | Dynamic category rail fetched live from MongoDB database. |
+| 7 | **Writing Instruments Tiles** | `CategoryTilesGrid.jsx` | 3-column curated grid: Fountain Pens, Rollerball & Ballpoint, Archival Inks. |
+| 8 | **Hallmark Best Sellers Grid** | `Home.jsx` | 3-column hallmark product grid with instant quick-view. |
+| 9 | **Signature Collections** | `SignatureCollections.jsx` | 2-column luxury cards: *Exclusive Collection* & *Premium Collection*. |
+| 10 | **Fountain Pens Product Rail** | `ProductCategoryRail.jsx` | Dedicated category carousel featuring fine fountain pens with quick-add & details. |
+| 11 | **Secondary Authenticity Marquee** | `SecondaryTrustMarquee.jsx` | Infinite marquee highlighting 100% genuine products, official warranty, and express dispatch. |
+| 12 | **Occasion Gift Tiles** | `OccasionGiftTiles.jsx` | 2-column gifting section: *Gifts for Her* (slender/rose gold) and *Gifts for Him* (brass/matte black). |
+| 13 | **New Arrivals Carousel** | `Home.jsx` | Dynamic showcase of recently added writing editions. |
+| 14 | **Rollerball Pens Product Rail** | `ProductCategoryRail.jsx` | Dedicated carousel for smooth rollerballs and daily writers. |
+| 15 | **Corporate & Bulk Inquiries** | `BulkAndCorporateGifts.jsx` | High-volume corporate gifting and retail inquiry cards with email triggers. |
+| 16 | **Editorial Categories** | `Home.jsx` | 3 editorial category highlight cards with custom background styling. |
+| 17 | **Gift & Studio Banner** | `Home.jsx` | Luxury promotional banner for seasonal collections. |
+| 18 | **Brand Heritage Marquee** | `BrandMarqueeSection.jsx` | Authorized distributor partner logo marquee (Pilot, Namiki, Sailor, Lamy, etc.). |
+| 19 | **Assurance of Excellence** | `WarrantyTrustBlock.jsx` | Minimalist, understated 3-pillar craftsmanship assurance grid. |
+| 20 | **Customer Reviews Carousel** | `CustomerReviewsCarousel.jsx` | Auto-moving carousel with pause-on-hover and 8+ authentic Indian pen connoisseurs. |
+| 21 | **Physical Atelier & Map** | `StoreLocationMap.jsx` | Panchkula studio address, operating hours, phone, email, and embedded Google Map. |
+| 22 | **Founder's Story** | `Home.jsx` | Brand story and craftsmanship pledge from the Shivalik foothills. |
+| 23 | **Crafted For You (Custom Engraving)** | `MinimalEngravingSection.jsx` | Laser personalization atelier section placed at the conclusion of the story. |
 
 ---
 
-## 4. Backend — FastAPI
+## 3. Local Development Setup
+
+### Prerequisites
+- Python 3.10+ (or Python 3.14)
+- Node.js 18+ & npm
+- MongoDB Atlas connection string or local MongoDB instance on `mongodb://localhost:27017`
+
+### Step 1: Backend Setup
 
 ```bash
+# From repository root
 cd backend
-python3 -m venv .venv
-source .venv/bin/activate         # Windows: .venv\Scripts\activate
+source ../.venv/bin/activate    # Or: python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+
+# Start backend server on port 8000
+uvicorn server:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Configure `backend/.env`
+Backend API will be accessible at `http://localhost:8000/api/*`.
 
-```env
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=wl_pens
-CORS_ORIGINS=http://localhost:3000
-JWT_SECRET=<generate-with: openssl rand -hex 32>
-JWT_ALGORITHM=HS256
-JWT_EXPIRE_MINUTES=10080
-
-# Seeded admin — change before going public
-ADMIN_EMAIL=admin@wlpens.in
-ADMIN_PASSWORD=Admin@123456
-
-WHATSAPP_NUMBER=+919999999999
-
-# Supabase Storage (product & post image uploads)
-SUPABASE_URL=https://<your-project-id>.supabase.co
-SUPABASE_KEY=<your-supabase-service-role-or-anon-key>
-SUPABASE_BUCKET=wlpens
-APP_NAME=wl-pens
-```
-
-> Create a public bucket in your Supabase project (e.g. `wlpens`) or let the backend create it automatically using a service role key. Without Supabase credentials, the site still runs — only admin image uploads fail.
-
-### Run the API
+### Step 2: Frontend Setup
 
 ```bash
-uvicorn server:app --reload --host 0.0.0.0 --port 8001
+# In a new terminal window
+cd frontend
+npm install
+
+# Start React dev server on port 3000
+npm run dev
 ```
 
-API is now at `http://localhost:8001/api/*`. On first boot it seeds an admin user, 7 categories, and 7 starter products.
+Open **http://localhost:3000** in your browser.
 
-Sanity check:
+---
+
+## 4. Admin Panel & CMS Management
+
+Access the studio admin dashboard at `http://localhost:3000/admin` (or click **Atelier Admin** after logging in at `/login`).
+
+### Default Admin Credentials
+- **Email**: `thewlpens@gmail.com`
+- **Password**: `Thewlpens@2000`
+
+### Admin Management Capabilities
+1. **Homepage Sections (CMS)**:
+   - **Hero Carousel**: Add/remove slides, reorder slides, edit titles, subtitles, CTAs, and upload slide images.
+   - **Promotional Offers Ticker**: Add/remove/edit live announcement strings.
+   - **Secondary Trust Marquee**: Add/remove/edit authenticity assurance points.
+   - **4-Column Trust Bar**: Customize icons, titles, and subtext.
+   - **Signature Collections**: Upload custom luxury card background images and update links.
+   - **Occasion Gift Tiles**: Manage *Gifts for Her* and *Gifts for Him* images, copy, and links.
+   - **Customer Reviews**: Add verified buyer testimonials with star ratings, quotes, city, and product images.
+   - **Physical Store & Atelier**: Update address, phone, email, business hours, and Google Maps embed iframe.
+   - **Contact Form Inquiry Topics**: Add and edit inquiry categories available on the Contact Us page dropdown.
+2. **Product Catalog & Variants**:
+   - Title, brand, category, regular price, discount price, stock count, SKU.
+   - **Color Variants**: Color name, hex code, swatch image, price override, discount price override, stock override, and dedicated multi-image uploads per color.
+   - **Laser Engraving Settings**: Toggle engravable status, custom max length limit, font options, and placement previews.
+3. **Categories**: Create, edit, reorder, and delete categories (renames cascade safely to existing products).
+4. **Orders & Fulfilment**: View all incoming WhatsApp orders, customer addresses, engraving requests, and update shipment tracking status & carrier details.
+
+---
+
+## 5. Running Automated Backend Tests
+
+The test suite covers full catalog search, fuzzy matching, category cascades, wishlist operations, engraving persistence, auth roles, and order creation:
+
 ```bash
-curl http://localhost:8001/api/products | jq length   # → 7
-curl http://localhost:8001/api/site/config
+# Run full backend test suite
+.venv/bin/pytest backend/tests/ -v
+
+# Run specific test modules
+.venv/bin/pytest backend/tests/backend_test.py -v
+.venv/bin/pytest backend/tests/test_iteration3.py -v
+.venv/bin/pytest backend/tests/test_analytics_and_search.py -v
+.venv/bin/pytest backend/tests/test_wishlist.py -v
 ```
+
+All 45+ tests run against the live API endpoints and MongoDB backend.
 
 ---
 
-## 5. Frontend — React
-
-```bash
-cd ../frontend
-yarn install
-```
-
-### Configure `frontend/.env`
-
-```env
-REACT_APP_BACKEND_URL=http://localhost:8001
-WDS_SOCKET_PORT=0
-ENABLE_HEALTH_CHECK=false
-```
-
-### Run the dev server
-
-```bash
-yarn start
-```
-
-Open **http://localhost:3000**. First visit plays the WL Pens splash intro (only on first tab load per session).
-
----
-
-## 6. Signing in as admin
-
-Go to `http://localhost:3000/login` and use the credentials from your `backend/.env`:
-
-- **Email**: `admin@atelier.pens`   (or whatever you set)
-- **Password**: `Admin@123456`   (change this in production)
-
-You'll land on `/admin` with four tabs:
-
-| Tab         | What you can do                                                                    |
-| ----------- | ---------------------------------------------------------------------------------- |
-| Dashboard   | KPIs — revenue, orders, paid, shipped, products, customers                         |
-| Products    | Full CRUD · discount pricing · drag-to-reorder images · engraving toggle           |
-| Categories  | Create / rename / delete (rename cascades to all products)                         |
-| Orders      | Every incoming order · update shipment status + tracking number                    |
-
----
-
-## 7. How the ordering flow works
-
-There is **no card processing on the site**. When a customer clicks "Place order on WhatsApp":
-
-1. Backend saves the order with `payment_status = pending_whatsapp` and decrements stock.
-2. Backend replies with a `wa.me/<WHATSAPP_NUMBER>?text=…` URL containing the entire order (items, engraving, address, total, note).
-3. Frontend opens that URL in a new tab. The customer reviews and sends the message — it lands in your `WHATSAPP_NUMBER` inbox.
-4. You reply with a payment link / UPI QR and confirm shipping. Update the order in `/admin > Orders` as you fulfil it.
-
-Change `WHATSAPP_NUMBER` in `backend/.env` any time — a backend restart is all it needs.
-
----
-
-## 8. Common tasks
-
-| Task                                 | Command                                                                 |
-| ------------------------------------ | ----------------------------------------------------------------------- |
-| Reset the database                   | `mongosh wl_pens --eval "db.dropDatabase()"` then restart backend       |
-| Add a Python dependency              | `pip install <pkg>` then `pip freeze > backend/requirements.txt`        |
-| Add a JS dependency                  | `cd frontend && yarn add <pkg>` (never `npm install`)                   |
-| Run backend tests                    | `cd backend && pytest -q`                                               |
-| Build the frontend for production    | `cd frontend && yarn build` (output → `frontend/build`)                 |
-| Serve the production build           | Any static host — Nginx / Vercel / Netlify / Cloudflare Pages           |
-
----
-
-## 9. Directory reference
+## 6. Directory Structure Reference
 
 ```
-wl-pens/
+TWI-Pens-Frontend/
 ├── backend/
-│   ├── server.py            # single FastAPI app — auth, products, categories, orders, wishlist, admin
-│   ├── requirements.txt
-│   └── .env
+│   ├── server.py                   # FastAPI application & MongoDB endpoints
+│   ├── requirements.txt            # Python dependencies
+│   ├── .env                        # MongoDB URL, JWT, and Supabase credentials
+│   └── tests/                      # Automated test suites
+│       ├── backend_test.py
+│       ├── test_iteration3.py
+│       ├── test_analytics_and_search.py
+│       └── test_wishlist.py
 ├── frontend/
 │   ├── src/
-│   │   ├── App.js
-│   │   ├── components/      # Header, Footer, ProductCard, CartDrawer, SearchModal, Splash…
-│   │   ├── lib/             # api, auth, cart, wishlist, categories, site, format
-│   │   └── pages/           # Home, Catalog, ProductDetail, Checkout, OrderPlaced, Wishlist, Admin…
+│   │   ├── App.js                  # App router & layout container
+│   │   ├── index.css               # Global typography, colors, animations & marquee rules
+│   │   ├── components/             # Reusable UI & Homepage components
+│   │   │   ├── Header.jsx          # Top utility bar + main navigation
+│   │   │   ├── Footer.jsx          # Studio footer & trust assurances
+│   │   │   ├── LegacyTrustStrip.jsx
+│   │   │   ├── OffersTicker.jsx
+│   │   │   ├── TrustBar.jsx
+│   │   │   ├── CategoryTilesGrid.jsx
+│   │   │   ├── SignatureCollections.jsx
+│   │   │   ├── ProductCategoryRail.jsx
+│   │   │   ├── SecondaryTrustMarquee.jsx
+│   │   │   ├── OccasionGiftTiles.jsx
+│   │   │   ├── MinimalEngravingSection.jsx
+│   │   │   ├── BrandMarqueeSection.jsx
+│   │   │   ├── WarrantyTrustBlock.jsx
+│   │   │   ├── CustomerReviewsCarousel.jsx
+│   │   │   ├── BulkAndCorporateGifts.jsx
+│   │   │   ├── StoreLocationMap.jsx
+│   │   │   ├── ProductCard.jsx
+│   │   │   ├── QuickViewModal.jsx
+│   │   │   └── CompareDrawer.jsx
+│   │   ├── lib/                    # API client, auth context, compare context, formatters
+│   │   └── pages/                  # Home, Catalog, ProductDetail, Cart, Checkout, Admin, Contact
 │   ├── package.json
-│   ├── craco.config.js
-│   └── .env
+│   └── .env                        # REACT_APP_BACKEND_URL=http://localhost:8000
 └── README.md
 ```
 
 ---
 
-## 10. Troubleshooting
+## 7. Important Development Notes
 
-- **`ECONNREFUSED 127.0.0.1:27017`** → MongoDB isn't running. Start it (step 3).
-- **CORS errors in the browser** → make sure `CORS_ORIGINS=http://localhost:3000` in `backend/.env` and restart the backend.
-- **Admin image upload → 503** → Supabase credentials (`SUPABASE_URL` / `SUPABASE_KEY`) are not set in `backend/.env`. Add them and restart.
-- **`yarn` says "command not found"** → `corepack enable && corepack prepare yarn@1.22.22 --activate` (Node 18+).
-- **Splash reappears every session** → intentional; it's per-session. Clear `sessionStorage.wl_splash_seen` to test.
-
----
-
-Made in Panchkula for the slow hand.
+- **Production Build Notice**: Use `npm run dev` for local development. Do not run `npm run build` due to a legacy CRA alias path constraint.
+- **Portaling Pattern**: All modals and quick-view dialogs use `createPortal(..., document.body)` to avoid z-index and stacking context clipping.
+- **No Hardcoded Product Data**: All homepage rails, best sellers, categories, and new arrivals fetch live from the backend API.
