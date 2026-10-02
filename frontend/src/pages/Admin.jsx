@@ -1768,38 +1768,148 @@ const DEFAULT_HERO_SLIDES = [
   },
 ];
 
-const PRESET_PAGE_DESTINATIONS = [
-  { label: "🛍️ Shop — All Writing Instruments", value: "/shop" },
-  { label: "✒️ Fountain Pens Collection", value: "/shop?category=Fountain%20Pens" },
-  { label: "🖊️ Rollerball Pens Collection", value: "/shop?category=Rollerball%20Pens" },
-  { label: "💧 Inks & Writing Essentials", value: "/shop?category=Inks" },
-  { label: "✨ New Arrivals", value: "/new-arrivals" },
-  { label: "🏆 Best Sellers", value: "/best-sellers" },
-  { label: "🎁 Bespoke Engraving / Contact", value: "/contact" },
+const STATIC_PAGE_DESTINATIONS = [
+  { label: "🛍️ Shop — All Writing Instruments", value: "/shop", group: "Pages" },
+  { label: "✨ New Arrivals", value: "/new-arrivals", group: "Pages" },
+  { label: "🏆 Best Sellers", value: "/best-sellers", group: "Pages" },
+  { label: "🎁 Bespoke Engraving / Contact", value: "/contact", group: "Pages" },
 ];
 
+// Shared cache so we don't re-fetch for every picker instance
+let _destCategoriesCache = null;
+let _destCategoryListeners = [];
+async function _loadDestCategories() {
+  try {
+    const r = await api.get("/categories");
+    _destCategoriesCache = Array.isArray(r.data) ? r.data : (r.data?.categories ?? []);
+  } catch {
+    _destCategoriesCache = [];
+  }
+  _destCategoryListeners.forEach((l) => l(_destCategoriesCache));
+  return _destCategoriesCache;
+}
+function useDynamicDestinations() {
+  const [cats, setCats] = useState(Array.isArray(_destCategoriesCache) ? _destCategoriesCache : null);
+  useEffect(() => {
+    if (Array.isArray(_destCategoriesCache)) setCats(_destCategoriesCache);
+    else _loadDestCategories();
+    const l = (v) => setCats(Array.isArray(v) ? v : []);
+    _destCategoryListeners.push(l);
+    return () => { _destCategoryListeners = _destCategoryListeners.filter((x) => x !== l); };
+  }, []);
+  const catDestinations = (cats || []).map((c) => ({
+    label: `📁 ${c.name}`,
+    value: `/shop?category=${encodeURIComponent(c.name)}`,
+    group: "Categories",
+  }));
+  return [...STATIC_PAGE_DESTINATIONS, ...catDestinations];
+}
+
 function LinkDestinationPicker({ value, onChange, label }) {
-  // Default to first preset if value isn't in the list
-  const safeValue = PRESET_PAGE_DESTINATIONS.some((p) => p.value === value)
-    ? value
-    : PRESET_PAGE_DESTINATIONS[0].value;
+  const destinations = useDynamicDestinations();
+  const isKnown = destinations.some((p) => p.value === value);
+
+  // Group destinations by group key
+  const groups = destinations.reduce((acc, p) => {
+    (acc[p.group] = acc[p.group] || []).push(p);
+    return acc;
+  }, {});
 
   return (
     <div className="space-y-1.5">
-      <span className="text-[11px] uppercase tracking-[0.15em] text-[#6E685E] font-medium block">
-        {label}
-      </span>
+      {label && (
+        <span className="text-[11px] uppercase tracking-[0.15em] text-[#6E685E] font-medium block">
+          {label}
+        </span>
+      )}
       <select
-        value={safeValue}
+        value={isKnown ? value : ""}
         onChange={(e) => onChange(e.target.value)}
         className="w-full bg-[#FAF8F5] hover:bg-white border border-[#E6E0D6] focus:border-[#B8860B] rounded-lg px-3 py-2 text-sm text-[#1C1815] outline-none font-medium cursor-pointer transition-colors"
       >
-        {PRESET_PAGE_DESTINATIONS.map((p) => (
-          <option key={p.value} value={p.value}>
-            {p.label}
-          </option>
+        {!isKnown && <option value="">— Select destination —</option>}
+        {Object.entries(groups).map(([grpLabel, items]) => (
+          <optgroup key={grpLabel} label={grpLabel}>
+            {items.map((p) => (
+              <option key={p.value} value={p.value}>{p.label}</option>
+            ))}
+          </optgroup>
         ))}
       </select>
+      {value && (
+        <p className="text-[10px] text-[#6E685E] font-mono truncate pt-0.5">→ {value}</p>
+      )}
+    </div>
+  );
+}
+
+// Section 09 — picks a real category by name, dynamically loaded
+function CategoryQueryPicker({ value, onChange }) {
+  const [cats, setCats] = useState(Array.isArray(_destCategoriesCache) ? _destCategoriesCache : null);
+  useEffect(() => {
+    if (Array.isArray(_destCategoriesCache)) setCats(_destCategoriesCache);
+    else _loadDestCategories();
+    const l = (v) => setCats(Array.isArray(v) ? v : []);
+    _destCategoryListeners.push(l);
+    return () => { _destCategoryListeners = _destCategoryListeners.filter((x) => x !== l); };
+  }, []);
+
+  const isKnown = (cats || []).some((c) => c.name === value);
+
+  return (
+    <div className="space-y-1">
+      <select
+        value={isKnown ? value : ""}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-[#FAF8F5] hover:bg-white border border-[#E6E0D6] focus:border-[#B8860B] rounded-lg px-3 py-2 text-sm text-[#1C1815] outline-none font-medium cursor-pointer transition-colors"
+      >
+        {!isKnown && <option value="">— Select category —</option>}
+        {!cats && <option disabled>Loading categories…</option>}
+        {(cats || []).map((c) => (
+          <option key={c.id || c.name} value={c.name}>📁 {c.name}</option>
+        ))}
+      </select>
+      {value && (
+        <p className="text-[10px] text-[#6E685E] font-mono pt-0.5">→ /shop?category={value}</p>
+      )}
+    </div>
+  );
+}
+
+// Section 10 — brand link picker: suggests a brand-specific link + full destination list
+function BrandLinkPicker({ brandName, value, onChange }) {
+  const destinations = useDynamicDestinations();
+  // Prepend a brand-specific option if brandName is set
+  const brandOption = brandName
+    ? { label: `🏷️ /shop?brand=${brandName}`, value: `/shop?brand=${encodeURIComponent(brandName)}`, group: "Brand Page" }
+    : null;
+  const allOptions = brandOption ? [brandOption, ...destinations] : destinations;
+  const isKnown = allOptions.some((p) => p.value === value);
+
+  const groups = allOptions.reduce((acc, p) => {
+    (acc[p.group] = acc[p.group] || []).push(p);
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-1">
+      <select
+        value={isKnown ? value : ""}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-[#FAF8F5] hover:bg-white border border-[#E6E0D6] focus:border-[#B8860B] rounded-lg px-3 py-2 text-sm text-[#1C1815] outline-none font-medium cursor-pointer transition-colors"
+      >
+        {!isKnown && <option value="">— Select link —</option>}
+        {Object.entries(groups).map(([grpLabel, items]) => (
+          <optgroup key={grpLabel} label={grpLabel}>
+            {items.map((p) => (
+              <option key={p.value} value={p.value}>{p.label}</option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+      {value && (
+        <p className="text-[10px] text-[#6E685E] font-mono truncate pt-0.5">→ {value}</p>
+      )}
     </div>
   );
 }
@@ -2853,24 +2963,21 @@ function BannerTab() {
                 </div>
 
                 {/* Card Link */}
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Destination Link</span>
-                  <input
-                    type="text"
-                    value={cardData.link || ""}
-                    onChange={(e) =>
+                <div>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-1">Destination Link</span>
+                  <LinkDestinationPicker
+                    value={cardData.link || "/shop"}
+                    onChange={(v) =>
                       setBanner((prev) => ({
                         ...prev,
                         signature_collections: {
                           ...(prev.signature_collections || {}),
-                          [key]: { ...((prev.signature_collections || {})[key] || {}), link: e.target.value },
+                          [key]: { ...((prev.signature_collections || {})[key] || {}), link: v },
                         },
                       }))
                     }
-                    placeholder="/shop"
-                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
                   />
-                </label>
+                </div>
               </div>
             );
           })}
@@ -3111,16 +3218,13 @@ function BannerTab() {
                     className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm font-serif text-[#1C1815] outline-none focus:border-[#3D4838]"
                   />
                 </label>
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Shop link query (category name)</span>
-                  <input
-                    type="text"
+                <div className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-1">Shop Link Category</span>
+                  <CategoryQueryPicker
                     value={cat.query || ""}
-                    onChange={(e) => updateCat(idx, "query", e.target.value)}
-                    placeholder="e.g. Fountain Pens"
-                    className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+                    onChange={(v) => updateCat(idx, "query", v)}
                   />
-                </label>
+                </div>
               </div>
               <label className="block">
                 <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Subtitle</span>
@@ -3170,20 +3274,18 @@ function BannerTab() {
                     className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-sm font-serif text-[#1C1815] outline-none focus:border-[#3D4838]"
                   />
                 </label>
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Link (optional)</span>
-                  <input
-                    type="text"
+                <div className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-1">Link (optional)</span>
+                  <BrandLinkPicker
+                    brandName={brand.name || ""}
                     value={brand.link || ""}
-                    onChange={(e) => {
+                    onChange={(v) => {
                       const b = [...(banner.brands || [])];
-                      b[idx] = { ...b[idx], link: e.target.value };
+                      b[idx] = { ...b[idx], link: v };
                       setBanner((p) => ({ ...p, brands: b }));
                     }}
-                    placeholder="/shop?brand=Pilot"
-                    className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
                   />
-                </label>
+                </div>
                 <label className="block">
                   <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Logo Image</span>
                   <div className="flex gap-2 mt-1">
