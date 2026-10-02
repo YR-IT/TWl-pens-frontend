@@ -9,14 +9,12 @@ import ProductCard from "../components/ProductCard";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../components/ui/carousel";
 
 // ── Section Components ──────────────────────────────────────────────────────
-import LegacyTrustStrip from "../components/LegacyTrustStrip";
 import OffersTicker from "../components/OffersTicker";
 import TrustBar from "../components/TrustBar";
 import CategoryTilesGrid from "../components/CategoryTilesGrid";
 import SignatureCollections from "../components/SignatureCollections";
 import ProductCategoryRail from "../components/ProductCategoryRail";
 import SecondaryTrustMarquee from "../components/SecondaryTrustMarquee";
-import OccasionGiftTiles from "../components/OccasionGiftTiles";
 import MinimalEngravingSection from "../components/MinimalEngravingSection";
 import BrandMarqueeSection from "../components/BrandMarqueeSection";
 
@@ -25,12 +23,12 @@ import BulkAndCorporateGifts from "../components/BulkAndCorporateGifts";
 import StoreLocationMap from "../components/StoreLocationMap";
 
 // ── Static fallbacks ─────────────────────────────────────────────────────────
-const HERO_IMG = "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600";
+const HERO_IMG = "";
 
 const DEFAULT_SLIDES = [
   {
     id: "slide-1",
-    image: "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+    image: "",
     eyebrow: "PANCHKULA ATELIER · SS/26",
     title: "The Eternal Quill",
     subtitle: "Discover the art of handcrafted writing instruments, engineered for generations of prose.",
@@ -41,7 +39,7 @@ const DEFAULT_SLIDES = [
   },
   {
     id: "slide-2",
-    image: "https://images.unsplash.com/photo-1583195764036-5d2c7b0b5e3f?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+    image: "",
     eyebrow: "HAND-TUNED NIBS & ENGRAVING",
     title: "Bespoke Personalization",
     subtitle: "Complimentary hand-etched initials, custom nib tuning, and cotton presentation pouch with every fine pen.",
@@ -52,7 +50,7 @@ const DEFAULT_SLIDES = [
   },
   {
     id: "slide-3",
-    image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+    image: "",
     eyebrow: "ARCHIVAL PIGMENTS & SHIMMER",
     title: "Rich Inks of the Season",
     subtitle: "From shimmering sheen to waterproof archival formulations, curated from master ink houses worldwide.",
@@ -70,7 +68,7 @@ const DEFAULT_FEATURED_CATS = [
     query: "Fountain Pens",
     bg: "#1C1815",
     accent: "#B8860B",
-    image: "https://images.unsplash.com/photo-1583195764036-5d2c7b0b5e3f?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+    image: "",
   },
   {
     label: "Premium Inks",
@@ -78,7 +76,7 @@ const DEFAULT_FEATURED_CATS = [
     query: "Inks",
     bg: "#3D4838",
     accent: "#FAF8F5",
-    image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+    image: "",
   },
   {
     label: "Accessories",
@@ -86,7 +84,7 @@ const DEFAULT_FEATURED_CATS = [
     query: "Accessories",
     bg: "#DED6CC",
     accent: "#1C1815",
-    image: "https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+    image: "",
   },
 ];
 
@@ -96,21 +94,21 @@ const DEFAULT_WRITING_TILES = [
     tag: "WRITING INSTRUMENTS",
     description: "Master-crafted nibs, balanced brass barrels, and archival ink flows.",
     category: "Fountain Pens",
-    image: "https://images.unsplash.com/photo-1583195764036-5d2c7b0b5e3f?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+    image: "",
   },
   {
     title: "Rollerball Pens",
     tag: "WRITING INSTRUMENTS",
     description: "Smooth, confident strokes with premium liquid ink refills.",
     category: "Rollerball Pens",
-    image: "https://images.unsplash.com/photo-1585336261026-78b17b6a1f81?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+    image: "",
   },
   {
     title: "Inks & Accessories",
     tag: "WRITING ESSENTIALS",
     description: "Shimmering sheens, deep pigments, and everything in between.",
     category: "Inks",
-    image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+    image: "",
   },
 ];
 
@@ -121,7 +119,6 @@ export default function Home() {
   const [rollerballs, setRollerballs] = useState([]);
   const [banner, setBanner] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
   const cats = useCategories();
 
   useEffect(() => {
@@ -178,12 +175,12 @@ export default function Home() {
         : DEFAULT_SLIDES);
 
   useEffect(() => {
-    if (slides.length <= 1 || isPaused) return;
+    if (slides.length <= 1) return;
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5500);
+    }, 4000);
     return () => clearInterval(interval);
-  }, [slides.length, isPaused]);
+  }, [slides.length]);
 
   const activeSlideIndex = currentSlide % (slides.length || 1);
   const activeSlide = slides[activeSlideIndex] || slides[0] || DEFAULT_SLIDES[0];
@@ -216,111 +213,82 @@ export default function Home() {
 
       {/* S1: HERO MOVING CAROUSEL */}
       <section
-        className="relative w-full h-[60vh] sm:h-[68vh] lg:h-[72vh] min-h-[440px] max-h-[720px] overflow-hidden bg-[#1C1815]"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
+        className="relative w-full overflow-hidden bg-[#FAF8F5]"
         data-testid="hero-carousel-section"
       >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeSlide.id || activeSlideIndex}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.8, ease: "easeInOut" }}
-            className="absolute inset-0"
-          >
-            <img
-              src={activeSlide.image ? fileUrl(activeSlide.image) : HERO_IMG}
-              alt={activeSlide.title || "The WL Pens Atelier"}
-              loading="eager"
-              fetchpriority="high"
-              decoding="async"
-              width={1600}
-              height={720}
-              className="w-full h-full object-cover object-[center_35%] scale-105 transition-transform duration-1000"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#1C1815]/80 via-[#1C1815]/40 to-[#1C1815]/20" />
-          </motion.div>
-        </AnimatePresence>
+        <div className="relative w-full h-[45vh] sm:h-[58vh] lg:h-[72vh] min-h-[260px] max-h-[780px] flex items-center justify-center">
+          {slides.map((slide, idx) => {
+            const isCurrent = idx === activeSlideIndex;
+            const targetLink = slide.link || slide.cta_link || "/shop";
+            const imageSrc = slide.image ? fileUrl(slide.image) : HERO_IMG;
 
-        <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-4 sm:px-6 z-10">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`content-${activeSlide.id || activeSlideIndex}`}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.55, ease: "easeOut" }}
-              className="max-w-3xl flex flex-col items-center"
-            >
-              {activeSlide.eyebrow && (
-                <div className="flex items-center gap-2 text-[#B8860B] text-[11px] sm:text-xs uppercase tracking-[0.3em] mb-3 drop-shadow">
-                  <Sparkles size={13} />
-                  <span>{activeSlide.eyebrow}</span>
-                </div>
-              )}
-              <h1 className="font-serif text-3xl sm:text-5xl lg:text-7xl text-[#FAF8F5] leading-tight drop-shadow-md">
-                {activeSlide.title || "The Eternal Quill"}
-              </h1>
-              {activeSlide.subtitle && (
-                <p className="text-[#FAF8F5]/90 text-sm sm:text-base lg:text-lg font-serif italic mt-3 sm:mt-4 max-w-2xl leading-relaxed drop-shadow">
-                  {activeSlide.subtitle}
-                </p>
-              )}
-              <div className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center gap-4">
-                {activeSlide.cta_text && (
-                  <Link
-                    to={activeSlide.cta_link || "/shop"}
-                    className="bg-[#FAF8F5] text-[#1C1815] px-8 sm:px-10 py-3.5 rounded-full uppercase tracking-widest text-xs font-semibold hover:bg-[#E6E0D6] transition-all shadow-lg hover:shadow-xl hover:scale-105 duration-200"
-                    data-testid="hero-primary-cta"
-                  >
-                    {activeSlide.cta_text}
-                  </Link>
-                )}
-                {activeSlide.secondary_cta_text && (
-                  <Link
-                    to={activeSlide.secondary_cta_link || "/new-arrivals"}
-                    className="border border-[#FAF8F5]/80 text-[#FAF8F5] bg-black/20 backdrop-blur-sm px-6 sm:px-8 py-3.5 rounded-full uppercase tracking-widest text-xs font-medium hover:bg-[#FAF8F5] hover:text-[#1C1815] transition-all duration-200"
-                    data-testid="hero-secondary-cta"
-                  >
-                    {activeSlide.secondary_cta_text}
-                  </Link>
-                )}
+            return (
+              <div
+                key={slide.id || idx}
+                className={`absolute inset-0 flex items-center justify-center transition-opacity duration-700 ease-in-out ${
+                  isCurrent ? "opacity-100 z-10 pointer-events-auto" : "opacity-0 z-0 pointer-events-none"
+                }`}
+              >
+                <Link
+                  to={targetLink}
+                  className="w-full h-full flex items-center justify-center cursor-pointer"
+                  aria-label={slide.title || `Go to slide ${idx + 1}`}
+                  data-testid={isCurrent ? "hero-slide-link" : undefined}
+                >
+                  <img
+                    src={imageSrc}
+                    alt={slide.title || "The WL Pens Banner"}
+                    loading={idx === 0 ? "eager" : "lazy"}
+                    decoding="async"
+                    className="w-full h-full object-contain object-center select-none"
+                  />
+                </Link>
               </div>
-            </motion.div>
-          </AnimatePresence>
+            );
+          })}
         </div>
 
         {slides.length > 1 && (
           <>
             <button
               type="button"
-              onClick={prevSlide}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                prevSlide();
+              }}
               aria-label="Previous Slide"
               data-testid="hero-prev-btn"
-              className="absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/30 hover:bg-black/60 text-white/90 hover:text-white flex items-center justify-center backdrop-blur-sm border border-white/10 transition-all hover:scale-110"
+              className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/90 hover:bg-white text-[#1C1815] shadow-lg flex items-center justify-center backdrop-blur-sm border border-[#E6E0D6] transition-all hover:scale-110"
             >
               <ChevronLeft size={22} />
             </button>
             <button
               type="button"
-              onClick={nextSlide}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                nextSlide();
+              }}
               aria-label="Next Slide"
               data-testid="hero-next-btn"
-              className="absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/30 hover:bg-black/60 text-white/90 hover:text-white flex items-center justify-center backdrop-blur-sm border border-white/10 transition-all hover:scale-110"
+              className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/90 hover:bg-white text-[#1C1815] shadow-lg flex items-center justify-center backdrop-blur-sm border border-[#E6E0D6] transition-all hover:scale-110"
             >
               <ChevronRight size={22} />
             </button>
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 sm:gap-3 bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+            <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-[#E6E0D6] shadow-sm">
               {slides.map((s, idx) => (
                 <button
                   key={s.id || idx}
                   type="button"
-                  onClick={() => setCurrentSlide(idx)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setCurrentSlide(idx);
+                  }}
                   aria-label={`Go to slide ${idx + 1}`}
-                  className={`h-1.5 transition-all duration-300 rounded-full ${
-                    idx === activeSlideIndex ? "w-8 bg-[#B8860B]" : "w-2 bg-white/40 hover:bg-white/70"
+                  className={`h-2 transition-all duration-300 rounded-full ${
+                    idx === activeSlideIndex ? "w-8 bg-[#B8860B]" : "w-2 bg-[#1C1815]/30 hover:bg-[#1C1815]/60"
                   }`}
                 />
               ))}
@@ -329,14 +297,11 @@ export default function Home() {
         )}
       </section>
 
-      {/* S2: LEGACY TRUST STRIP */}
-      <LegacyTrustStrip />
-
-      {/* S3: OFFERS TICKER */}
+      {/* S2: OFFERS TICKER */}
       <OffersTicker offers={banner?.offers_ticker} />
 
-      {/* S4: USP TRUST BAR */}
-      <TrustBar items={banner?.trust_bar} />
+      {/* S4: USP TRUST BAR (Hardcoded) */}
+      <TrustBar />
 
       {/* S5: INK TAGLINE BANNER */}
       <section className="w-full bg-[#FAF8F5] py-8 sm:py-10 text-center border-b border-[#E6E0D6]/60">
@@ -364,20 +329,18 @@ export default function Home() {
             {safeCats.map(cat => (
               <CarouselItem key={cat.id} className="basis-1/2 md:basis-1/3 lg:basis-1/5">
                 <Link to={`/shop?category=${encodeURIComponent(cat.name)}`} className="group block">
-                  <div className="bg-[#FFFFFF] border border-[#E6E0D6] overflow-hidden hover:border-[#B8860B] transition-all duration-300 shadow-sm hover:shadow-md rounded-sm">
-                    <div className="aspect-square overflow-hidden bg-[#F3EFEA]">
+                  <div className="bg-[#FFFFFF] border border-[#E6E0D6] overflow-hidden hover:border-[#B8860B] transition-all duration-300 shadow-sm hover:shadow-md rounded-2xl flex flex-col">
+                    <div className="aspect-[3/4] sm:aspect-[4/5] overflow-hidden bg-[#F3EFEA]">
                       <img
                         src={fileUrl(cat.image)}
                         alt={cat.name}
                         loading="lazy"
                         decoding="async"
-                        width={300}
-                        height={300}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     </div>
-                    <div className="p-5 text-center">
-                      <h3 className="font-serif text-lg text-[#1C1815]">{cat.name}</h3>
+                    <div className="p-4 sm:p-5 text-center bg-white border-t border-[#E6E0D6]/40 flex-1 flex flex-col justify-center">
+                      <h3 className="font-serif text-base sm:text-lg text-[#1C1815] group-hover:text-[#B8860B] transition-colors font-medium">{cat.name}</h3>
                     </div>
                   </div>
                 </Link>
@@ -393,9 +356,9 @@ export default function Home() {
 
       {/* S7: WRITING INSTRUMENTS CATEGORY TILE GRID */}
       <CategoryTilesGrid
-        eyebrow="WRITING INSTRUMENTS"
-        title="DISCOVER OUR HALLMARK CATEGORIES"
-        subtitle="Engineered for effortless glide, supreme balance, and timeless aesthetic."
+        eyebrow={banner?.writing_tiles_eyebrow || "WRITING INSTRUMENTS"}
+        title={banner?.writing_tiles_title || "DISCOVER OUR HALLMARK CATEGORIES"}
+        subtitle={banner?.writing_tiles_subtitle || "Engineered for effortless glide, supreme balance, and timeless aesthetic."}
         tiles={writingTiles}
         showBrowseAll={true}
       />
@@ -451,9 +414,6 @@ export default function Home() {
 
       {/* S11: SECONDARY TRUST MARQUEE */}
       <SecondaryTrustMarquee items={banner?.secondary_trust_marquee} />
-
-      {/* S12: OCCASION GIFT TILES */}
-      <OccasionGiftTiles data={banner?.occasion_gift_tiles} />
 
       {/* S13: NEW ARRIVALS CAROUSEL */}
       {safeNewArrivals.length > 0 && (

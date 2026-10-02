@@ -367,9 +367,15 @@ class BannerIn(BaseModel):
 
     # Writing Tiles (3 tiles grid)
     writing_tiles: Optional[List[dict]] = None
+    writing_tiles_eyebrow: Optional[str] = None
+    writing_tiles_title: Optional[str] = None
+    writing_tiles_subtitle: Optional[str] = None
 
     # Contact Form Inquiry Types
     contact_inquiry_types: Optional[List[str]] = None
+
+    # Custom Name Engraving Section
+    engraving_section: Optional[dict] = None
 
 
 class StudioPostIn(BaseModel):

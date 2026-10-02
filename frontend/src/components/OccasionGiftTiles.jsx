@@ -6,13 +6,13 @@ const DEFAULT_OCCASION = {
   card_left: {
     title: "Gifts for Her",
     subtitle: "Slender profiles, refined rose gold accents, and delicate lacquer finishes.",
-    image: "https://images.unsplash.com/photo-1585336261026-78b17b6a1f81?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200",
+    image: "",
     link: "/shop?category=Fountain%20Pens",
   },
   card_right: {
     title: "Gifts for Him",
     subtitle: "Substantial brass weight, knurled grip, and matte black & gold hardware.",
-    image: "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200",
+    image: "",
     link: "/shop?category=Rollerball%20Pens",
   },
 };

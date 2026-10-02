@@ -5,14 +5,14 @@ const DEFAULT_BULK = {
   title: "Bulk Orders",
   description: "Looking to stock up? Exclusive discounts on bulk purchases — perfect for retailers, offices, or events.",
   email: "bulkorders@wlpens.com",
-  image: "https://images.unsplash.com/photo-1583195764036-5d2c7b0b5e3f?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+  image: "",
 };
 
 const DEFAULT_CORP = {
   title: "Corporate Gifts",
   description: "Want memorable business gifts? We personalize select pens — perfect for clients, employees, and events.",
   email: "corporate@wlpens.com",
-  image: "https://images.unsplash.com/photo-1617177435596-1c9e30d6d608?crop=entropy&cs=srgb&fm=jpg&q=85&w=800",
+  image: "",
 };
 
 export default function BulkAndCorporateGifts({ bulkCard, corpCard, className = "" }) {

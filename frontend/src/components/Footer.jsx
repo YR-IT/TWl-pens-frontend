@@ -16,15 +16,6 @@ const SOCIAL = [
   { icon: MessageCircle, href: "https://wa.me/919351996272?text=Hello%20The%20WL%20Pens%20Studio", label: "WhatsApp" },
 ];
 
-const PAYMENT_METHODS = [
-  "UPI",
-  "Google Pay",
-  "Paytm",
-  "Visa",
-  "Mastercard",
-  "RuPay",
-  "NetBanking",
-];
 
 export default function Footer() {
 
@@ -155,22 +146,6 @@ export default function Footer() {
               <p><strong className="text-[#1C1815] font-medium">Hours:</strong> Monday – Saturday: 10:30 AM – 7:30 PM</p>
               <p><strong className="text-[#1C1815] font-medium">Concierge:</strong> +91 93519 96272</p>
               <p><strong className="text-[#1C1815] font-medium">Email:</strong> thewlpens@gmail.com</p>
-            </div>
-
-            <div className="pt-2">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-1.5">
-                Accepted Payment Methods
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {PAYMENT_METHODS.map((method) => (
-                  <span
-                    key={method}
-                    className="px-2 py-0.5 bg-white border border-[#E6E0D6] text-[9px] uppercase tracking-[0.1em] text-[#1C1815] font-medium rounded-xs"
-                  >
-                    {method}
-                  </span>
-                ))}
-              </div>
             </div>
           </div>
 

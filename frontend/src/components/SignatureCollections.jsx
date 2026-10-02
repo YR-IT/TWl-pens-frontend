@@ -1,12 +1,11 @@
 import { Link } from "react-router-dom";
 import { fileUrl } from "../lib/api";
 
-const DEFAULT_LEFT_IMG = "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200";
-const DEFAULT_RIGHT_IMG = "https://images.unsplash.com/photo-1585336261026-78b17b6a1f81?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200";
+const DEFAULT_LEFT_IMG = "";
+const DEFAULT_RIGHT_IMG = "";
 
 export default function SignatureCollections({ data }) {
-  const sectionTitle = data?.title || "SIGNATURE COLLECTIONS";
-  const sectionSubtitle = data?.subtitle || "Our carefully selected products just for you";
+
 
   const cardLeft = {
     brand: data?.card_left?.brand || "THE WL PENS",
@@ -35,15 +34,7 @@ export default function SignatureCollections({ data }) {
         </Link>
       </div>
 
-      {/* Header */}
-      <div className="text-center mb-10 sm:mb-14">
-        <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#1C1815] tracking-[0.08em] uppercase">
-          {sectionTitle}
-        </h2>
-        <p className="mt-3 text-sm sm:text-base text-[#6E685E] font-normal tracking-wide max-w-xl mx-auto">
-          {sectionSubtitle}
-        </p>
-      </div>
+
 
       {/* 2-Column Luxury Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10">
@@ -58,29 +49,8 @@ export default function SignatureCollections({ data }) {
             alt={`${cardLeft.brand} ${cardLeft.title}`}
             loading="lazy"
             decoding="async"
-            className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105 opacity-90 group-hover:opacity-95"
+            className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
           />
-
-          {/* Vignette / Contrast Overlays */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/40 group-hover:via-black/20 transition-colors duration-500" />
-          <div className="absolute inset-0 bg-radial-vignette opacity-60 pointer-events-none" />
-
-          {/* Center Brand Badge (Silver / Metallic Luxury Styling) */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-white">
-            <p className="text-[10px] sm:text-xs uppercase tracking-[0.35em] text-[#E6E0D6]/90 font-medium drop-shadow mb-1 sm:mb-2">
-              {cardLeft.brand}
-            </p>
-            <h3 className="font-serif text-3xl sm:text-5xl lg:text-6xl tracking-[0.15em] text-[#FAF8F5] drop-shadow-[0_4px_16px_rgba(0,0,0,0.8)] uppercase">
-              {cardLeft.title}
-            </h3>
-
-            {/* Decorative Metallic Divider with Diamond Accent */}
-            <div className="flex items-center gap-3 mt-3 w-40 sm:w-56 opacity-80 group-hover:opacity-100 transition-opacity">
-              <span className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-[#FAF8F5]/60 to-transparent" />
-              <span className="text-[#FAF8F5] text-[10px]">◇</span>
-              <span className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-[#FAF8F5]/60 to-transparent" />
-            </div>
-          </div>
         </Link>
 
         {/* Right Card: Premium */}
@@ -94,29 +64,8 @@ export default function SignatureCollections({ data }) {
             alt={`${cardRight.brand} ${cardRight.title}`}
             loading="lazy"
             decoding="async"
-            className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105 opacity-90 group-hover:opacity-95"
+            className="w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
           />
-
-          {/* Vignette / Contrast Overlays */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/40 group-hover:via-black/20 transition-colors duration-500" />
-          <div className="absolute inset-0 bg-radial-vignette opacity-60 pointer-events-none" />
-
-          {/* Center Brand Badge (Gold Luxury Styling) */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-white">
-            <p className="text-[10px] sm:text-xs uppercase tracking-[0.35em] text-[#B8860B] font-medium drop-shadow mb-1 sm:mb-2">
-              {cardRight.brand}
-            </p>
-            <h3 className="font-serif text-3xl sm:text-5xl lg:text-6xl tracking-[0.15em] text-[#D4AF37] drop-shadow-[0_4px_16px_rgba(0,0,0,0.8)] uppercase">
-              {cardRight.title}
-            </h3>
-
-            {/* Decorative Gold Divider with Diamond Accent */}
-            <div className="flex items-center gap-3 mt-3 w-40 sm:w-56 opacity-80 group-hover:opacity-100 transition-opacity">
-              <span className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-[#B8860B] to-transparent" />
-              <span className="text-[#B8860B] text-[10px]">◆</span>
-              <span className="flex-1 h-[1px] bg-gradient-to-r from-transparent via-[#B8860B] to-transparent" />
-            </div>
-          </div>
         </Link>
       </div>
     </section>

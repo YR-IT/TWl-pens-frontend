@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, Navigate } from "react-router-dom";
-import { Package, ShoppingBag, Users, DollarSign, Truck, Upload, Trash2, Edit3, Plus, X, Tag, Instagram, ArrowUp, ArrowDown, Sparkles, Layers, ChevronRight, Image as ImageIcon, Eye, Activity, ArrowDownRight } from "lucide-react";
+import { Package, ShoppingBag, Users, DollarSign, Truck, Upload, Trash2, Edit3, Plus, X, Tag, Instagram, ArrowUp, ArrowDown, Sparkles, Layers, ChevronRight, Image as ImageIcon, Eye, Activity, ArrowDownRight, Check } from "lucide-react";
 import { api, fileUrl } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { money } from "../lib/format";
@@ -1735,7 +1735,7 @@ function ShipmentForm({ order, onUpdate }) {
 const DEFAULT_HERO_SLIDES = [
   {
     id: "slide-1",
-    image: "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+    image: "",
     eyebrow: "PANCHKULA ATELIER · SS/26",
     title: "The Eternal Quill",
     subtitle: "Discover the art of handcrafted writing instruments, engineered for generations of prose.",
@@ -1746,7 +1746,7 @@ const DEFAULT_HERO_SLIDES = [
   },
   {
     id: "slide-2",
-    image: "https://images.unsplash.com/photo-1583195764036-5d2c7b0b5e3f?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+    image: "",
     eyebrow: "HAND-TUNED NIBS & ENGRAVING",
     title: "Bespoke Personalization",
     subtitle: "Complimentary hand-etched initials, custom nib tuning, and cotton presentation pouch with every fine pen.",
@@ -1757,7 +1757,7 @@ const DEFAULT_HERO_SLIDES = [
   },
   {
     id: "slide-3",
-    image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+    image: "",
     eyebrow: "ARCHIVAL PIGMENTS & SHIMMER",
     title: "Rich Inks of the Season",
     subtitle: "From shimmering sheen to waterproof archival formulations, curated from master ink houses worldwide.",
@@ -1765,6 +1765,66 @@ const DEFAULT_HERO_SLIDES = [
     cta_link: "/shop?category=Inks",
     secondary_cta_text: "Best Sellers",
     secondary_cta_link: "/best-sellers",
+  },
+];
+
+const PRESET_PAGE_DESTINATIONS = [
+  { label: "🛍️ Shop — All Writing Instruments", value: "/shop" },
+  { label: "✒️ Fountain Pens Collection", value: "/shop?category=Fountain%20Pens" },
+  { label: "🖊️ Rollerball Pens Collection", value: "/shop?category=Rollerball%20Pens" },
+  { label: "💧 Inks & Writing Essentials", value: "/shop?category=Inks" },
+  { label: "✨ New Arrivals", value: "/new-arrivals" },
+  { label: "🏆 Best Sellers", value: "/best-sellers" },
+  { label: "🎁 Bespoke Engraving / Contact", value: "/contact" },
+];
+
+function LinkDestinationPicker({ value, onChange, label }) {
+  // Default to first preset if value isn't in the list
+  const safeValue = PRESET_PAGE_DESTINATIONS.some((p) => p.value === value)
+    ? value
+    : PRESET_PAGE_DESTINATIONS[0].value;
+
+  return (
+    <div className="space-y-1.5">
+      <span className="text-[11px] uppercase tracking-[0.15em] text-[#6E685E] font-medium block">
+        {label}
+      </span>
+      <select
+        value={safeValue}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-[#FAF8F5] hover:bg-white border border-[#E6E0D6] focus:border-[#B8860B] rounded-lg px-3 py-2 text-sm text-[#1C1815] outline-none font-medium cursor-pointer transition-colors"
+      >
+        {PRESET_PAGE_DESTINATIONS.map((p) => (
+          <option key={p.value} value={p.value}>
+            {p.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+const DEFAULT_WRITING_TILES = [
+  {
+    title: "Fountain Pens",
+    tag: "WRITING INSTRUMENTS",
+    description: "Master-crafted nibs, balanced brass barrels, and archival ink flows.",
+    category: "Fountain Pens",
+    image: "",
+  },
+  {
+    title: "Rollerball Pens",
+    tag: "WRITING INSTRUMENTS",
+    description: "Smooth, confident strokes with premium liquid ink refills.",
+    category: "Rollerball Pens",
+    image: "",
+  },
+  {
+    title: "Inks & Accessories",
+    tag: "WRITING ESSENTIALS",
+    description: "Shimmering sheens, deep pigments, and everything in between.",
+    category: "Inks",
+    image: "",
   },
 ];
 
@@ -1784,6 +1844,11 @@ function BannerTab() {
     categories_eyebrow: "01 / CURATED COLLECTIONS",
     categories_title: "Shop by category.",
     categories_subtitle: "Explore fine pens, rich pigment inks, and handcrafted accessories engineered for effortless writing.",
+
+    writing_tiles_eyebrow: "WRITING INSTRUMENTS",
+    writing_tiles_title: "DISCOVER OUR HALLMARK CATEGORIES",
+    writing_tiles_subtitle: "Engineered for effortless glide, supreme balance, and timeless aesthetic.",
+    writing_tiles: DEFAULT_WRITING_TILES,
 
     bestsellers_eyebrow: "02 / BEST SELLERS",
     bestsellers_title: "Hallmark editions.",
@@ -1851,20 +1916,7 @@ function BannerTab() {
       "EXPRESS DISPATCH FROM PANCHKULA",
       "LIFETIME WRITING INSTRUMENT CARE",
     ],
-    occasion_gift_tiles: {
-      card_left: {
-        title: "Gifts for Her",
-        subtitle: "Slender profiles, refined rose gold accents, and delicate lacquer finishes.",
-        image: "",
-        link: "/shop?category=Fountain%20Pens",
-      },
-      card_right: {
-        title: "Gifts for Him",
-        subtitle: "Substantial brass weight, knurled grip, and matte black & gold hardware.",
-        image: "",
-        link: "/shop?category=Rollerball%20Pens",
-      },
-    },
+
     customer_reviews: [
       {
         name: "Vikramaditya S.",
@@ -1907,41 +1959,27 @@ function BannerTab() {
       "Order Status & Dispatch",
       "Private Studio Consultation (Panchkula)",
     ],
+    engraving_section: {
+      eyebrow: "CRAFTED FOR YOU",
+      title: "CUSTOM NAME ENGRAVING",
+      subtitle: "Personalise the pen with a name for a thoughtful and elegant gift.",
+      cta_text: "Contact Us",
+      cta_link: "/contact",
+    },
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingCat, setUploadingCat] = useState(null); // index of cat being uploaded
   const [activeSlideIdx, setActiveSlideIdx] = useState(0);
   const [uploadingSlide, setUploadingSlide] = useState(null);
-  const [uploadingTrustIcon, setUploadingTrustIcon] = useState(null); // idx
+  const [showDirectUrl, setShowDirectUrl] = useState(false);
   const [uploadingBulkImage, setUploadingBulkImage] = useState(false);
   const [uploadingCorpImage, setUploadingCorpImage] = useState(false);
   const [uploadingSigLeft, setUploadingSigLeft] = useState(false);
   const [uploadingSigRight, setUploadingSigRight] = useState(false);
-  const [uploadingOccasionLeft, setUploadingOccasionLeft] = useState(false);
-  const [uploadingOccasionRight, setUploadingOccasionRight] = useState(false);
-  const [uploadingReviewImg, setUploadingReviewImg] = useState(null);
 
-  // Trust bar helpers
-  const updateTrustItem = (idx, field, value) => {
-    setBanner((prev) => {
-      const trust_bar = [...(prev.trust_bar || [])];
-      trust_bar[idx] = { ...trust_bar[idx], [field]: value };
-      return { ...prev, trust_bar };
-    });
-  };
-  const uploadTrustIcon = async (file, idx) => {
-    setUploadingTrustIcon(idx);
-    const fd = new FormData();
-    fd.append("file", file);
-    try {
-      const r = await api.post("/admin/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
-      updateTrustItem(idx, "icon", r.data.url);
-      toast.success("Icon uploaded");
-    } catch (err) {
-      toast.error("Icon upload failed: " + (err.response?.data?.detail || err.message));
-    } finally { setUploadingTrustIcon(null); }
-  };
+  const [uploadingReviewImg, setUploadingReviewImg] = useState(null);
+  const [uploadingWritingTile, setUploadingWritingTile] = useState(null);
 
   // Bulk/Corp card image upload
   const uploadCardImage = async (file, card) => {
@@ -1984,30 +2022,7 @@ function BannerTab() {
     } finally { setter(false); }
   };
 
-  // Occasion Gift Tiles image upload
-  const uploadOccasionImage = async (file, side) => {
-    const setter = side === "left" ? setUploadingOccasionLeft : setUploadingOccasionRight;
-    setter(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    try {
-      const r = await api.post("/admin/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
-      const cardKey = side === "left" ? "card_left" : "card_right";
-      setBanner((prev) => ({
-        ...prev,
-        occasion_gift_tiles: {
-          ...(prev.occasion_gift_tiles || {}),
-          [cardKey]: {
-            ...((prev.occasion_gift_tiles || {})[cardKey] || {}),
-            image: r.data.url,
-          },
-        },
-      }));
-      toast.success("Occasion gift card image uploaded");
-    } catch (err) {
-      toast.error("Image upload failed: " + (err.response?.data?.detail || err.message));
-    } finally { setter(false); }
-  };
+
 
   // Customer Reviews product image upload
   const uploadReviewImage = async (file, idx) => {
@@ -2090,7 +2105,7 @@ function BannerTab() {
   const addSlide = () => {
     const newSlide = {
       id: `slide-${Date.now()}`,
-      image: "https://images.unsplash.com/photo-1455390582262-044cdead277a?crop=entropy&cs=srgb&fm=jpg&q=85&w=1600",
+      image: "",
       eyebrow: "PANCHKULA ATELIER · NEW",
       title: "Handcrafted Luxury",
       subtitle: "Bespoke writing instruments crafted for precision, balance, and lifelong elegance.",
@@ -2160,6 +2175,33 @@ function BannerTab() {
     });
   };
 
+  const uploadWritingTileImage = async (file, idx) => {
+    setUploadingWritingTile(idx);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await api.post("/admin/upload", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      setBanner((prev) => {
+        const tiles = [...(prev.writing_tiles || DEFAULT_WRITING_TILES)];
+        tiles[idx] = { ...tiles[idx], image: r.data.url };
+        return { ...prev, writing_tiles: tiles };
+      });
+      toast.success(`Hallmark card ${idx + 1} image uploaded`);
+    } catch (err) {
+      toast.error("Upload failed: " + (err.response?.data?.detail || err.message));
+    } finally {
+      setUploadingWritingTile(null);
+    }
+  };
+
+  const updateWritingTile = (idx, field, value) => {
+    setBanner((prev) => {
+      const tiles = [...(prev.writing_tiles || DEFAULT_WRITING_TILES)];
+      tiles[idx] = { ...tiles[idx], [field]: value };
+      return { ...prev, writing_tiles: tiles };
+    });
+  };
+
   const save = async () => {
     setSaving(true);
     try {
@@ -2196,17 +2238,65 @@ function BannerTab() {
 
   return (
     <div className="max-w-4xl space-y-8" data-testid="admin-banner-tab">
+      {/* Top Sticky Action Header */}
+      <div className="sticky top-0 z-40 bg-[#FAF8F5]/95 backdrop-blur-md p-4 rounded-xl border border-[#E6E0D6] shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="font-serif text-xl text-[#1C1815]">Homepage & Banner Settings</h2>
+          <p className="text-[11px] text-[#6E685E]">Organized in the exact display sequence of the live store</p>
+        </div>
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className="bg-[#1C1815] text-[#FAF8F5] px-8 py-3 rounded-lg text-xs uppercase tracking-[0.15em] font-semibold hover:bg-[#B8860B] transition-all disabled:opacity-50 shadow-md cursor-pointer flex items-center gap-2"
+          data-testid="save-banner-btn-top"
+        >
+          {saving ? "Saving…" : "Save All Homepage & Site Changes"}
+        </button>
+      </div>
+
+      {/* Quick Jump Flow Bar */}
+      <div className="bg-white border border-[#E6E0D6] p-4 rounded-xl shadow-xs">
+        <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] mb-2.5 font-semibold">Homepage Section Flow (Matching Live Site Order)</p>
+        <div className="flex flex-wrap gap-1.5 text-[11px]">
+          {[
+            { id: "hero", label: "01 · Hero Slides" },
+            { id: "offers", label: "02 · Offers Ticker" },
+            { id: "categories", label: "03 · Category Carousel" },
+            { id: "hallmark", label: "04 · Hallmark Grid" },
+            { id: "bestsellers", label: "05 · Best Sellers" },
+            { id: "signature", label: "06 · Signature Cards" },
+            { id: "secondary-trust", label: "07 · Trust Marquee" },
+            { id: "bulk-corp", label: "08 · Bulk & Corporate" },
+            { id: "featured-cats", label: "09 · Featured Categories" },
+            { id: "brands", label: "10 · Brand Partners" },
+            { id: "reviews", label: "11 · Customer Reviews" },
+            { id: "store", label: "12 · Store Location" },
+            { id: "engraving", label: "13 · Bespoke Engraving" },
+            { id: "contact-topics", label: "14 · Inquiry Topics" },
+          ].map((sec) => (
+            <a
+              key={sec.id}
+              href={`#section-${sec.id}`}
+              className="px-2.5 py-1 bg-[#FAF8F5] border border-[#E6E0D6] rounded hover:border-[#1C1815] hover:bg-[#1C1815] hover:text-[#FAF8F5] text-[#6E685E] transition-all font-medium"
+            >
+              {sec.label}
+            </a>
+          ))}
+        </div>
+      </div>
+
       {/* 1. Hero Moving Carousel Configuration */}
-      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6">
+      <div id="section-hero" className="bg-white border border-[#E6E0D6] p-8 space-y-6 scroll-mt-24">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-[#B8860B] text-[10px] uppercase tracking-[0.25em]">
               <Sparkles size={12} />
-              <span>HERO MOVING CAROUSEL</span>
+              <span>SECTION 01 · HERO SLIDES</span>
             </div>
-            <h2 className="font-serif text-3xl text-[#1C1815] mt-1">Hero Carousel Slides ({currentSlides.length})</h2>
+            <h2 className="font-serif text-3xl text-[#1C1815] mt-1">Hero Banner Slides ({currentSlides.length})</h2>
             <p className="text-sm text-[#6E685E] mt-1">
-              Manage the rotating auto-play slides on your homepage. Each slide has its own image, title, and actions.
+              Upload full-width banner slides. When someone clicks on a slide, it will immediately redirect them to your chosen page or category.
             </p>
           </div>
           <button
@@ -2232,193 +2322,249 @@ function BannerTab() {
               }`}
             >
               <Layers size={13} />
-              <span>Slide {idx + 1}: {slide.title ? (slide.title.length > 18 ? slide.title.slice(0, 18) + "…" : slide.title) : "Untitled"}</span>
+              <span>Slide {idx + 1}{slide.title ? `: ${slide.title.length > 18 ? slide.title.slice(0, 18) + "…" : slide.title}` : ""}</span>
             </button>
           ))}
         </div>
 
-        {/* Active Slide Editor Form */}
+        {/* Active Slide Editor */}
         {currentSlide && (
-          <div className="p-6 bg-[#FAF8F5] border border-[#E6E0D6] space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E6E0D6] pb-4">
-              <span className="font-serif text-xl text-[#1C1815]">
-                Editing Slide #{safeActiveSlideIdx + 1}
-              </span>
+          <div className="rounded-2xl border border-[#E6E0D6] bg-white overflow-hidden shadow-sm">
+
+            {/* Card header */}
+            <div className="flex items-center justify-between px-6 py-4 bg-[#FAF8F5] border-b border-[#E6E0D6]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#1C1815] text-[#FAF8F5] flex items-center justify-center text-sm font-semibold">
+                  {safeActiveSlideIdx + 1}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-[#1C1815]">
+                    {currentSlide.title || `Slide ${safeActiveSlideIdx + 1}`}
+                  </p>
+                  <p className="text-[11px] text-[#6E685E]">Configure photo and click redirect</p>
+                </div>
+              </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   disabled={safeActiveSlideIdx === 0}
                   onClick={() => moveSlide(safeActiveSlideIdx, -1)}
-                  className="p-1.5 border border-[#E6E0D6] bg-white text-[#1C1815] disabled:opacity-30 hover:border-[#1C1815] transition-colors"
-                  title="Move slide left / earlier"
+                  className="px-3 py-1.5 rounded-lg border border-[#E6E0D6] bg-white text-xs text-[#6E685E] disabled:opacity-30 hover:border-[#3D4838] hover:text-[#1C1815] transition-all flex items-center gap-1"
+                  title="Move earlier"
                 >
-                  <ArrowUp size={14} className="-rotate-90" />
+                  <ArrowUp size={13} className="-rotate-90" /> Move Earlier
                 </button>
                 <button
                   type="button"
                   disabled={safeActiveSlideIdx === currentSlides.length - 1}
                   onClick={() => moveSlide(safeActiveSlideIdx, 1)}
-                  className="p-1.5 border border-[#E6E0D6] bg-white text-[#1C1815] disabled:opacity-30 hover:border-[#1C1815] transition-colors"
-                  title="Move slide right / later"
+                  className="px-3 py-1.5 rounded-lg border border-[#E6E0D6] bg-white text-xs text-[#6E685E] disabled:opacity-30 hover:border-[#3D4838] hover:text-[#1C1815] transition-all flex items-center gap-1"
+                  title="Move later"
                 >
-                  <ArrowDown size={14} className="-rotate-90" />
+                  Move Later <ArrowDown size={13} className="-rotate-90" />
                 </button>
                 <button
                   type="button"
                   onClick={() => removeSlide(safeActiveSlideIdx)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-700 hover:bg-red-50 border border-red-200 transition-colors uppercase tracking-[0.1em]"
+                  className="px-3 py-1.5 rounded-lg border border-red-200 text-xs text-red-600 hover:bg-red-50 transition-all flex items-center gap-1"
                 >
-                  <Trash2 size={13} /> Remove
+                  <Trash2 size={13} /> Delete Slide
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Slide Image Upload / URL */}
+            <div className="p-6 space-y-6">
+
+              {/* ── Optional Slide Label ── */}
               <div>
-                <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-2 font-medium">
-                  Slide Image
-                </span>
-                <div className="aspect-[16/9] bg-[#F3EFEA] border border-[#E6E0D6] overflow-hidden relative group flex items-center justify-center">
-                  {currentSlide.image ? (
-                    <img
-                      src={fileUrl(currentSlide.image)}
-                      alt="Slide preview"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="text-center p-4">
-                      <ImageIcon size={28} className="mx-auto text-[#6E685E]/50 mb-1" />
-                      <span className="text-xs text-[#6E685E] uppercase tracking-[0.15em]">
-                        No slide image
-                      </span>
-                    </div>
-                  )}
+                <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-[#6E685E] mb-1.5">
+                  Slide Name / Label
+                  <span className="text-[9px] normal-case tracking-normal font-normal text-[#9E9890] bg-[#F3EFEA] px-1.5 py-0.5 rounded-full">internal reference</span>
+                </label>
+                <input
+                  type="text"
+                  value={currentSlide.title || ""}
+                  onChange={(e) => updateSlide(safeActiveSlideIdx, "title", e.target.value)}
+                  placeholder="e.g. Diwali Sale Banner, New Nib Collection"
+                  className="w-full bg-[#FAF8F5] border border-[#E6E0D6] rounded-lg px-3 py-2 text-sm text-[#1C1815] outline-none focus:border-[#B8860B] transition-colors"
+                />
+              </div>
+
+              {/* ── Step 1: Photo ── */}
+              <div className="bg-[#FAF8F5] rounded-xl p-5 border border-[#E6E0D6]">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-6 h-6 rounded-full bg-[#B8860B] text-white text-[11px] font-bold flex items-center justify-center">1</span>
+                  <h3 className="text-sm font-semibold text-[#1C1815]">Banner Image</h3>
                 </div>
-                <div className="mt-4 flex items-center gap-3">
-                  <label className="bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] cursor-pointer hover:bg-[#3D4838] transition-colors">
-                    {uploadingSlide === safeActiveSlideIdx ? "Uploading…" : "Upload New Image"}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => e.target.files?.[0] && uploadSlideImage(e.target.files[0], safeActiveSlideIdx)}
-                    />
-                  </label>
-                  {currentSlide.image && (
+                <div className="flex gap-5 items-start">
+                  {/* Preview thumbnail */}
+                  <div className="w-48 h-32 flex-shrink-0 rounded-xl overflow-hidden border-2 border-dashed border-[#E6E0D6] bg-white flex items-center justify-center relative shadow-sm">
+                    {currentSlide.image ? (
+                      <>
+                        <img src={fileUrl(currentSlide.image)} alt="Slide preview" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => updateSlide(safeActiveSlideIdx, "image", "")}
+                          className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow"
+                          title="Remove photo"
+                        >
+                          <X size={12} />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="text-center p-2">
+                        <ImageIcon size={24} className="mx-auto text-[#6E685E]/40 mb-1" />
+                        <span className="text-[11px] text-[#6E685E]/60 font-medium">No banner photo</span>
+                      </div>
+                    )}
+                    {uploadingSlide === safeActiveSlideIdx && (
+                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-xl">
+                        <div className="w-6 h-6 border-2 border-[#1C1815] border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Upload actions */}
+                  <div className="flex-1 space-y-3">
+                    <label className="flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-dashed border-[#E6E0D6] bg-white hover:border-[#B8860B] hover:bg-[#FFF9F0] cursor-pointer transition-all group shadow-sm">
+                      <Upload size={20} className="text-[#6E685E] group-hover:text-[#B8860B]" />
+                      <div>
+                        <p className="text-sm font-medium text-[#1C1815]">
+                          {uploadingSlide === safeActiveSlideIdx ? "Uploading photo…" : "Upload banner from your computer"}
+                        </p>
+                        <p className="text-[11px] text-[#6E685E]">JPG, PNG or WEBP — landscape recommended (1600×800px)</p>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => e.target.files?.[0] && uploadSlideImage(e.target.files[0], safeActiveSlideIdx)}
+                      />
+                    </label>
+
+                    {/* Optional URL paste toggle */}
                     <button
                       type="button"
-                      onClick={() => updateSlide(safeActiveSlideIdx, "image", "")}
-                      className="text-xs text-red-700 hover:underline uppercase tracking-[0.15em]"
+                      onClick={() => setShowDirectUrl((p) => !p)}
+                      className="text-[11px] text-[#6E685E] hover:text-[#B8860B] transition-colors underline underline-offset-2"
                     >
-                      Clear Image
+                      {showDirectUrl ? "Hide URL field" : "Or paste an image URL directly"}
                     </button>
-                  )}
-                </div>
-                <label className="block mt-4">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">
-                    Or Direct Image URL
-                  </span>
-                  <input
-                    type="text"
-                    value={currentSlide.image || ""}
-                    onChange={(e) => updateSlide(safeActiveSlideIdx, "image", e.target.value)}
-                    placeholder="https://..."
-                    className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                  />
-                </label>
-              </div>
-
-              {/* Slide Text Content */}
-              <div className="space-y-4">
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Eyebrow Label</span>
-                  <input
-                    type="text"
-                    value={currentSlide.eyebrow || ""}
-                    onChange={(e) => updateSlide(safeActiveSlideIdx, "eyebrow", e.target.value)}
-                    placeholder="e.g. PANCHKULA ATELIER · SS/26"
-                    className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Main Headline</span>
-                  <input
-                    type="text"
-                    value={currentSlide.title || ""}
-                    onChange={(e) => updateSlide(safeActiveSlideIdx, "title", e.target.value)}
-                    placeholder="e.g. The Eternal Quill"
-                    className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm font-serif text-[#1C1815] outline-none focus:border-[#3D4838]"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Subtitle / Description</span>
-                  <textarea
-                    rows={2}
-                    value={currentSlide.subtitle || ""}
-                    onChange={(e) => updateSlide(safeActiveSlideIdx, "subtitle", e.target.value)}
-                    placeholder="Descriptive caption for this slide…"
-                    className="mt-1 w-full bg-transparent border border-[#E6E0D6] p-2 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                  />
-                </label>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="block">
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Primary Button Text</span>
-                    <input
-                      type="text"
-                      value={currentSlide.cta_text || ""}
-                      onChange={(e) => updateSlide(safeActiveSlideIdx, "cta_text", e.target.value)}
-                      placeholder="Shop Now"
-                      className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Primary Button Link</span>
-                    <input
-                      type="text"
-                      value={currentSlide.cta_link || ""}
-                      onChange={(e) => updateSlide(safeActiveSlideIdx, "cta_link", e.target.value)}
-                      placeholder="/shop"
-                      className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                    />
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="block">
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Secondary Button Text</span>
-                    <input
-                      type="text"
-                      value={currentSlide.secondary_cta_text || ""}
-                      onChange={(e) => updateSlide(safeActiveSlideIdx, "secondary_cta_text", e.target.value)}
-                      placeholder="New Arrivals"
-                      className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Secondary Button Link</span>
-                    <input
-                      type="text"
-                      value={currentSlide.secondary_cta_link || ""}
-                      onChange={(e) => updateSlide(safeActiveSlideIdx, "secondary_cta_link", e.target.value)}
-                      placeholder="/new-arrivals"
-                      className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-1 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                    />
-                  </label>
+                    {showDirectUrl && (
+                      <input
+                        type="text"
+                        value={currentSlide.image || ""}
+                        onChange={(e) => updateSlide(safeActiveSlideIdx, "image", e.target.value)}
+                        placeholder="https://example.com/banner.jpg"
+                        className="w-full bg-white border border-[#E6E0D6] rounded-lg px-3 py-2 text-xs text-[#1C1815] outline-none focus:border-[#B8860B] font-mono"
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {/* ── Step 2: Click Destination ── */}
+              <div className="bg-[#FAF8F5] rounded-xl p-5 border border-[#E6E0D6] space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-6 h-6 rounded-full bg-[#B8860B] text-white text-[11px] font-bold flex items-center justify-center">2</span>
+                  <h3 className="text-sm font-semibold text-[#1C1815]">Redirect Destination (When Clicked)</h3>
+                </div>
+                <p className="text-[11px] text-[#6E685E]">
+                  Choose which page or category opens when someone clicks anywhere on this slide.
+                </p>
+                <div className="max-w-md">
+                  <LinkDestinationPicker
+                    label="Select Destination"
+                    value={currentSlide.link || currentSlide.cta_link || "/shop"}
+                    onChange={(v) => {
+                      updateSlide(safeActiveSlideIdx, "link", v);
+                      updateSlide(safeActiveSlideIdx, "cta_link", v);
+                    }}
+                  />
+                </div>
+                <div className="pt-2 flex items-center gap-1.5 text-xs text-emerald-700 font-medium">
+                  <Check size={14} className="text-emerald-600" />
+                  <span>Redirects to: <code className="bg-white px-2 py-0.5 rounded border border-emerald-200 font-mono text-[11px]">{currentSlide.link || currentSlide.cta_link || "/shop"}</code></span>
+                </div>
+              </div>
+
             </div>
           </div>
         )}
       </div>
 
-      {/* 2. Section 01: Categories Configuration */}
-      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6">
+      {/* 2. Promotional Offers Marquee */}
+      <div id="section-offers" className="bg-white border border-[#E6E0D6] p-8 space-y-6 scroll-mt-24" data-testid="admin-offers-ticker-section">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 02 · PROMOTIONAL MARQUEE</p>
+            <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Offers Ticker / Marquee</h2>
+            <p className="text-sm text-[#6E685E] mt-1">
+              Top announcement marquee displaying shipping offers, gift promotions, and discount codes.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setBanner((prev) => ({
+                ...prev,
+                offers_ticker: [
+                  ...(prev.offers_ticker || []),
+                  "NEW PROMOTIONAL OFFER / CODE",
+                ],
+              }));
+            }}
+            className="inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-[#3D4838] transition-colors"
+          >
+            <Plus size={14} /> Add Offer
+          </button>
+        </div>
+
+        <div className="space-y-3 pt-4 border-t border-[#E6E0D6]">
+          {(banner.offers_ticker || [
+            "FREE PAN-INDIA SHIPPING ON ORDERS ABOVE ₹1499",
+            "COMPLIMENTARY EXTRA INK REFILL WITH SELECTED ROLLERBALLS",
+            "FLAT 10% OFF ON ORDERS ABOVE ₹5000 · USE CODE 'ATELIER10'",
+            "BESPOKE LASER & DIAMOND NAME ENGRAVING AVAILABLE",
+          ]).map((msg, idx) => (
+            <div key={idx} className="flex items-center gap-3">
+              <span className="text-xs text-[#6E685E] w-6 text-right font-medium">{idx + 1}.</span>
+              <input
+                type="text"
+                value={msg}
+                onChange={(e) => {
+                  const updated = [...(banner.offers_ticker || [])];
+                  updated[idx] = e.target.value;
+                  setBanner((prev) => ({ ...prev, offers_ticker: updated }));
+                }}
+                placeholder="Promo text..."
+                className="flex-1 bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const current = banner.offers_ticker || [];
+                  if (current.length <= 1) {
+                    toast.error("At least one offer message is required");
+                    return;
+                  }
+                  const updated = current.filter((_, i) => i !== idx);
+                  setBanner((prev) => ({ ...prev, offers_ticker: updated }));
+                }}
+                className="text-red-400 hover:text-red-700 p-2 text-xs uppercase tracking-[0.1em]"
+                title="Remove offer"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 3. Section 01: Categories Configuration */}
+      <div id="section-categories" className="bg-white border border-[#E6E0D6] p-8 space-y-6 scroll-mt-24">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 01</p>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 03 · CURATED COLLECTIONS</p>
           <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Shop by Category Header</h2>
           <p className="text-sm text-[#6E685E] mt-1">Customize the title, subtitle, and eyebrow shown above the category cards strip on the homepage.</p>
         </div>
@@ -2459,10 +2605,141 @@ function BannerTab() {
         </div>
       </div>
 
-      {/* 3. Section 02: Best Sellers Configuration */}
-      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6">
+      {/* 4. Hallmark Categories / Writing Instruments Grid Section */}
+      <div id="section-hallmark" className="bg-white border border-[#E6E0D6] p-8 space-y-6 scroll-mt-24" data-testid="admin-hallmark-categories-section">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 02</p>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 04 · HALLMARK CATEGORIES</p>
+          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Writing Instruments Grid Header & Cards</h2>
+          <p className="text-sm text-[#6E685E] mt-1">
+            Customize the 3 prominent hallmark category cards (Fountain Pens, Rollerball Pens, Inks & Accessories) and the header text above them on the homepage.
+          </p>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t border-[#E6E0D6]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Eyebrow</span>
+              <input
+                type="text"
+                value={banner.writing_tiles_eyebrow ?? "WRITING INSTRUMENTS"}
+                onChange={(e) => setBanner((prev) => ({ ...prev, writing_tiles_eyebrow: e.target.value }))}
+                placeholder="WRITING INSTRUMENTS"
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#B8860B]"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Main Heading</span>
+              <input
+                type="text"
+                value={banner.writing_tiles_title ?? "DISCOVER OUR HALLMARK CATEGORIES"}
+                onChange={(e) => setBanner((prev) => ({ ...prev, writing_tiles_title: e.target.value }))}
+                placeholder="DISCOVER OUR HALLMARK CATEGORIES"
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm font-serif text-[#1C1815] outline-none focus:border-[#B8860B]"
+              />
+            </label>
+          </div>
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Subtitle / Description</span>
+            <textarea
+              rows={2}
+              value={banner.writing_tiles_subtitle ?? "Engineered for effortless glide, supreme balance, and timeless aesthetic."}
+              onChange={(e) => setBanner((prev) => ({ ...prev, writing_tiles_subtitle: e.target.value }))}
+              placeholder="Engineered for effortless glide, supreme balance, and timeless aesthetic."
+              className="mt-1 w-full bg-transparent border border-[#E6E0D6] p-2.5 text-xs text-[#1C1815] outline-none focus:border-[#B8860B]"
+            />
+          </label>
+
+          {/* 3 Hallmark Category Cards */}
+          <div className="pt-4 space-y-4">
+            <p className="text-xs uppercase tracking-[0.15em] font-semibold text-[#1C1815]">Category Cards (3 Columns)</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {(banner.writing_tiles || DEFAULT_WRITING_TILES).map((tile, idx) => (
+                <div key={idx} className="bg-[#FAF8F5] border border-[#E6E0D6] p-5 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-[#1C1815] uppercase tracking-wider">Card #{idx + 1}</span>
+                    <span className="text-[10px] text-[#B8860B] bg-[#B8860B]/10 px-2 py-0.5 rounded-full font-medium">{tile.category || "Category"}</span>
+                  </div>
+
+                  {/* Thumbnail & Upload */}
+                  <div className="aspect-[4/3] rounded-lg overflow-hidden border border-[#E6E0D6] bg-white relative shadow-xs">
+                    {tile.image ? (
+                      <img src={fileUrl(tile.image)} alt={tile.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[10px] text-[#6E685E]">No image</div>
+                    )}
+                    {uploadingWritingTile === idx && (
+                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                        <div className="w-5 h-5 border-2 border-[#1C1815] border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <label className="flex-1 bg-[#1C1815] text-[#FAF8F5] text-center py-2 text-[11px] uppercase tracking-[0.1em] font-medium rounded cursor-pointer hover:bg-[#B8860B] transition-colors shadow-xs">
+                      {uploadingWritingTile === idx ? "Uploading…" : "Upload Photo"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => e.target.files?.[0] && uploadWritingTileImage(e.target.files[0], idx)}
+                      />
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-[0.1em] text-[#6E685E] mb-1">Card Title</label>
+                    <input
+                      type="text"
+                      value={tile.title || ""}
+                      onChange={(e) => updateWritingTile(idx, "title", e.target.value)}
+                      placeholder="e.g. Fountain Pens"
+                      className="w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] rounded outline-none focus:border-[#B8860B]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-[0.1em] text-[#6E685E] mb-1">Eyebrow Tag</label>
+                    <input
+                      type="text"
+                      value={tile.tag || ""}
+                      onChange={(e) => updateWritingTile(idx, "tag", e.target.value)}
+                      placeholder="e.g. WRITING INSTRUMENTS"
+                      className="w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] rounded outline-none focus:border-[#B8860B]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-[0.1em] text-[#6E685E] mb-1">Description</label>
+                    <textarea
+                      rows={2}
+                      value={tile.description || ""}
+                      onChange={(e) => updateWritingTile(idx, "description", e.target.value)}
+                      placeholder="Card description..."
+                      className="w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] rounded outline-none focus:border-[#B8860B] resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-[0.1em] text-[#6E685E] mb-1">Linked Category</label>
+                    <input
+                      type="text"
+                      value={tile.category || ""}
+                      onChange={(e) => updateWritingTile(idx, "category", e.target.value)}
+                      placeholder="e.g. Fountain Pens"
+                      className="w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] rounded outline-none focus:border-[#B8860B]"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. Section 02: Best Sellers Configuration */}
+      <div id="section-bestsellers" className="bg-white border border-[#E6E0D6] p-8 space-y-6 scroll-mt-24">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 05 · BEST SELLERS</p>
           <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Best Sellers Header</h2>
           <p className="text-sm text-[#6E685E] mt-1">Customize the title, subtitle, and eyebrow shown above the best sellers product grid on the homepage.</p>
         </div>
@@ -2503,54 +2780,273 @@ function BannerTab() {
         </div>
       </div>
 
-      {/* 4. Section 03: Studio Feed Configuration */}
-      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6">
+      {/* 7. Signature Collections (2 Luxury Cards) */}
+      <div id="section-signature" className="bg-white border border-[#E6E0D6] p-8 space-y-8 scroll-mt-24" data-testid="admin-signature-collections-section">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 03</p>
-          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Studio / Desk Feed Header</h2>
-          <p className="text-sm text-[#6E685E] mt-1">Customize the title, subtitle, and eyebrow shown above the live studio photo feed on the homepage.</p>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 06 · SIGNATURE COLLECTIONS</p>
+          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Signature Collections</h2>
+          <p className="text-sm text-[#6E685E] mt-1">
+            Customize the image and destination link for each signature collections card.
+          </p>
         </div>
 
-        <div className="space-y-4 pt-4 border-t border-[#E6E0D6]">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="block">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Eyebrow</span>
-              <input
-                type="text"
-                value={banner.studio_eyebrow ?? "03 / FROM THE STUDIO"}
-                onChange={(e) => setBanner((prev) => ({ ...prev, studio_eyebrow: e.target.value }))}
-                placeholder="03 / FROM THE STUDIO"
-                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
-              />
-            </label>
-            <label className="block">
-              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Main Heading</span>
-              <input
-                type="text"
-                value={banner.studio_title ?? "Live from the desk."}
-                onChange={(e) => setBanner((prev) => ({ ...prev, studio_title: e.target.value }))}
-                placeholder="Live from the desk."
-                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm font-serif text-[#1C1815] outline-none focus:border-[#3D4838]"
-              />
-            </label>
-          </div>
-          <label className="block">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Subtitle / Description</span>
-            <textarea
-              rows={2}
-              value={banner.studio_subtitle ?? "Fresh nib videos, first inks of the season, and bespoke commissions — straight from our Panchkula atelier."}
-              onChange={(e) => setBanner((prev) => ({ ...prev, studio_subtitle: e.target.value }))}
-              placeholder="Fresh nib videos, first inks of the season..."
-              className="mt-1 w-full bg-transparent border border-[#E6E0D6] p-2.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-            />
-          </label>
+        {/* Left and Right Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-[#E6E0D6]">
+          {[
+            { key: "card_left", label: "Left Card (Exclusive)", side: "left", uploading: uploadingSigLeft, defaultTitle: "EXCLUSIVE" },
+            { key: "card_right", label: "Right Card (Premium)", side: "right", uploading: uploadingSigRight, defaultTitle: "PREMIUM" },
+          ].map(({ key, label, side, uploading, defaultTitle }) => {
+            const cardData = banner.signature_collections?.[key] || {};
+            return (
+              <div key={key} className="bg-[#FAF8F5] border border-[#E6E0D6] p-5 space-y-4">
+                <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold">{label}</p>
+
+                {/* Card Image */}
+                <div>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-2">Card Background Image</span>
+                  {cardData.image ? (
+                    <div className="relative aspect-[16/10] bg-[#F3EFEA] border border-[#E6E0D6] overflow-hidden rounded-lg">
+                      <img src={fileUrl(cardData.image)} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setBanner((prev) => ({
+                            ...prev,
+                            signature_collections: {
+                              ...(prev.signature_collections || {}),
+                              [key]: { ...((prev.signature_collections || {})[key] || {}), image: "" },
+                            },
+                          }))
+                        }
+                        className="absolute top-2 right-2 bg-[#1C1815]/80 text-white w-7 h-7 flex items-center justify-center hover:bg-[#1C1815] rounded-full"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="aspect-[16/10] bg-[#F3EFEA] border border-dashed border-[#E6E0D6] flex items-center justify-center text-[#6E685E]/50 rounded-lg">
+                      <ImageIcon size={28} />
+                    </div>
+                  )}
+                  <div className="mt-2 flex items-center gap-2">
+                    <label className="bg-[#1C1815] text-[#FAF8F5] px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:bg-[#3D4838] transition-colors">
+                      {uploading ? "Uploading…" : "Upload Image"}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadSignatureImage(e.target.files[0], side)} />
+                    </label>
+                    <span className="text-[10px] text-[#6E685E]">or</span>
+                    <input
+                      type="text"
+                      value={cardData.image || ""}
+                      onChange={(e) =>
+                        setBanner((prev) => ({
+                          ...prev,
+                          signature_collections: {
+                            ...(prev.signature_collections || {}),
+                            [key]: { ...((prev.signature_collections || {})[key] || {}), image: e.target.value },
+                          },
+                        }))
+                      }
+                      placeholder="Paste image URL…"
+                      className="flex-1 bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                    />
+                  </div>
+                </div>
+
+                {/* Card Link */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Destination Link</span>
+                  <input
+                    type="text"
+                    value={cardData.link || ""}
+                    onChange={(e) =>
+                      setBanner((prev) => ({
+                        ...prev,
+                        signature_collections: {
+                          ...(prev.signature_collections || {}),
+                          [key]: { ...((prev.signature_collections || {})[key] || {}), link: e.target.value },
+                        },
+                      }))
+                    }
+                    placeholder="/shop"
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* 5. Section 05: Featured Categories Configuration */}
-      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6">
+      {/* 8. Secondary Trust Marquee */}
+      <div id="section-secondary-trust" className="bg-white border border-[#E6E0D6] p-8 space-y-6 scroll-mt-24" data-testid="admin-trust-marquee-section">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 07 · TRUST &amp; ASSURANCE</p>
+            <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Secondary Trust Marquee</h2>
+            <p className="text-sm text-[#6E685E] mt-1">
+              Infinite scrolling ribbon highlighting authenticity, warranty, and craftsmanship assurances.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setBanner((prev) => ({
+                ...prev,
+                secondary_trust_marquee: [
+                  ...(prev.secondary_trust_marquee || []),
+                  "NEW TRUST ASSURANCE POINT",
+                ],
+              }));
+            }}
+            className="inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-[#3D4838] transition-colors"
+          >
+            <Plus size={14} /> Add Point
+          </button>
+        </div>
+
+        <div className="space-y-3 pt-4 border-t border-[#E6E0D6]">
+          {(banner.secondary_trust_marquee || [
+            "100% GENUINE ATELIER PRODUCTS",
+            "OFFICIAL BRAND AUTHORIZED DISTRIBUTOR",
+            "1-YEAR ATELIER COMPREHENSIVE WARRANTY",
+            "EXPRESS DISPATCH FROM PANCHKULA",
+            "LIFETIME WRITING INSTRUMENT CARE",
+          ]).map((item, idx) => (
+            <div key={idx} className="flex items-center gap-3">
+              <span className="text-xs text-[#6E685E] w-6 text-right font-medium">{idx + 1}.</span>
+              <input
+                type="text"
+                value={item}
+                onChange={(e) => {
+                  const updated = [...(banner.secondary_trust_marquee || [])];
+                  updated[idx] = e.target.value;
+                  setBanner((prev) => ({ ...prev, secondary_trust_marquee: updated }));
+                }}
+                placeholder="Trust badge message..."
+                className="flex-1 bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const current = banner.secondary_trust_marquee || [];
+                  if (current.length <= 1) {
+                    toast.error("At least one trust assurance point is required");
+                    return;
+                  }
+                  const updated = current.filter((_, i) => i !== idx);
+                  setBanner((prev) => ({ ...prev, secondary_trust_marquee: updated }));
+                }}
+                className="text-red-400 hover:text-red-700 p-2 text-xs uppercase tracking-[0.1em]"
+                title="Remove item"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 9. Bulk Orders & Corporate Gifts Cards */}
+      <div id="section-bulk-corp" className="bg-white border border-[#E6E0D6] p-8 space-y-8 scroll-mt-24" data-testid="admin-bulk-corp-section">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 05</p>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 08 · BULK &amp; CORPORATE</p>
+          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Bulk Orders &amp; Corporate Gifts</h2>
+          <p className="text-sm text-[#6E685E] mt-1">
+            Customize the two-column section on the homepage with image, title, description, and contact email for each card.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-[#E6E0D6]">
+          {/* Bulk Orders Card */}
+          {[
+            { key: "bulk_orders_card", label: "Bulk Orders Card", card: "bulk", uploading: uploadingBulkImage },
+            { key: "corporate_gifts_card", label: "Corporate Gifts Card", card: "corp", uploading: uploadingCorpImage },
+          ].map(({ key, label, card, uploading }) => {
+            const cardData = banner[key] || {};
+            return (
+              <div key={key} className="bg-[#FAF8F5] border border-[#E6E0D6] p-5 space-y-4" data-testid={`admin-${key}`}>
+                <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold">{label}</p>
+
+                {/* Image */}
+                <div>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-2">Card Image</span>
+                  {cardData.image ? (
+                    <div className="relative aspect-[16/9] bg-[#F3EFEA] border border-[#E6E0D6] overflow-hidden">
+                      <img src={fileUrl(cardData.image)} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setBanner((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), image: "" } }))}
+                        className="absolute top-2 right-2 bg-[#1C1815]/80 text-white w-7 h-7 flex items-center justify-center hover:bg-[#1C1815]"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="aspect-[16/9] bg-[#F3EFEA] border border-dashed border-[#E6E0D6] flex items-center justify-center text-[#6E685E]/50">
+                      <ImageIcon size={28} />
+                    </div>
+                  )}
+                  <div className="mt-2 flex items-center gap-2">
+                    <label className="bg-[#1C1815] text-[#FAF8F5] px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:bg-[#3D4838] transition-colors">
+                      {uploading ? "Uploading…" : "Upload Image"}
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadCardImage(e.target.files[0], card)} />
+                    </label>
+                    <span className="text-[10px] text-[#6E685E]">or</span>
+                    <input
+                      type="text"
+                      value={cardData.image || ""}
+                      onChange={(e) => setBanner((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), image: e.target.value } }))}
+                      placeholder="Paste image URL…"
+                      className="flex-1 bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                    />
+                  </div>
+                </div>
+
+                {/* Title */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Title</span>
+                  <input
+                    type="text"
+                    value={cardData.title || ""}
+                    onChange={(e) => setBanner((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), title: e.target.value } }))}
+                    placeholder="e.g. Bulk Orders"
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+
+                {/* Description */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Description</span>
+                  <textarea
+                    rows={3}
+                    value={cardData.description || ""}
+                    onChange={(e) => setBanner((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), description: e.target.value } }))}
+                    placeholder="Short description…"
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-2 text-xs text-[#1C1815] outline-none focus:border-[#3D4838] resize-y"
+                  />
+                </label>
+
+                {/* Email */}
+                <label className="block">
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Contact Email</span>
+                  <input
+                    type="email"
+                    value={cardData.email || ""}
+                    onChange={(e) => setBanner((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), email: e.target.value } }))}
+                    placeholder="e.g. bulkorders@wlpens.com"
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                  />
+                </label>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 9. Section 05: Featured Categories Configuration */}
+      <div id="section-featured-cats" className="bg-white border border-[#E6E0D6] p-8 space-y-6 scroll-mt-24">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 09 · FEATURED CATEGORIES</p>
           <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Featured Categories</h2>
           <p className="text-sm text-[#6E685E] mt-1">Edit the 3 editorial portrait banners shown in the &quot;Curated for you&quot; section. Each card has a heading, subtitle, shop link query, background colour, text colour, and image.</p>
         </div>
@@ -2640,12 +3136,12 @@ function BannerTab() {
         </div>
       </div>
 
-      {/* 6. Section 06: Exclusive Partners / Brands */}
-      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6">
+      {/* 10. Section 06: Exclusive Partners / Brands */}
+      <div id="section-brands" className="bg-white border border-[#E6E0D6] p-8 space-y-6 scroll-mt-24">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 06</p>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 10 · PARTNERS &amp; HOUSES</p>
           <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Exclusive Partners</h2>
-          <p className="text-sm text-[#6E685E] mt-1">Manage brand logos shown in the &quot;Our writing houses&quot; section. Up to 6 brands display as a grid; 7+ automatically switches to a carousel.</p>
+          <p className="text-sm text-[#6E685E] mt-1">Manage brand logos shown in the &quot;Our writing houses&quot; marquee. Up to 6 brands display as a grid; 7+ automatically switches to a carousel.</p>
         </div>
 
         <div className="space-y-4 pt-4 border-t border-[#E6E0D6]">
@@ -2763,722 +3259,11 @@ function BannerTab() {
         </div>
       </div>
 
-      {/* 7. USP / Trust Bar Configuration */}
-      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6" data-testid="admin-trust-bar-section">
+      {/* 12. Customer Testimonials & Reviews */}
+      <div id="section-reviews" className="bg-white border border-[#E6E0D6] p-8 space-y-6 scroll-mt-24" data-testid="admin-customer-reviews-section">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">USP / TRUST BAR</p>
-            <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Trust Bar Items</h2>
-            <p className="text-sm text-[#6E685E] mt-1">
-              Manage the 4-column icon strip (Free Shipping, Refill, Genuine, Curated). Each item has an icon (Lucide name or uploaded image), title, and subtext.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setBanner((prev) => ({
-              ...prev,
-              trust_bar: [...(prev.trust_bar || []), { icon: "ShieldCheck", title: "New USP", subtext: "Description here" }],
-            }))}
-            className="inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-[#3D4838] transition-colors"
-          >
-            <Plus size={14} /> Add Item
-          </button>
-        </div>
-
-        <div className="space-y-4 pt-4 border-t border-[#E6E0D6]">
-          {(banner.trust_bar || []).map((item, idx) => (
-            <div key={idx} className="bg-[#FAF8F5] border border-[#E6E0D6] p-5 space-y-4" data-testid={`trust-item-${idx}`}>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[#1C1815] uppercase tracking-[0.15em]">Item #{idx + 1}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if ((banner.trust_bar || []).length <= 1) { toast.error("At least one trust item required"); return; }
-                    setBanner((prev) => ({ ...prev, trust_bar: (prev.trust_bar || []).filter((_, i) => i !== idx) }));
-                  }}
-                  className="text-red-400 hover:text-red-700 text-xs uppercase tracking-[0.1em]"
-                >
-                  Remove
-                </button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Icon */}
-                <div>
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-1">Icon (Lucide name or upload)</span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={item.icon || ""}
-                      onChange={(e) => updateTrustItem(idx, "icon", e.target.value)}
-                      placeholder="e.g. Truck, ShieldCheck, Sparkles…"
-                      className="flex-1 bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                    />
-                    <label className="bg-[#1C1815] text-[#FAF8F5] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:bg-[#3D4838] transition-colors whitespace-nowrap">
-                      {uploadingTrustIcon === idx ? "…" : "Upload"}
-                      <input
-                        type="file"
-                        accept="image/*,image/svg+xml"
-                        className="hidden"
-                        onChange={(e) => e.target.files?.[0] && uploadTrustIcon(e.target.files[0], idx)}
-                      />
-                    </label>
-                  </div>
-                  {item.icon && (item.icon.startsWith("http") || item.icon.startsWith("/")) && (
-                    <img src={fileUrl(item.icon)} alt="icon preview" className="mt-2 w-8 h-8 object-contain" />
-                  )}
-                </div>
-                {/* Title */}
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Title</span>
-                  <input
-                    type="text"
-                    value={item.title || ""}
-                    onChange={(e) => updateTrustItem(idx, "title", e.target.value)}
-                    placeholder="e.g. Free Shipping"
-                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                  />
-                </label>
-                {/* Subtext */}
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Subtext</span>
-                  <input
-                    type="text"
-                    value={item.subtext || ""}
-                    onChange={(e) => updateTrustItem(idx, "subtext", e.target.value)}
-                    placeholder="e.g. Free delivery on orders above ₹1499"
-                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                  />
-                </label>
-              </div>
-            </div>
-          ))}
-          {(banner.trust_bar || []).length === 0 && (
-            <p className="text-xs text-[#6E685E] italic py-2">No trust bar items — defaults will be shown.</p>
-          )}
-        </div>
-      </div>
-
-      {/* 8. Bulk Orders & Corporate Gifts Cards */}
-      <div className="bg-white border border-[#E6E0D6] p-8 space-y-8" data-testid="admin-bulk-corp-section">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">HOMEPAGE CARDS</p>
-          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Bulk Orders & Corporate Gifts</h2>
-          <p className="text-sm text-[#6E685E] mt-1">
-            Customize the two-column section on the homepage with image, title, description, and contact email for each card.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-[#E6E0D6]">
-          {/* Bulk Orders Card */}
-          {[
-            { key: "bulk_orders_card", label: "Bulk Orders Card", card: "bulk", uploading: uploadingBulkImage },
-            { key: "corporate_gifts_card", label: "Corporate Gifts Card", card: "corp", uploading: uploadingCorpImage },
-          ].map(({ key, label, card, uploading }) => {
-            const cardData = banner[key] || {};
-            return (
-              <div key={key} className="bg-[#FAF8F5] border border-[#E6E0D6] p-5 space-y-4" data-testid={`admin-${key}`}>
-                <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold">{label}</p>
-
-                {/* Image */}
-                <div>
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-2">Card Image</span>
-                  {cardData.image ? (
-                    <div className="relative aspect-[16/9] bg-[#F3EFEA] border border-[#E6E0D6] overflow-hidden">
-                      <img src={fileUrl(cardData.image)} alt="" className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setBanner((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), image: "" } }))}
-                        className="absolute top-2 right-2 bg-[#1C1815]/80 text-white w-7 h-7 flex items-center justify-center hover:bg-[#1C1815]"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="aspect-[16/9] bg-[#F3EFEA] border border-dashed border-[#E6E0D6] flex items-center justify-center text-[#6E685E]/50">
-                      <ImageIcon size={28} />
-                    </div>
-                  )}
-                  <div className="mt-2 flex items-center gap-2">
-                    <label className="bg-[#1C1815] text-[#FAF8F5] px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:bg-[#3D4838] transition-colors">
-                      {uploading ? "Uploading…" : "Upload Image"}
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadCardImage(e.target.files[0], card)} />
-                    </label>
-                    <span className="text-[10px] text-[#6E685E]">or</span>
-                    <input
-                      type="text"
-                      value={cardData.image || ""}
-                      onChange={(e) => setBanner((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), image: e.target.value } }))}
-                      placeholder="Paste image URL…"
-                      className="flex-1 bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                    />
-                  </div>
-                </div>
-
-                {/* Title */}
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Title</span>
-                  <input
-                    type="text"
-                    value={cardData.title || ""}
-                    onChange={(e) => setBanner((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), title: e.target.value } }))}
-                    placeholder="e.g. Bulk Orders"
-                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                  />
-                </label>
-
-                {/* Description */}
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Description</span>
-                  <textarea
-                    rows={3}
-                    value={cardData.description || ""}
-                    onChange={(e) => setBanner((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), description: e.target.value } }))}
-                    placeholder="Short description…"
-                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-2 text-xs text-[#1C1815] outline-none focus:border-[#3D4838] resize-y"
-                  />
-                </label>
-
-                {/* Email */}
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Contact Email</span>
-                  <input
-                    type="email"
-                    value={cardData.email || ""}
-                    onChange={(e) => setBanner((prev) => ({ ...prev, [key]: { ...(prev[key] || {}), email: e.target.value } }))}
-                    placeholder="e.g. bulkorders@wlpens.com"
-                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                  />
-                </label>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 9. Signature Collections (2 Luxury Cards) */}
-      <div className="bg-white border border-[#E6E0D6] p-8 space-y-8" data-testid="admin-signature-collections-section">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">HOMEPAGE SECTION</p>
-          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Signature Collections</h2>
-          <p className="text-sm text-[#6E685E] mt-1">
-            Customize the 2-column luxury signature collections cards on the homepage (e.g. Exclusive &amp; Premium collections).
-          </p>
-        </div>
-
-        {/* Section title & subtitle */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-[#E6E0D6]">
-          <label className="block">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Title</span>
-            <input
-              type="text"
-              value={banner.signature_collections?.title || ""}
-              onChange={(e) =>
-                setBanner((prev) => ({
-                  ...prev,
-                  signature_collections: { ...(prev.signature_collections || {}), title: e.target.value },
-                }))
-              }
-              placeholder="SIGNATURE COLLECTIONS"
-              className="mt-1 w-full bg-[#FAF8F5] border border-[#E6E0D6] px-3 py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Subtitle</span>
-            <input
-              type="text"
-              value={banner.signature_collections?.subtitle || ""}
-              onChange={(e) =>
-                setBanner((prev) => ({
-                  ...prev,
-                  signature_collections: { ...(prev.signature_collections || {}), subtitle: e.target.value },
-                }))
-              }
-              placeholder="Our carefully selected products just for you"
-              className="mt-1 w-full bg-[#FAF8F5] border border-[#E6E0D6] px-3 py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
-            />
-          </label>
-        </div>
-
-        {/* Left and Right Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-[#E6E0D6]">
-          {[
-            { key: "card_left", label: "Left Card (Exclusive)", side: "left", uploading: uploadingSigLeft, defaultTitle: "EXCLUSIVE" },
-            { key: "card_right", label: "Right Card (Premium)", side: "right", uploading: uploadingSigRight, defaultTitle: "PREMIUM" },
-          ].map(({ key, label, side, uploading, defaultTitle }) => {
-            const cardData = banner.signature_collections?.[key] || {};
-            return (
-              <div key={key} className="bg-[#FAF8F5] border border-[#E6E0D6] p-5 space-y-4">
-                <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold">{label}</p>
-
-                {/* Card Image */}
-                <div>
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-2">Card Background Image</span>
-                  {cardData.image ? (
-                    <div className="relative aspect-[16/10] bg-[#F3EFEA] border border-[#E6E0D6] overflow-hidden rounded-lg">
-                      <img src={fileUrl(cardData.image)} alt="" className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setBanner((prev) => ({
-                            ...prev,
-                            signature_collections: {
-                              ...(prev.signature_collections || {}),
-                              [key]: { ...((prev.signature_collections || {})[key] || {}), image: "" },
-                            },
-                          }))
-                        }
-                        className="absolute top-2 right-2 bg-[#1C1815]/80 text-white w-7 h-7 flex items-center justify-center hover:bg-[#1C1815] rounded-full"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="aspect-[16/10] bg-[#F3EFEA] border border-dashed border-[#E6E0D6] flex items-center justify-center text-[#6E685E]/50 rounded-lg">
-                      <ImageIcon size={28} />
-                    </div>
-                  )}
-                  <div className="mt-2 flex items-center gap-2">
-                    <label className="bg-[#1C1815] text-[#FAF8F5] px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:bg-[#3D4838] transition-colors">
-                      {uploading ? "Uploading…" : "Upload Image"}
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadSignatureImage(e.target.files[0], side)} />
-                    </label>
-                    <span className="text-[10px] text-[#6E685E]">or</span>
-                    <input
-                      type="text"
-                      value={cardData.image || ""}
-                      onChange={(e) =>
-                        setBanner((prev) => ({
-                          ...prev,
-                          signature_collections: {
-                            ...(prev.signature_collections || {}),
-                            [key]: { ...((prev.signature_collections || {})[key] || {}), image: e.target.value },
-                          },
-                        }))
-                      }
-                      placeholder="Paste image URL…"
-                      className="flex-1 bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                    />
-                  </div>
-                </div>
-
-                {/* Brand Eyebrow */}
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Brand / Eyebrow Text</span>
-                  <input
-                    type="text"
-                    value={cardData.brand || ""}
-                    onChange={(e) =>
-                      setBanner((prev) => ({
-                        ...prev,
-                        signature_collections: {
-                          ...(prev.signature_collections || {}),
-                          [key]: { ...((prev.signature_collections || {})[key] || {}), brand: e.target.value },
-                        },
-                      }))
-                    }
-                    placeholder="THE WL PENS"
-                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                  />
-                </label>
-
-                {/* Card Title */}
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Card Title</span>
-                  <input
-                    type="text"
-                    value={cardData.title || ""}
-                    onChange={(e) =>
-                      setBanner((prev) => ({
-                        ...prev,
-                        signature_collections: {
-                          ...(prev.signature_collections || {}),
-                          [key]: { ...((prev.signature_collections || {})[key] || {}), title: e.target.value },
-                        },
-                      }))
-                    }
-                    placeholder={defaultTitle}
-                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                  />
-                </label>
-
-                {/* Card Link */}
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Destination Link</span>
-                  <input
-                    type="text"
-                    value={cardData.link || ""}
-                    onChange={(e) =>
-                      setBanner((prev) => ({
-                        ...prev,
-                        signature_collections: {
-                          ...(prev.signature_collections || {}),
-                          [key]: { ...((prev.signature_collections || {})[key] || {}), link: e.target.value },
-                        },
-                      }))
-                    }
-                    placeholder="/shop"
-                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                  />
-                </label>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 10. Contact Form Inquiry Topics Configuration */}
-      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">CONTACT PAGE</p>
-            <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Contact Form Inquiry Topics</h2>
-            <p className="text-sm text-[#6E685E] mt-1">
-              Customize the selectable dropdown topics on the Contact Us form. Users can pick these when reaching out via Email or WhatsApp.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setBanner((prev) => ({
-                ...prev,
-                contact_inquiry_types: [
-                  ...(prev.contact_inquiry_types || [
-                    "General Studio Inquiry",
-                    "Bespoke Nib Tuning & Engraving",
-                    "Corporate & Wedding Gifting",
-                    "Order Status & Dispatch",
-                    "Private Studio Consultation (Panchkula)",
-                  ]),
-                  "New Inquiry Topic",
-                ],
-              }));
-            }}
-            className="inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-[#3D4838] transition-colors"
-          >
-            <Plus size={14} /> Add Topic
-          </button>
-        </div>
-
-        <div className="space-y-3 pt-4 border-t border-[#E6E0D6]">
-          {(banner.contact_inquiry_types || [
-            "General Studio Inquiry",
-            "Bespoke Nib Tuning & Engraving",
-            "Corporate & Wedding Gifting",
-            "Order Status & Dispatch",
-            "Private Studio Consultation (Panchkula)",
-          ]).map((topic, idx) => (
-            <div key={idx} className="flex items-center gap-3">
-              <span className="text-xs text-[#6E685E] w-6 text-right font-medium">{idx + 1}.</span>
-              <input
-                type="text"
-                value={topic}
-                onChange={(e) => {
-                  const updated = [...(banner.contact_inquiry_types || [])];
-                  updated[idx] = e.target.value;
-                  setBanner((prev) => ({ ...prev, contact_inquiry_types: updated }));
-                }}
-                placeholder="Inquiry topic name..."
-                className="flex-1 bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const current = banner.contact_inquiry_types || [];
-                  if (current.length <= 1) {
-                    toast.error("At least one inquiry topic is required");
-                    return;
-                  }
-                  const updated = current.filter((_, i) => i !== idx);
-                  setBanner((prev) => ({ ...prev, contact_inquiry_types: updated }));
-                }}
-                className="text-red-400 hover:text-red-700 p-2 text-xs uppercase tracking-[0.1em]"
-                title="Remove topic"
-              >
-                <Trash2 size={15} />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 11. Promotional Offers Marquee */}
-      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6" data-testid="admin-offers-ticker-section">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">PROMOTIONAL BANNER</p>
-            <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Offers Ticker / Marquee</h2>
-            <p className="text-sm text-[#6E685E] mt-1">
-              Top announcement marquee displaying shipping offers, gift promotions, and discount codes.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setBanner((prev) => ({
-                ...prev,
-                offers_ticker: [
-                  ...(prev.offers_ticker || []),
-                  "NEW PROMOTIONAL OFFER / CODE",
-                ],
-              }));
-            }}
-            className="inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-[#3D4838] transition-colors"
-          >
-            <Plus size={14} /> Add Offer
-          </button>
-        </div>
-
-        <div className="space-y-3 pt-4 border-t border-[#E6E0D6]">
-          {(banner.offers_ticker || [
-            "FREE PAN-INDIA SHIPPING ON ORDERS ABOVE ₹1499",
-            "COMPLIMENTARY EXTRA INK REFILL WITH SELECTED ROLLERBALLS",
-            "FLAT 10% OFF ON ORDERS ABOVE ₹5000 · USE CODE 'ATELIER10'",
-            "BESPOKE LASER & DIAMOND NAME ENGRAVING AVAILABLE",
-          ]).map((msg, idx) => (
-            <div key={idx} className="flex items-center gap-3">
-              <span className="text-xs text-[#6E685E] w-6 text-right font-medium">{idx + 1}.</span>
-              <input
-                type="text"
-                value={msg}
-                onChange={(e) => {
-                  const updated = [...(banner.offers_ticker || [])];
-                  updated[idx] = e.target.value;
-                  setBanner((prev) => ({ ...prev, offers_ticker: updated }));
-                }}
-                placeholder="Promo text..."
-                className="flex-1 bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const current = banner.offers_ticker || [];
-                  if (current.length <= 1) {
-                    toast.error("At least one offer message is required");
-                    return;
-                  }
-                  const updated = current.filter((_, i) => i !== idx);
-                  setBanner((prev) => ({ ...prev, offers_ticker: updated }));
-                }}
-                className="text-red-400 hover:text-red-700 p-2 text-xs uppercase tracking-[0.1em]"
-                title="Remove offer"
-              >
-                <Trash2 size={15} />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 12. Secondary Trust Marquee */}
-      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6" data-testid="admin-trust-marquee-section">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">TRUST &amp; ASSURANCE</p>
-            <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Secondary Trust Marquee</h2>
-            <p className="text-sm text-[#6E685E] mt-1">
-              Infinite scrolling ribbon highlighting authenticity, warranty, and craftsmanship assurances.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setBanner((prev) => ({
-                ...prev,
-                secondary_trust_marquee: [
-                  ...(prev.secondary_trust_marquee || []),
-                  "NEW TRUST ASSURANCE POINT",
-                ],
-              }));
-            }}
-            className="inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-[#3D4838] transition-colors"
-          >
-            <Plus size={14} /> Add Point
-          </button>
-        </div>
-
-        <div className="space-y-3 pt-4 border-t border-[#E6E0D6]">
-          {(banner.secondary_trust_marquee || [
-            "100% GENUINE ATELIER PRODUCTS",
-            "OFFICIAL BRAND AUTHORIZED DISTRIBUTOR",
-            "1-YEAR ATELIER COMPREHENSIVE WARRANTY",
-            "EXPRESS DISPATCH FROM PANCHKULA",
-            "LIFETIME WRITING INSTRUMENT CARE",
-          ]).map((item, idx) => (
-            <div key={idx} className="flex items-center gap-3">
-              <span className="text-xs text-[#6E685E] w-6 text-right font-medium">{idx + 1}.</span>
-              <input
-                type="text"
-                value={item}
-                onChange={(e) => {
-                  const updated = [...(banner.secondary_trust_marquee || [])];
-                  updated[idx] = e.target.value;
-                  setBanner((prev) => ({ ...prev, secondary_trust_marquee: updated }));
-                }}
-                placeholder="Trust badge message..."
-                className="flex-1 bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  const current = banner.secondary_trust_marquee || [];
-                  if (current.length <= 1) {
-                    toast.error("At least one trust assurance point is required");
-                    return;
-                  }
-                  const updated = current.filter((_, i) => i !== idx);
-                  setBanner((prev) => ({ ...prev, secondary_trust_marquee: updated }));
-                }}
-                className="text-red-400 hover:text-red-700 p-2 text-xs uppercase tracking-[0.1em]"
-                title="Remove item"
-              >
-                <Trash2 size={15} />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 13. Occasion Gift Tiles (Gifts for Her / Him) */}
-      <div className="bg-white border border-[#E6E0D6] p-8 space-y-8" data-testid="admin-occasion-tiles-section">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">GIFTING SECTION</p>
-          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Occasion Gift Tiles</h2>
-          <p className="text-sm text-[#6E685E] mt-1">
-            2-column editorial cards directing shoppers to curated gifting selections (Gifts for Her &amp; Gifts for Him).
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-[#E6E0D6]">
-          {[
-            { key: "card_left", label: "Left Card (Gifts for Her)", side: "left", uploading: uploadingOccasionLeft, defaultTitle: "Gifts for Her", defaultLink: "/shop?category=Fountain%20Pens" },
-            { key: "card_right", label: "Right Card (Gifts for Him)", side: "right", uploading: uploadingOccasionRight, defaultTitle: "Gifts for Him", defaultLink: "/shop?category=Rollerball%20Pens" },
-          ].map(({ key, label, side, uploading, defaultTitle, defaultLink }) => {
-            const cardData = banner.occasion_gift_tiles?.[key] || {};
-            return (
-              <div key={key} className="bg-[#FAF8F5] border border-[#E6E0D6] p-5 space-y-4">
-                <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B] font-semibold">{label}</p>
-
-                {/* Image */}
-                <div>
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-2">Card Image</span>
-                  {cardData.image ? (
-                    <div className="relative aspect-[16/10] bg-[#F3EFEA] border border-[#E6E0D6] overflow-hidden rounded-lg">
-                      <img src={fileUrl(cardData.image)} alt="" className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setBanner((prev) => ({
-                            ...prev,
-                            occasion_gift_tiles: {
-                              ...(prev.occasion_gift_tiles || {}),
-                              [key]: { ...((prev.occasion_gift_tiles || {})[key] || {}), image: "" },
-                            },
-                          }))
-                        }
-                        className="absolute top-2 right-2 bg-[#1C1815]/80 text-white w-7 h-7 flex items-center justify-center hover:bg-[#1C1815] rounded-full"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="aspect-[16/10] bg-[#F3EFEA] border border-dashed border-[#E6E0D6] flex items-center justify-center text-[#6E685E]/50 rounded-lg">
-                      <ImageIcon size={28} />
-                    </div>
-                  )}
-                  <div className="mt-2 flex items-center gap-2">
-                    <label className="bg-[#1C1815] text-[#FAF8F5] px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:bg-[#3D4838] transition-colors">
-                      {uploading ? "Uploading…" : "Upload Image"}
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadOccasionImage(e.target.files[0], side)} />
-                    </label>
-                    <span className="text-[10px] text-[#6E685E]">or</span>
-                    <input
-                      type="text"
-                      value={cardData.image || ""}
-                      onChange={(e) =>
-                        setBanner((prev) => ({
-                          ...prev,
-                          occasion_gift_tiles: {
-                            ...(prev.occasion_gift_tiles || {}),
-                            [key]: { ...((prev.occasion_gift_tiles || {})[key] || {}), image: e.target.value },
-                          },
-                        }))
-                      }
-                      placeholder="Paste image URL…"
-                      className="flex-1 bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                    />
-                  </div>
-                </div>
-
-                {/* Title */}
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Title</span>
-                  <input
-                    type="text"
-                    value={cardData.title || ""}
-                    onChange={(e) =>
-                      setBanner((prev) => ({
-                        ...prev,
-                        occasion_gift_tiles: {
-                          ...(prev.occasion_gift_tiles || {}),
-                          [key]: { ...((prev.occasion_gift_tiles || {})[key] || {}), title: e.target.value },
-                        },
-                      }))
-                    }
-                    placeholder={defaultTitle}
-                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                  />
-                </label>
-
-                {/* Subtitle */}
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Subtitle</span>
-                  <textarea
-                    rows={2}
-                    value={cardData.subtitle || ""}
-                    onChange={(e) =>
-                      setBanner((prev) => ({
-                        ...prev,
-                        occasion_gift_tiles: {
-                          ...(prev.occasion_gift_tiles || {}),
-                          [key]: { ...((prev.occasion_gift_tiles || {})[key] || {}), subtitle: e.target.value },
-                        },
-                      }))
-                    }
-                    placeholder="Short description..."
-                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838] resize-y"
-                  />
-                </label>
-
-                {/* Link */}
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Link</span>
-                  <input
-                    type="text"
-                    value={cardData.link || ""}
-                    onChange={(e) =>
-                      setBanner((prev) => ({
-                        ...prev,
-                        occasion_gift_tiles: {
-                          ...(prev.occasion_gift_tiles || {}),
-                          [key]: { ...((prev.occasion_gift_tiles || {})[key] || {}), link: e.target.value },
-                        },
-                      }))
-                    }
-                    placeholder={defaultLink}
-                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                  />
-                </label>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 14. Customer Testimonials & Reviews */}
-      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6" data-testid="admin-customer-reviews-section">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SOCIAL PROOF</p>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 11 · SOCIAL PROOF</p>
             <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Customer Reviews &amp; Testimonials</h2>
             <p className="text-sm text-[#6E685E] mt-1">
               Add and edit authentic buyer testimonials featured on the homepage carousel.
@@ -3497,7 +3282,6 @@ function BannerTab() {
                     rating: 5,
                     quote: "Exceptional writing experience and swift dispatch. Highly recommended.",
                     product_name: "Featured Pen Edition",
-                    product_image: "",
                   },
                 ],
               }));
@@ -3510,7 +3294,7 @@ function BannerTab() {
 
         <div className="space-y-6 pt-4 border-t border-[#E6E0D6]">
           {(banner.customer_reviews || []).map((rev, idx) => (
-            <div key={idx} className="bg-[#FAF8F5] border border-[#E6E0D6] p-5 space-y-4">
+            <div key={idx} className="bg-[#FAF8F5] border border-[#E6E0D6] p-5 space-y-4 rounded-xl">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-serif text-[#1C1815] font-semibold">Review #{idx + 1}</span>
                 <button
@@ -3538,7 +3322,7 @@ function BannerTab() {
                       setBanner((prev) => ({ ...prev, customer_reviews: updated }));
                     }}
                     placeholder="e.g. Vikramaditya S."
-                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] rounded-md px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#B8860B]"
                   />
                 </label>
 
@@ -3554,7 +3338,7 @@ function BannerTab() {
                       setBanner((prev) => ({ ...prev, customer_reviews: updated }));
                     }}
                     placeholder="e.g. New Delhi"
-                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] rounded-md px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#B8860B]"
                   />
                 </label>
 
@@ -3568,7 +3352,7 @@ function BannerTab() {
                       updated[idx] = { ...updated[idx], rating: parseInt(e.target.value, 10) || 5 };
                       setBanner((prev) => ({ ...prev, customer_reviews: updated }));
                     }}
-                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+                    className="mt-1 w-full bg-white border border-[#E6E0D6] rounded-md px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#B8860B]"
                   >
                     <option value={5}>★★★★★ (5 Stars)</option>
                     <option value={4}>★★★★☆ (4 Stars)</option>
@@ -3589,61 +3373,34 @@ function BannerTab() {
                     setBanner((prev) => ({ ...prev, customer_reviews: updated }));
                   }}
                   placeholder="Review comment..."
-                  className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838] resize-y"
+                  className="mt-1 w-full bg-white border border-[#E6E0D6] rounded-md px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#B8860B] resize-y"
                 />
               </label>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                {/* Product Name */}
-                <label className="block">
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Associated Product Name</span>
-                  <input
-                    type="text"
-                    value={rev.product_name || ""}
-                    onChange={(e) => {
-                      const updated = [...(banner.customer_reviews || [])];
-                      updated[idx] = { ...updated[idx], product_name: e.target.value };
-                      setBanner((prev) => ({ ...prev, customer_reviews: updated }));
-                    }}
-                    placeholder="e.g. 1200 Golden Dragon Rollerball"
-                    className="mt-1 w-full bg-white border border-[#E6E0D6] px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                  />
-                </label>
-
-                {/* Product Image */}
-                <div>
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E] block mb-1">Product Thumbnail</span>
-                  <div className="flex items-center gap-2">
-                    {rev.product_image && (
-                      <img src={fileUrl(rev.product_image)} alt="" className="w-9 h-9 object-cover rounded border border-[#E6E0D6]" />
-                    )}
-                    <label className="bg-[#1C1815] text-[#FAF8F5] px-2.5 py-1.5 text-[10px] uppercase tracking-[0.1em] cursor-pointer hover:bg-[#3D4838] transition-colors shrink-0">
-                      {uploadingReviewImg === idx ? "Uploading…" : "Upload"}
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadReviewImage(e.target.files[0], idx)} />
-                    </label>
-                    <input
-                      type="text"
-                      value={rev.product_image || ""}
-                      onChange={(e) => {
-                        const updated = [...(banner.customer_reviews || [])];
-                        updated[idx] = { ...updated[idx], product_image: e.target.value };
-                        setBanner((prev) => ({ ...prev, customer_reviews: updated }));
-                      }}
-                      placeholder="Image URL..."
-                      className="flex-1 bg-white border border-[#E6E0D6] px-2 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
-                    />
-                  </div>
-                </div>
-              </div>
+              {/* Associated Product Name */}
+              <label className="block">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Purchased / Associated Product Name</span>
+                <input
+                  type="text"
+                  value={rev.product_name || ""}
+                  onChange={(e) => {
+                    const updated = [...(banner.customer_reviews || [])];
+                    updated[idx] = { ...updated[idx], product_name: e.target.value };
+                    setBanner((prev) => ({ ...prev, customer_reviews: updated }));
+                  }}
+                  placeholder="e.g. 1200 Golden Dragon Rollerball"
+                  className="mt-1 w-full bg-white border border-[#E6E0D6] rounded-md px-2.5 py-1.5 text-xs text-[#1C1815] outline-none focus:border-[#B8860B]"
+                />
+              </label>
             </div>
           ))}
         </div>
       </div>
 
-      {/* 15. Store Location & Atelier Information */}
-      <div className="bg-white border border-[#E6E0D6] p-8 space-y-6" data-testid="admin-store-info-section">
+      {/* 13. Store Location & Atelier Information */}
+      <div id="section-store" className="bg-white border border-[#E6E0D6] p-8 space-y-6 scroll-mt-24" data-testid="admin-store-info-section">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">PHYSICAL ATELIER</p>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 12 · PHYSICAL ATELIER</p>
           <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Store Location &amp; Information</h2>
           <p className="text-sm text-[#6E685E] mt-1">
             Studio address, contact details, opening hours, and embedded Google Map for the physical boutique.
@@ -3756,17 +3513,176 @@ function BannerTab() {
         </div>
       </div>
 
-      {/* Save Button Sticky Bar */}
-      <div className="pt-4 flex justify-end">
-        <button
-          onClick={save}
-          disabled={saving}
-          className="bg-[#1C1815] text-[#FAF8F5] px-10 py-4 text-xs uppercase tracking-[0.2em] hover:bg-[#3D4838] transition-colors disabled:opacity-50 shadow-md"
-          data-testid="save-banner-btn"
-        >
-          {saving ? "Saving…" : "Save All Homepage & Site Changes"}
-        </button>
+      {/* 14. Section: Custom Name Engraving CTA */}
+      <div id="section-engraving" className="bg-white border border-[#E6E0D6] p-8 space-y-6 scroll-mt-24" data-testid="admin-engraving-section">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 13 · BESPOKE ENGRAVING CTA</p>
+          <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Custom Name Engraving Banner</h2>
+          <p className="text-sm text-[#6E685E] mt-1">
+            Customize the bottom &quot;Crafted For You&quot; bespoke engraving banner shown just above the site footer.
+          </p>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t border-[#E6E0D6]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Eyebrow</span>
+              <input
+                type="text"
+                value={banner.engraving_section?.eyebrow ?? "CRAFTED FOR YOU"}
+                onChange={(e) =>
+                  setBanner((prev) => ({
+                    ...prev,
+                    engraving_section: { ...(prev.engraving_section || {}), eyebrow: e.target.value },
+                  }))
+                }
+                placeholder="CRAFTED FOR YOU"
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Main Heading</span>
+              <input
+                type="text"
+                value={banner.engraving_section?.title ?? "CUSTOM NAME ENGRAVING"}
+                onChange={(e) =>
+                  setBanner((prev) => ({
+                    ...prev,
+                    engraving_section: { ...(prev.engraving_section || {}), title: e.target.value },
+                  }))
+                }
+                placeholder="CUSTOM NAME ENGRAVING"
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm font-serif text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+          </div>
+
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Section Subtitle / Description</span>
+            <textarea
+              rows={2}
+              value={banner.engraving_section?.subtitle ?? "Personalise the pen with a name for a thoughtful and elegant gift."}
+              onChange={(e) =>
+                setBanner((prev) => ({
+                  ...prev,
+                  engraving_section: { ...(prev.engraving_section || {}), subtitle: e.target.value },
+                }))
+              }
+              placeholder="Personalise the pen with a name..."
+              className="mt-1 w-full bg-transparent border border-[#E6E0D6] p-2.5 text-xs text-[#1C1815] outline-none focus:border-[#3D4838]"
+            />
+          </label>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Button CTA Text</span>
+              <input
+                type="text"
+                value={banner.engraving_section?.cta_text ?? "Contact Us"}
+                onChange={(e) =>
+                  setBanner((prev) => ({
+                    ...prev,
+                    engraving_section: { ...(prev.engraving_section || {}), cta_text: e.target.value },
+                  }))
+                }
+                placeholder="Contact Us"
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6E685E]">Button Destination Link</span>
+              <input
+                type="text"
+                value={banner.engraving_section?.cta_link ?? "/contact"}
+                onChange={(e) =>
+                  setBanner((prev) => ({
+                    ...prev,
+                    engraving_section: { ...(prev.engraving_section || {}), cta_link: e.target.value },
+                  }))
+                }
+                placeholder="/contact"
+                className="mt-1 w-full bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+            </label>
+          </div>
+        </div>
       </div>
+
+      {/* 15. Contact Form Inquiry Topics Configuration */}
+      <div id="section-contact-topics" className="bg-white border border-[#E6E0D6] p-8 space-y-6 scroll-mt-24">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-[#B8860B]">SECTION 14 · CONTACT PAGE &amp; INQUIRIES</p>
+            <h2 className="font-serif text-2xl text-[#1C1815] mt-1">Contact Form Inquiry Topics</h2>
+            <p className="text-sm text-[#6E685E] mt-1">
+              Customize the selectable dropdown topics on the Contact Us form. Users can pick these when reaching out via Email or WhatsApp.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setBanner((prev) => ({
+                ...prev,
+                contact_inquiry_types: [
+                  ...(prev.contact_inquiry_types || [
+                    "General Studio Inquiry",
+                    "Bespoke Nib Tuning & Engraving",
+                    "Corporate & Wedding Gifting",
+                    "Order Status & Dispatch",
+                    "Private Studio Consultation (Panchkula)",
+                  ]),
+                  "New Inquiry Topic",
+                ],
+              }));
+            }}
+            className="inline-flex items-center gap-2 bg-[#1C1815] text-[#FAF8F5] px-4 py-2 text-xs uppercase tracking-[0.15em] hover:bg-[#3D4838] transition-colors"
+          >
+            <Plus size={14} /> Add Topic
+          </button>
+        </div>
+
+        <div className="space-y-3 pt-4 border-t border-[#E6E0D6]">
+          {(banner.contact_inquiry_types || [
+            "General Studio Inquiry",
+            "Bespoke Nib Tuning & Engraving",
+            "Corporate & Wedding Gifting",
+            "Order Status & Dispatch",
+            "Private Studio Consultation (Panchkula)",
+          ]).map((topic, idx) => (
+            <div key={idx} className="flex items-center gap-3">
+              <span className="text-xs text-[#6E685E] w-6 text-right font-medium">{idx + 1}.</span>
+              <input
+                type="text"
+                value={topic}
+                onChange={(e) => {
+                  const updated = [...(banner.contact_inquiry_types || [])];
+                  updated[idx] = e.target.value;
+                  setBanner((prev) => ({ ...prev, contact_inquiry_types: updated }));
+                }}
+                placeholder="Inquiry topic name..."
+                className="flex-1 bg-transparent border-b border-[#E6E0D6] py-2 text-sm text-[#1C1815] outline-none focus:border-[#3D4838]"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const current = banner.contact_inquiry_types || [];
+                  if (current.length <= 1) {
+                    toast.error("At least one inquiry topic is required");
+                    return;
+                  }
+                  const updated = current.filter((_, i) => i !== idx);
+                  setBanner((prev) => ({ ...prev, contact_inquiry_types: updated }));
+                }}
+                className="text-red-400 hover:text-red-700 p-2 text-xs uppercase tracking-[0.1em]"
+                title="Remove topic"
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
     </div>
   );
 }
